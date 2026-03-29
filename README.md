@@ -1,14 +1,14 @@
 # Flowmeter IoT
 
-ESP32 + RS485 урсгал хэмжигч → Firebase Realtime Database → Вэб Dashboard
+ESP32 + RS485 flowmeter → Firebase Realtime Database → Вэб Dashboard
 
-## Бүтэц
+## Structure
 
 ```
 Flowmeter-iot/
-├── esp32_firmware/       # ESP32 C++ код (Arduino)
+├── esp32_firmware/       # ESP32 C++ code (Arduino)
 │   └── main.cpp
-├── web_dashboard/        # Firebase вэб хуудас (HTML, JS, CSS)
+├── web_dashboard/        # Firebase website (HTML, JS, CSS)
 │   ├── index.html
 │   └── firebase.json
 ├── .gitignore
@@ -17,15 +17,15 @@ Flowmeter-iot/
 └── README.md
 ```
 
-## Тоног төхөөрөмж
+## devices and modules
 
-| Эд анги | Тайлбар |
+| Device | Description |
 |---------|---------|
-| ESP32 DevKit | Гол хянагч |
-| MAX485 модуль | RS485 хөрвүүлэгч |
-| Урсгал хэмжигч | Modbus RTU (Slave ID 1, 9600 8N1) |
+| ESP32 DevKit | Main controller |
+| MAX485 модуль | RS485 converter |
+| Flowmeter | Modbus RTU (Slave ID 1, 9600 8N1) |
 
-### Холболтын схем
+### Connection diagram
 
 ```
 MAX485 RE/DE → GPIO 4
@@ -35,25 +35,25 @@ MAX485 TX2   → GPIO 17
 
 ## ESP32 firmware
 
-### Arduino IDE-р upload хийх
+### Arduino IDE upload
 
-1. Arduino IDE нээнэ
-2. `esp32_firmware/main.cpp` файлыг нээнэ
-3. Board: **ESP32 Dev Module** сонгоно
-4. Wi-Fi болон Firebase тохиргоогоо оруулна
-5. Upload дарна
+1. Arduino IDE 
+2. `esp32_firmware/main.cpp` open
+3. Board: **ESP32 Dev Module** select
+4. Wi-Fi and Firebase configuration
+5. Upload
 
-### Docker-р compile хийх
+### Docker compile
 
 ```bash
 docker build -t flowmeter-iot .
 docker run --rm flowmeter-iot
 ```
 
-## Вэб Dashboard
+## Web Dashboard
 
-1. `web_dashboard/index.html` дотор Firebase тохиргоогоо оруулна
-2. Хөтөч дээр шууд нээж болно, эсвэл Firebase Hosting руу deploy хийнэ:
+1. `web_dashboard/index.html` Firebase configuration
+2. Open in browser, or deploy to Firebase Hosting:
 
 ```bash
 cd web_dashboard
