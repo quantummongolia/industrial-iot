@@ -1,5 +1,5 @@
 # ============================================================
-#  ESP32 Урсгал Хэмжигч — Compile & Upload
+#  ESP32 Урсгал Хэмжигч — PlatformIO Compile & Upload
 # ============================================================
 #
 #  Image бүтээх:
@@ -15,23 +15,18 @@
 
 FROM python:3.11-slim
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl ca-certificates && rm -rf /var/lib/apt/lists/*
-
-# Arduino CLI
-RUN curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh -s -- --dest /usr/local/bin
-
-# ESP32 core + сангууд
-RUN arduino-cli config init \
-    && arduino-cli config add board_manager.additional_urls \
-       https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json \
-    && arduino-cli core update-index \
-    && arduino-cli core install esp32:esp32 \
-    && arduino-cli lib install "ModbusMaster" \
-    && arduino-cli lib install "Firebase Arduino Client Library for ESP8266 and ESP32"
+# PlatformIO суулгах
+RUN pip install --no-cache-dir platformio
 
 WORKDIR /app
-COPY esp32_firmware/main.cpp ./Flowmeter-iot/Flowmeter-iot.ino
+
+# PlatformIO тохиргоо болон код хуулах
+COPY esp32_firmware/platformio.ini ./platformio.ini
+COPY esp32_firmware/src/main.cpp   ./src/main.cpp
+
+# Сангууд болон toolchain-г урьдчилж татах (cache-д хадгална)
+RUN pio pkg install
+
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 

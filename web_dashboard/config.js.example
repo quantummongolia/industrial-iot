@@ -1,0 +1,14 @@
+/*
+ * ============================================================
+ *  FIREBASE WEB ТОХИРГОО — ЖИШЭЭ ФАЙЛ
+ * ============================================================
+ *  1. Энэ файлыг "config.js" нэрээр хуулна
+ *  2. Доорх утгуудыг өөрийнхөөрөө солино
+ *  3. config.js файл Git-д орохгүй (.gitignore-д нэмэгдсэн)
+ */
+const firebaseConfig = {
+  apiKey:      "AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+  authDomain:  "your-project.firebaseapp.com",
+  databaseURL: "https://your-project-default-rtdb.firebaseio.com",
+  projectId:   "your-project",
+};

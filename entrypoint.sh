@@ -1,26 +1,20 @@
 #!/bin/bash
 # ============================================================
-#  ESP32 Compile & Upload скрипт
+#  ESP32 PlatformIO Compile & Upload скрипт
 # ============================================================
 
 set -e
 
-SKETCH="/app/Flowmeter-iot"
-FQBN="esp32:esp32:esp32"
-BUILD_DIR="/app/build"
-
 case "${1:-compile}" in
   compile)
     echo "========= Compile хийж байна... ========="
-    arduino-cli compile --fqbn "$FQBN" --build-path "$BUILD_DIR" "$SKETCH"
+    pio run
     echo ""
     echo "========= Compile амжилттай! ========="
-    echo "Firmware: $BUILD_DIR/Flowmeter-iot.ino.bin"
-    ls -lh "$BUILD_DIR/Flowmeter-iot.ino.bin"
+    ls -lh .pio/build/esp32dev/firmware.bin
     ;;
 
   upload)
-    # USB порт автоматаар олох
     PORT="${2:-$(ls /dev/ttyUSB* /dev/cu.usbserial* 2>/dev/null | head -1)}"
     if [ -z "$PORT" ]; then
       echo "АЛДАА: USB порт олдсонгүй!"
@@ -29,8 +23,7 @@ case "${1:-compile}" in
     fi
     echo "========= Compile & Upload хийж байна... ========="
     echo "Порт: $PORT"
-    arduino-cli compile --fqbn "$FQBN" --build-path "$BUILD_DIR" "$SKETCH"
-    arduino-cli upload --fqbn "$FQBN" --port "$PORT" --input-dir "$BUILD_DIR"
+    pio run -t upload --upload-port "$PORT"
     echo ""
     echo "========= Upload амжилттай! ========="
     ;;
@@ -42,7 +35,7 @@ case "${1:-compile}" in
       exit 1
     fi
     echo "========= Serial Monitor (115200 baud) ========="
-    arduino-cli monitor --port "$PORT" --config baudrate=115200
+    pio device monitor --port "$PORT" --baud 115200
     ;;
 
   *)

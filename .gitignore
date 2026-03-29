@@ -1,5 +1,6 @@
 # Build
 build/
+.pio/
 *.elf
 *.bin
 *.hex
@@ -17,6 +18,9 @@ Thumbs.db
 # Node
 node_modules/
 .firebase/
+firebase-debug.log
 
-# Нууц мэдээлэл
+# Нууц мэдээлэл — API key, нууц үг, тохиргоо
 secrets.h
+config.js
+*.env
