@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Урсгал Хэмжигч - Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 0.5rem;
+      color: #38bdf8;
+    }
+
+    .subtitle {
+      color: #64748b;
+      margin-bottom: 2rem;
+      font-size: 0.9rem;
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+      font-size: 0.85rem;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #ef4444;
+      transition: background 0.3s;
+    }
+
+    .status-dot.connected { background: #22c55e; }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      width: 100%;
+      max-width: 700px;
+    }
+
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 2rem;
+      text-align: center;
+      transition: border-color 0.3s;
+    }
+
+    .card:hover { border-color: #38bdf8; }
+
+    .card-label {
+      font-size: 0.85rem;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.75rem;
+    }
+
+    .card-value {
+      font-size: 3rem;
+      font-weight: 700;
+      color: #f8fafc;
+      line-height: 1;
+    }
+
+    .card-unit {
+      font-size: 1rem;
+      color: #64748b;
+      margin-top: 0.5rem;
+    }
+
+    .updated {
+      margin-top: 2rem;
+      font-size: 0.8rem;
+      color: #475569;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Урсгал Хэмжигч</h1>
+  <p class="subtitle">Flow Meter IoT Dashboard</p>
+
+  <div class="status">
+    <div class="status-dot" id="statusDot"></div>
+    <span id="statusText">Холбогдоогүй</span>
+  </div>
+
+  <div class="cards">
+    <div class="card">
+      <div class="card-label">Одоогийн урсгал</div>
+      <div class="card-value" id="currentFlow">--</div>
+      <div class="card-unit">л/мин</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Нийт урсгал</div>
+      <div class="card-value" id="totalFlow">--</div>
+      <div class="card-unit">литр</div>
+    </div>
+  </div>
+
+  <p class="updated" id="lastUpdated"></p>
+
+  <!-- Firebase SDK (compat буюу CDN хувилбар) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <script>
+    // ==================== FIREBASE ТОХИРГОО ====================
+    // Өөрийн Firebase төслийн тохиргоогоор солино
+    const firebaseConfig = {
+      apiKey: "YOUR_FIREBASE_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
+      projectId: "YOUR_PROJECT_ID",
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // ==================== DOM ЭЛЕМЕНТҮҮД ====================
+    const elCurrent     = document.getElementById("currentFlow");
+    const elTotal       = document.getElementById("totalFlow");
+    const elStatusDot   = document.getElementById("statusDot");
+    const elStatusText  = document.getElementById("statusText");
+    const elLastUpdated = document.getElementById("lastUpdated");
+
+    // ==================== ХОЛБОЛТЫН ТӨЛӨВ ====================
+    db.ref(".info/connected").on("value", (snap) => {
+      if (snap.val() === true) {
+        elStatusDot.classList.add("connected");
+        elStatusText.textContent = "Холбогдсон";
+      } else {
+        elStatusDot.classList.remove("connected");
+        elStatusText.textContent = "Холбогдоогүй";
+      }
+    });
+
+    // ==================== БОДИТ ЦАГИЙН ӨГӨГДӨЛ ====================
+    // Одоогийн урсгал — realtime сонсогч
+    db.ref("/flow_system/current_flow").on("value", (snap) => {
+      const val = snap.val();
+      if (val !== null) {
+        elCurrent.textContent = parseFloat(val).toFixed(2);
+        updateTimestamp();
+      }
+    });
+
+    // Нийт урсгал — realtime сонсогч
+    db.ref("/flow_system/total_flow").on("value", (snap) => {
+      const val = snap.val();
+      if (val !== null) {
+        elTotal.textContent = parseFloat(val).toFixed(2);
+        updateTimestamp();
+      }
+    });
+
+    // Сүүлийн шинэчлэлтийн хугацааг харуулна
+    function updateTimestamp() {
+      const now = new Date();
+      elLastUpdated.textContent =
+        "Сүүлд шинэчлэгдсэн: " + now.toLocaleTimeString("mn-MN");
+    }
+  </script>
+
+</body>
+</html>

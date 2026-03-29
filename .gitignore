@@ -1,0 +1,22 @@
+# Build
+build/
+*.elf
+*.bin
+*.hex
+*.map
+
+# IDE
+.vscode/
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules/
+.firebase/
+
+# Нууц мэдээлэл
+secrets.h
