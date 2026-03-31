@@ -1,90 +1,156 @@
 /*
  * ============================================================
- *  ESP32 Урсгал хэмжигч → Firebase Realtime Database
+ *  ESP32 Түвшин хэмжигч → Firebase Realtime Database
  * ============================================================
  *
  * Тоног төхөөрөмж:
  *   - ESP32 DevKit
  *   - MAX485 RS485 хөрвүүлэгч (RE/DE → GPIO 4, RX2 → GPIO 16, TX2 → GPIO 17)
- *   - Үйлдвэрлэлийн урсгал хэмжигч (Modbus RTU, Slave ID 1, 9600 8N1)
+ *   - Ultrasonic түвшин хэмжигч (Modbus RTU, Slave ID 1, 9600 8N1)
  *
  * Шаардлагатай сангууд (platformio.ini-д тохируулсан):
- *   - ModbusMaster (4-20ma)
  *   - Firebase Arduino Client Library (Mobizt)
  *
  * Регистрийн зураглал:
- *   0x0000 (2 регистр) → Одоогийн урсгал (IEEE 754 Float32)
- *   0x0008 (2 регистр) → Нийт урсгал     (IEEE 754 Float32)
+ *   0x2001 (1 регистр) → Түвшний утга (uint16)
  */
 
-#include <Arduino.h> // PlatformIO-д заавал шаардлагатай
+#include "secrets.h"
+#include <Arduino.h>
 #include <Firebase_ESP_Client.h>
-#include <ModbusMaster.h>
 #include <WiFi.h>
-#include <addons/RTDBHelper.h>  // Firebase RTDB туслах функцууд
-#include <addons/TokenHelper.h> // Firebase токен үүсгэгч
-#include "secrets.h"            // Wi-Fi, Firebase нууц тохиргоо (Git-д ороогүй)
+#include <addons/RTDBHelper.h>
+#include <addons/TokenHelper.h>
 
 // ========================== ТОХИРГОО ==========================
 
 // MAX485 удирдлагын пин (HIGH = дамжуулах, LOW = хүлээн авах)
-#define MAX485_DE_RE 18
+#define MAX485_DE_RE 4
+#define RS485_RX_PIN 16
+#define RS485_TX_PIN 17
 
 // Modbus slave тохиргоо
-#define MODBUS_SLAVE_ID 1
+#define MODBUS_SLAVE_ID 2
 #define MODBUS_BAUD 9600
-#define MODBUS_SERIAL Serial2 // GPIO 16 (RX2), GPIO 17 (TX2)
 
-// Регистрийн хаягууд
-#define REG_CURRENT_FLOW 0x0000 // Одоогийн урсгал
-#define REG_TOTAL_FLOW 0x0008   // Нийт урсгал
-#define REG_COUNT 2             // 2 x 16-бит регистр = 32-бит float
+// Регистрийн хаяг
+#define REG_CURRENT_FLOW 0x2001
 
 // Хугацааны тохиргоо
-#define READ_INTERVAL_MS 1000 // 1 секунд тутамд уншина
-#define WIFI_RETRY_MS 10000   // 10 секунд тутамд Wi-Fi дахин холбоно
+#define READ_INTERVAL_MS 2000
+#define WIFI_RETRY_MS 10000
 
 // Firebase RTDB зам
 #define FB_PATH_CURRENT "/flow_system/current_flow"
-#define FB_PATH_TOTAL "/flow_system/total_flow"
 
 // ========================== ГЛОБАЛ ОБЪЕКТУУД ==========================
 
-ModbusMaster modbus;
 FirebaseData fbData;
 FirebaseAuth fbAuth;
 FirebaseConfig fbConfig;
 
-unsigned long lastReadTime = 0;  // Сүүлийн уншсан хугацаа
-unsigned long lastWifiCheck = 0; // Сүүлийн Wi-Fi шалгасан хугацаа
-bool firebaseReady = false;      // Firebase бэлэн эсэх
+unsigned long lastReadTime = 0;
+unsigned long lastWifiCheck = 0;
+bool firebaseReady = false;
 
-// ========================== RS485 ЧИГЛЭЛ УДИРДЛАГА ================
+// ========================== CRC16 ================================
 
-// Modbus дамжуулахын ӨМНӨ дуудагдана — MAX485-г дамжуулах горимд шилжүүлнэ
-void preTransmission() { digitalWrite(MAX485_DE_RE, HIGH); }
+uint16_t crc16(uint8_t *buf, uint16_t len) {
+  uint16_t crc = 0xFFFF;
+  for (uint16_t i = 0; i < len; i++) {
+    crc ^= buf[i];
+    for (uint8_t j = 0; j < 8; j++) {
+      if (crc & 0x0001) {
+        crc >>= 1;
+        crc ^= 0xA001;
+      } else {
+        crc >>= 1;
+      }
+    }
+  }
+  return crc;
+}
 
-// Modbus дамжуулсны ДАРАА дуудагдана — MAX485-г хүлээн авах горимд шилжүүлнэ
-void postTransmission() { digitalWrite(MAX485_DE_RE, LOW); }
+// ========================== RAW MODBUS ============================
 
-// ========================== IEEE 754 ХӨРВҮҮЛЭЛТ ====================
+static uint8_t rxbuf[64];
+
+int sendAndRead(uint16_t reg, uint16_t count) {
+  uint8_t req[8];
+  req[0] = MODBUS_SLAVE_ID;
+  req[1] = 0x03; // Read Holding Register
+  req[2] = (reg >> 8) & 0xFF;
+  req[3] = reg & 0xFF;
+  req[4] = (count >> 8) & 0xFF;
+  req[5] = count & 0xFF;
+  uint16_t c = crc16(req, 6);
+  req[6] = c & 0xFF;
+  req[7] = (c >> 8) & 0xFF;
+
+  while (Serial2.available())
+    Serial2.read();
+
+  digitalWrite(MAX485_DE_RE, HIGH);
+  delayMicroseconds(500);
+  Serial2.write(req, 8);
+  Serial2.flush();
+  delayMicroseconds(500);
+  digitalWrite(MAX485_DE_RE, LOW);
+
+  Serial.print("[TX] ");
+  for (int i = 0; i < 8; i++)
+    Serial.printf("%02X ", req[i]);
+  Serial.println();
+
+  // Timeout-тэй хүлээлт — байт ирэхийг 100ms хүртэл хүлээнэ
+  int len = 0;
+  unsigned long t = millis();
+  while (millis() - t < 100) {
+    while (Serial2.available() && len < 64) {
+      rxbuf[len++] = Serial2.read();
+      t = millis(); // шинэ байт ирэх бүрт timeout сэргээнэ
+    }
+    delay(1);
+  }
+
+  Serial.printf("[RX] (%d bytes): ", len);
+  for (int i = 0; i < len; i++)
+    Serial.printf("%02X ", rxbuf[i]);
+  Serial.println();
+
+  return len;
+}
 
 /*
- * 2 ширхэг 16-бит Modbus регистрийг нэгтгэж 32-бит IEEE 754 float болгоно.
- * Регистрийн дараалал: Big-Endian (ахлах үг эхэнд).
- * Хэрэв таны төхөөрөмж Low-word-first ашигладаг бол highWord, lowWord-г солино.
+ * Өгөгдсөн хаягаас 1 holding регистр уншиж uint16 утга буцаана.
+ * Noise-с хамгаалж slave ID + FC pattern хайж, CRC шалгана.
  */
-float registersToFloat(uint16_t highWord, uint16_t lowWord) {
-  uint32_t combined = ((uint32_t)highWord << 16) | (uint32_t)lowWord;
-  float result;
-  memcpy(&result, &combined, sizeof(result));
-  return result;
+bool readRegister(uint16_t reg, uint16_t &outValue) {
+  int len = sendAndRead(reg, 1);
+  if (len < 7)
+    return false;
+
+  for (int i = 0; i <= len - 7; i++) {
+    if (rxbuf[i] == MODBUS_SLAVE_ID && rxbuf[i + 1] == 0x03) {
+      uint8_t byteCount = rxbuf[i + 2];
+      int frameLen = 3 + byteCount + 2;
+      if (i + frameLen <= len) {
+        uint16_t recvCrc =
+            rxbuf[i + frameLen - 2] | (rxbuf[i + frameLen - 1] << 8);
+        uint16_t calcCrc = crc16(&rxbuf[i], frameLen - 2);
+        if (recvCrc == calcCrc) {
+          outValue = (rxbuf[i + 3] << 8) | rxbuf[i + 4];
+          return true;
+        }
+      }
+    }
+  }
+  return false;
 }
 
 // ========================== WI-FI ХОЛБОЛТ =========================
 
 void wifiConnect() {
-  // Аль хэдийн холбогдсон бол алгасна
   if (WiFi.status() == WL_CONNECTED)
     return;
 
@@ -92,7 +158,6 @@ void wifiConnect() {
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
-  // 15 секунд хүлээнэ
   unsigned long start = millis();
   while (WiFi.status() != WL_CONNECTED && millis() - start < 15000) {
     delay(500);
@@ -109,66 +174,29 @@ void wifiConnect() {
 
 // ========================== FIREBASE ===============================
 
-// Firebase эхлүүлэх (Email/Password Authentication — зөвхөн ESP32 бичих эрхтэй)
-// tokenStatusCallback нь addons/TokenHelper.h дотор тодорхойлогдсон
 void firebaseInit() {
   fbConfig.api_key = FIREBASE_API_KEY;
   fbConfig.database_url = FIREBASE_DB_URL;
 
-  // Email/Password нэвтрэлт — зөвхөн энэ хэрэглэгч бичих эрхтэй
-  fbAuth.user.email    = FIREBASE_USER_EMAIL;
+  fbAuth.user.email = FIREBASE_USER_EMAIL;
   fbAuth.user.password = FIREBASE_USER_PASS;
 
   fbConfig.token_status_callback = tokenStatusCallback;
-
-  // ESP32 дээрх SSL санах ойн хэрэглээг хязгаарлана
-  fbData.setBSSLBufferSize(1024, 1024);
+  fbData.setBSSLBufferSize(2048, 2048);
 
   Firebase.begin(&fbConfig, &fbAuth);
-  Firebase.reconnectNetwork(true); // Сүлжээ тасрахад автомат дахин холбоно
+  Firebase.reconnectNetwork(true);
 
   Serial.println("[Firebase] Эхлүүлсэн — нэвтэрч байна...");
 }
 
-// Firebase бэлэн эсэхийг шалгана
 bool ensureFirebase() {
-  if (!Firebase.ready()) {
+  if (!Firebase.ready())
     return false;
-  }
   if (!firebaseReady) {
     firebaseReady = true;
     Serial.println("[Firebase] Бэлэн");
   }
-  return true;
-}
-
-// ========================== MODBUS =================================
-
-// Modbus холболт эхлүүлэх
-void modbusInit() {
-  MODBUS_SERIAL.begin(MODBUS_BAUD, SERIAL_8N1, 16, 17);
-  modbus.begin(MODBUS_SLAVE_ID, MODBUS_SERIAL);
-  modbus.preTransmission(preTransmission);
-  modbus.postTransmission(postTransmission);
-  Serial.println("[Modbus] Эхлүүлсэн — Slave ID: " + String(MODBUS_SLAVE_ID));
-}
-
-/*
- * Өгөгдсөн хаягаас 2 holding регистр уншиж float руу хөрвүүлнэ.
- * Амжилттай бол true буцааж, утгыг outValue-д бичнэ.
- */
-bool readFloatRegister(uint16_t startAddr, float &outValue) {
-  uint8_t result = modbus.readHoldingRegisters(startAddr, REG_COUNT);
-
-  if (result != modbus.ku8MBSuccess) {
-    Serial.printf("[Modbus] 0x%04X уншихад алдаа — код: 0x%02X\n", startAddr,
-                  result);
-    return false;
-  }
-
-  uint16_t highWord = modbus.getResponseBuffer(0);
-  uint16_t lowWord = modbus.getResponseBuffer(1);
-  outValue = registersToFloat(highWord, lowWord);
   return true;
 }
 
@@ -177,15 +205,17 @@ bool readFloatRegister(uint16_t startAddr, float &outValue) {
 void setup() {
   Serial.begin(115200);
   delay(100);
-  Serial.println("\n========= Урсгал Хэмжигч IoT Систем =========");
+  Serial.println("\n========= Түвшин Хэмжигч IoT Систем =========");
 
-  // MAX485 чиглэлийн пин тохируулах
   pinMode(MAX485_DE_RE, OUTPUT);
-  digitalWrite(MAX485_DE_RE, LOW); // Анхдагч: хүлээн авах горим
+  digitalWrite(MAX485_DE_RE, LOW);
+  pinMode(RS485_RX_PIN, INPUT_PULLUP);
 
-  wifiConnect();  // Wi-Fi холбох
-  firebaseInit(); // Firebase эхлүүлэх
-  modbusInit();   // Modbus эхлүүлэх
+  Serial2.begin(MODBUS_BAUD, SERIAL_8N1, RS485_RX_PIN, RS485_TX_PIN);
+  Serial.println("[Modbus] Эхлүүлсэн — Slave ID: " + String(MODBUS_SLAVE_ID));
+
+  wifiConnect();
+  firebaseInit();
 }
 
 // ========================== LOOP (ҮНДСЭН ДАВТАЛТ) =================
@@ -193,59 +223,41 @@ void setup() {
 void loop() {
   unsigned long now = millis();
 
-  // Wi-Fi тасарсан бол 10 секунд тутамд дахин холбоно
   if (WiFi.status() != WL_CONNECTED && now - lastWifiCheck >= WIFI_RETRY_MS) {
     lastWifiCheck = now;
     wifiConnect();
   }
 
-  // 1 секунд тутамд уншина
   if (now - lastReadTime < READ_INTERVAL_MS)
     return;
   lastReadTime = now;
 
-  // Modbus-с урсгалын утгуудыг уншина
-  float currentFlow = 0.0f;
-  float totalFlow = 0.0f;
+  uint16_t rawValue = 0;
+  bool ok = false;
+  for (int attempt = 0; attempt < 3 && !ok; attempt++) {
+    ok = readRegister(REG_CURRENT_FLOW, rawValue);
+    if (!ok && attempt < 2)
+      delay(50);
+  }
 
-  bool okCurrent = readFloatRegister(REG_CURRENT_FLOW, currentFlow);
-  bool okTotal = readFloatRegister(REG_TOTAL_FLOW, totalFlow);
-
-  // Хоёулаа амжилтгүй бол алгасна
-  if (!okCurrent && !okTotal) {
-    Serial.println("[Систем] Modbus уншилт бүгд амжилтгүй — алгаслаа");
+  if (!ok) {
+    Serial.println("[Modbus] Уншилт амжилтгүй (3 оролдлого)");
     return;
   }
 
-  // Serial монитор дээр хэвлэнэ
-  if (okCurrent)
-    Serial.printf("[Өгөгдөл] Одоогийн урсгал: %.4f\n", currentFlow);
-  if (okTotal)
-    Serial.printf("[Өгөгдөл] Нийт урсгал:     %.4f\n", totalFlow);
+  Serial.printf("[Өгөгдөл] Утга: %d\n", rawValue);
 
-  // Firebase бэлэн эсэхийг шалгана
   if (!ensureFirebase()) {
-    Serial.println("[Систем] Firebase бэлэн биш — зөвхөн Serial-д хэвлэлээ");
+    Serial.println("[Систем] Firebase бэлэн биш");
     return;
   }
 
-  // Одоогийн урсгалыг Firebase руу илгээнэ
-  if (okCurrent) {
-    if (Firebase.RTDB.setFloat(&fbData, FB_PATH_CURRENT, currentFlow)) {
-      Serial.println("[Firebase] current_flow шинэчлэгдлээ");
-    } else {
-      Serial.printf("[Firebase] current_flow АЛДАА: %s\n",
-                    fbData.errorReason().c_str());
-    }
+  if (Firebase.RTDB.setInt(&fbData, FB_PATH_CURRENT, rawValue)) {
+    Serial.println("[Firebase] current_flow шинэчлэгдлээ");
+  } else {
+    Serial.printf("[Firebase] АЛДАА: %s\n", fbData.errorReason().c_str());
   }
 
-  // Нийт урсгалыг Firebase руу илгээнэ
-  if (okTotal) {
-    if (Firebase.RTDB.setFloat(&fbData, FB_PATH_TOTAL, totalFlow)) {
-      Serial.println("[Firebase] total_flow шинэчлэгдлээ");
-    } else {
-      Serial.printf("[Firebase] total_flow АЛДАА: %s\n",
-                    fbData.errorReason().c_str());
-    }
-  }
+  // Timestamp тусдаа бичнэ — ижил утга дахин илгээхэд listener ажиллахын тулд
+  Firebase.RTDB.setInt(&fbData, "/flow_system/last_updated", (int)(millis() / 1000));
 }

@@ -285,6 +285,23 @@
       color: var(--text-dim);
     }
 
+    /* Data receive LED */
+    .data-led {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green-dim);
+      vertical-align: middle;
+      margin-right: 0.3rem;
+      transition: opacity 0.1s;
+    }
+
+    .data-led.blink {
+      background: var(--green);
+      box-shadow: var(--green-glow);
+    }
+
     /* Total flow - cyan accent */
     .gauge-card.total .gauge-value {
       color: var(--cyan);
@@ -507,7 +524,7 @@
     <div class="gauges">
       <!-- Current Flow -->
       <div class="gauge-card">
-        <div class="gauge-label">Current Flow Rate</div>
+        <div class="gauge-label"><span class="data-led" id="dataLed"></span> Current Flow Rate</div>
         <div class="gauge-value-row">
           <div class="gauge-value" id="currentFlow">0.00</div>
           <div class="gauge-unit">m&sup3;/h</div>
@@ -612,6 +629,12 @@
     const elLastUpdate = document.getElementById("lastUpdate");
     const elInterruptBanner = document.getElementById("interruptBanner");
     const elInterruptDuration = document.getElementById("interruptDuration");
+    const elDataLed = document.getElementById("dataLed");
+
+    function blinkLed() {
+      elDataLed.classList.add("blink");
+      setTimeout(() => elDataLed.classList.remove("blink"), 300);
+    }
 
     // ============================================================
     //  HEADER CLOCK
@@ -850,6 +873,12 @@
     // ============================================================
     //  FIREBASE REALTIME LISTENERS
     // ============================================================
+
+    // Timestamp listener — ижил утга дахин илгээхэд lastDataTime шинэчилнэ
+    db.ref("/flow_system/last_updated").on("value", () => {
+      lastDataTime = Date.now();
+      blinkLed();
+    });
 
     // Current Flow
     db.ref("/flow_system/current_flow").on("value", (snap) => {
