@@ -21,6 +21,7 @@
 #include <WiFi.h>
 #include <addons/RTDBHelper.h>
 #include <addons/TokenHelper.h>
+#include <esp_task_wdt.h>
 
 // ========================== ТОХИРГОО ==========================
 
@@ -34,11 +35,12 @@
 #define MODBUS_BAUD 9600
 
 // Регистрийн хаяг
-#define REG_CURRENT_FLOW 0x2001
+#define REG_CURRENT_FLOW 0x0000
 
 // Хугацааны тохиргоо
-#define READ_INTERVAL_MS 2000
+#define READ_INTERVAL_MS 800
 #define WIFI_RETRY_MS 10000
+#define WDT_TIMEOUT_S 30
 
 // Firebase RTDB зам
 #define FB_PATH_CURRENT "/flow_system/current_flow"
@@ -122,24 +124,39 @@ int sendAndRead(uint16_t reg, uint16_t count) {
 }
 
 /*
- * Өгөгдсөн хаягаас 1 holding регистр уншиж uint16 утга буцаана.
+ * Big-Endian float parse (4 байт → float)
+ */
+float parseFloatBE(uint8_t *data) {
+  union {
+    uint32_t u;
+    float f;
+  } conv;
+  conv.u = ((uint32_t)data[0] << 24) | ((uint32_t)data[1] << 16) |
+           ((uint32_t)data[2] << 8) | (uint32_t)data[3];
+  return conv.f;
+}
+
+/*
+ * Өгөгдсөн хаягаас 2 holding регистр уншиж float утга буцаана.
  * Noise-с хамгаалж slave ID + FC pattern хайж, CRC шалгана.
  */
-bool readRegister(uint16_t reg, uint16_t &outValue) {
-  int len = sendAndRead(reg, 1);
-  if (len < 7)
+bool readFlowFloat(uint16_t reg, float &outValue) {
+  int len = sendAndRead(reg, 2);
+  if (len < 9)
     return false;
 
-  for (int i = 0; i <= len - 7; i++) {
+  for (int i = 0; i <= len - 9; i++) {
     if (rxbuf[i] == MODBUS_SLAVE_ID && rxbuf[i + 1] == 0x03) {
       uint8_t byteCount = rxbuf[i + 2];
+      if (byteCount != 4)
+        continue;
       int frameLen = 3 + byteCount + 2;
       if (i + frameLen <= len) {
         uint16_t recvCrc =
             rxbuf[i + frameLen - 2] | (rxbuf[i + frameLen - 1] << 8);
         uint16_t calcCrc = crc16(&rxbuf[i], frameLen - 2);
         if (recvCrc == calcCrc) {
-          outValue = (rxbuf[i + 3] << 8) | rxbuf[i + 4];
+          outValue = parseFloatBE(&rxbuf[i + 3]);
           return true;
         }
       }
@@ -216,11 +233,20 @@ void setup() {
 
   wifiConnect();
   firebaseInit();
+
+  // Watchdog Timer эхлүүлэх (30 секунд)
+  esp_task_wdt_config_t wdtConfig = {.timeout_ms = WDT_TIMEOUT_S * 1000,
+                                     .idle_core_mask = 0,
+                                     .trigger_panic = true};
+  esp_task_wdt_reconfigure(&wdtConfig);
+  esp_task_wdt_add(NULL);
+  Serial.printf("[WDT] Watchdog эхлүүлсэн — %d секунд\n", WDT_TIMEOUT_S);
 }
 
 // ========================== LOOP (ҮНДСЭН ДАВТАЛТ) =================
 
 void loop() {
+  esp_task_wdt_reset();
   unsigned long now = millis();
 
   if (WiFi.status() != WL_CONNECTED && now - lastWifiCheck >= WIFI_RETRY_MS) {
@@ -232,10 +258,10 @@ void loop() {
     return;
   lastReadTime = now;
 
-  uint16_t rawValue = 0;
+  float flowValue = 0.0;
   bool ok = false;
   for (int attempt = 0; attempt < 3 && !ok; attempt++) {
-    ok = readRegister(REG_CURRENT_FLOW, rawValue);
+    ok = readFlowFloat(REG_CURRENT_FLOW, flowValue);
     if (!ok && attempt < 2)
       delay(50);
   }
@@ -245,19 +271,20 @@ void loop() {
     return;
   }
 
-  Serial.printf("[Өгөгдөл] Утга: %d\n", rawValue);
+  Serial.printf("[Өгөгдөл] Урсгал: %.4f\n", flowValue);
 
   if (!ensureFirebase()) {
     Serial.println("[Систем] Firebase бэлэн биш");
     return;
   }
 
-  if (Firebase.RTDB.setInt(&fbData, FB_PATH_CURRENT, rawValue)) {
+  if (Firebase.RTDB.setFloat(&fbData, FB_PATH_CURRENT, flowValue)) {
     Serial.println("[Firebase] current_flow шинэчлэгдлээ");
   } else {
     Serial.printf("[Firebase] АЛДАА: %s\n", fbData.errorReason().c_str());
   }
 
   // Timestamp тусдаа бичнэ — ижил утга дахин илгээхэд listener ажиллахын тулд
-  Firebase.RTDB.setInt(&fbData, "/flow_system/last_updated", (int)(millis() / 1000));
+  Firebase.RTDB.setInt(&fbData, "/flow_system/last_updated",
+                       (int)(millis() / 1000));
 }

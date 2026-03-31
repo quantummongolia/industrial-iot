@@ -24,3 +24,4 @@ firebase-debug.log
 secrets.h
 config.js
 *.env
+test.cpp
