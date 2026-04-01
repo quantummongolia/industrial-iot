@@ -2,103 +2,170 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FLOW METER — Industrial Monitor</title>
+  <meta charset="UTF-8"> <!-- Set character encoding to UTF-8 for international characters -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Responsive viewport for mobile devices -->
+  <title>INDUSTRIAL IoT system</title> <!-- Browser tab title -->
 
   <style>
     /* ============================================================
-       RETRO INDUSTRIAL THEME — DARK (default) & LIGHT
+       RETRO INDUSTRIAL THEME — CSS Custom Properties (Variables)
+       Dark theme is the default, light theme overrides below.
        ============================================================ */
 
+    /* Import Google Fonts: VT323 (retro display), Share Tech Mono (monospace), Orbitron (futuristic headings) */
     @import url('https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
 
+    /* Root CSS variables — Dark theme defaults */
     :root {
       --bg: #0a0a0a;
+      /* Page background color (near black) */
       --panel: #111111;
+      /* Card/panel background color */
       --panel-edge: #1a1a1a;
+      /* Panel edge highlight color */
       --border: #222;
+      /* Border color for elements */
       --amber: #ffb000;
+      /* Primary amber/gold text color */
       --amber-dim: #996a00;
+      /* Dimmed amber for secondary text */
       --amber-glow: 0 0 8px #ffb00066, 0 0 20px #ffb00022;
+      /* Amber glow effect for text-shadow */
       --green: #33ff33;
+      /* Bright green for active/online indicators */
       --green-dim: #1a8c1a;
+      /* Dimmed green for subtle indicators */
       --green-glow: 0 0 8px #33ff3366, 0 0 20px #33ff3322;
+      /* Green glow effect */
       --red: #ff3333;
+      /* Red for errors and offline status */
       --red-glow: 0 0 8px #ff333366;
+      /* Red glow effect */
       --cyan: #00ffff;
+      /* Cyan accent color */
       --cyan-dim: #007777;
+      /* Dimmed cyan */
       --scanline: rgba(0, 0, 0, 0.12);
+      /* CRT scanline overlay opacity */
       --text-dim: #555555;
+      /* Dimmed text color for labels */
       --header-bg: linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%);
+      /* Header gradient background */
       --footer-bg: #0d0d0d;
+      /* Footer background color */
       --footer-border: #1a1a1a;
+      /* Footer top border color */
       --chart-bg: #0a0f0a;
+      /* Chart area background */
       --bar-track: #1a1a1a;
+      /* Progress bar track background */
       --interrupt-bg: #1a0000;
+      /* Data interruption banner background (dark red) */
       --mono: 'Share Tech Mono', 'Courier New', monospace;
+      /* Monospace font stack */
       --display: 'VT323', monospace;
+      /* Retro display font */
       --heading: 'Orbitron', sans-serif;
+      /* Futuristic heading font */
     }
 
     /* ============================================================
-       LIGHT THEME
+       LIGHT THEME — Override CSS variables when data-theme="light"
        ============================================================ */
     [data-theme="light"] {
       --bg: #f5f5f0;
+      /* Light beige background */
       --panel: #ffffff;
+      /* White card backgrounds */
       --panel-edge: #e0e0e0;
+      /* Light gray panel edges */
       --border: #ccc;
+      /* Light gray borders */
       --amber: #1a1a1a;
+      /* Dark text replaces amber in light mode */
       --amber-dim: #444;
+      /* Medium gray for secondary text */
       --amber-glow: none;
+      /* No glow effects in light mode */
       --green: #1a8c1a;
+      /* Darker green for light backgrounds */
       --green-dim: #2d7a2d;
+      /* Medium green */
       --green-glow: none;
+      /* No glow in light mode */
       --red: #cc0000;
+      /* Darker red for light mode */
       --red-glow: none;
+      /* No glow in light mode */
       --cyan: #006666;
+      /* Dark cyan for light backgrounds */
       --cyan-dim: #338888;
+      /* Medium cyan */
       --scanline: transparent;
+      /* No CRT scanlines in light mode */
       --text-dim: #666;
+      /* Medium gray text */
       --header-bg: linear-gradient(180deg, #e8e8e0 0%, #f0f0ea 100%);
+      /* Light header gradient */
       --footer-bg: #e8e8e0;
+      /* Light footer background */
       --footer-border: #ccc;
+      /* Light footer border */
       --chart-bg: #fafaf5;
+      /* Light chart background */
       --bar-track: #e0e0d8;
+      /* Light bar track */
       --interrupt-bg: #fff0f0;
+      /* Light red for interruption banner */
     }
 
+    /* Universal reset — remove default margins, padding, use border-box sizing */
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
     }
 
+    /* Body — base page styling */
     body {
       font-family: var(--mono);
+      /* Use monospace font as default */
       background: var(--bg);
+      /* Apply background color from theme */
       color: var(--amber);
+      /* Apply text color from theme */
       min-height: 100vh;
+      /* Minimum full viewport height */
       overflow-x: hidden;
+      /* Prevent horizontal scrollbar */
       transition: background 0.3s, color 0.3s;
+      /* Smooth theme transition */
     }
 
-    /* CRT scanline overlay */
+    /* CRT scanline overlay — creates horizontal line effect over entire page */
     body::after {
       content: '';
+      /* Required for pseudo-element to render */
       position: fixed;
+      /* Fixed position covers viewport */
       inset: 0;
+      /* Stretch to all edges */
       background: repeating-linear-gradient(0deg,
           var(--scanline) 0px,
+          /* Dark line */
           var(--scanline) 1px,
+          /* 1px thick dark line */
           transparent 1px,
+          /* Transparent gap */
           transparent 3px);
+      /* 2px gap between lines */
       pointer-events: none;
+      /* Allow clicking through the overlay */
       z-index: 9999;
+      /* Place on top of everything */
     }
 
-    /* Subtle CRT flicker */
+    /* Subtle CRT flicker animation — brief opacity dip simulating old monitor */
     @keyframes flicker {
 
       0%,
@@ -106,65 +173,91 @@
         opacity: 1;
       }
 
+      /* Normal opacity at start and end */
       92% {
         opacity: 1;
       }
 
+      /* Normal until 92% */
       93% {
         opacity: 0.8;
       }
 
+      /* Brief flicker at 93% */
       94% {
         opacity: 1;
       }
+
+      /* Back to normal at 94% */
     }
 
     /* ============================================================
-       HEADER
+       HEADER — Top navigation bar with logo, status, and controls
        ============================================================ */
 
+    /* Header container — flexbox layout with space between left and right groups */
     .header {
       background: var(--header-bg);
+      /* Gradient background */
       border-bottom: 2px solid var(--border);
+      /* Bottom border line */
       padding: 1rem 2rem;
+      /* Vertical and horizontal padding */
       display: flex;
+      /* Flexbox layout */
       justify-content: space-between;
+      /* Push left and right groups apart */
       align-items: center;
+      /* Vertically center items */
       transition: background 0.3s, border-color 0.3s;
+      /* Smooth theme switch */
     }
 
+    /* Header left group — contains logo and status badge */
     .header-left {
       display: flex;
       align-items: center;
       gap: 1rem;
+      /* Space between logo and status badge */
     }
 
+    /* Logo text styling — large, bold, futuristic font */
     .logo {
       font-family: var(--heading);
+      /* Orbitron futuristic font */
       font-size: 1.4rem;
       font-weight: 900;
+      /* Extra bold weight */
       color: var(--amber);
       text-shadow: var(--amber-glow);
+      /* Glowing text effect in dark mode */
       letter-spacing: 0.15em;
+      /* Wide letter spacing */
     }
 
+    /* Logo subtitle — smaller monospace text below logo */
     .logo-sub {
       font-family: var(--mono);
       font-size: 0.7rem;
       color: var(--text-dim);
+      /* Dimmed color for subtitle */
       letter-spacing: 0.2em;
     }
 
+    /* Header right group — contains theme toggle and clock */
     .header-right {
       display: flex;
       align-items: center;
       gap: 1.2rem;
+      /* Space between toggle and clock */
     }
 
+    /* Status badge — connection status indicator container */
     .status-badge {
       display: flex;
       align-items: center;
       gap: 0.5rem;
+      /* Space between LED dot and text */
       font-size: 0.8rem;
       color: var(--text-dim);
       border: 1px solid var(--border);
@@ -173,21 +266,31 @@
       background: var(--bg);
     }
 
+    /* Status LED indicator — small colored circle showing connection state */
     .status-led {
       width: 8px;
       height: 8px;
       border-radius: 50%;
+      /* Make it circular */
       background: var(--red);
+      /* Red = offline (default state) */
       box-shadow: var(--red-glow);
+      /* Red glow effect */
       transition: all 0.3s;
+      /* Smooth color transition */
     }
 
+    /* Status LED online state — green with pulsing animation */
     .status-led.online {
       background: var(--green);
+      /* Green = online */
       box-shadow: var(--green-glow);
+      /* Green glow effect */
       animation: pulse-led 2s ease-in-out infinite;
+      /* Continuous pulse animation */
     }
 
+    /* LED pulse animation — fades in and out for "breathing" effect */
     @keyframes pulse-led {
 
       0%,
@@ -195,120 +298,162 @@
         opacity: 1;
       }
 
+      /* Full opacity at start and end */
       50% {
         opacity: 0.5;
       }
+
+      /* Half opacity at midpoint */
     }
 
+    /* Header clock display — shows current time in retro green digits */
     .header-time {
       font-family: var(--display);
+      /* VT323 retro font */
       font-size: 1.3rem;
       color: var(--green);
       text-shadow: var(--green-glow);
+      /* Green glow for CRT effect */
       letter-spacing: 0.1em;
     }
 
     /* ============================================================
-       THEME TOGGLE — Sun/Moon animated button
+       THEME TOGGLE — Circular button with animated Sun/Moon icons
        ============================================================ */
 
+    /* Theme toggle button — circular button in header */
     .theme-toggle {
       background: var(--panel);
       border: 1px solid var(--border);
       border-radius: 50%;
+      /* Circular shape */
       width: 36px;
       height: 36px;
       padding: 0;
       cursor: pointer;
+      /* Hand cursor on hover */
       position: relative;
       overflow: hidden;
+      /* Hide icons when they animate out */
       transition: all 0.3s;
       display: flex;
       align-items: center;
       justify-content: center;
     }
 
+    /* Theme toggle hover effect — highlight border */
     .theme-toggle:hover {
       border-color: var(--amber);
     }
 
+    /* Theme icon base styles — positioned absolutely for crossfade animation */
     .theme-icon {
       position: absolute;
       transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+        /* Smooth rotation/scale */
         opacity 0.3s ease;
+      /* Smooth fade */
       font-size: 1.1rem;
       line-height: 1;
     }
 
-    /* Moon (dark mode default — visible) */
+    /* Moon icon — visible in dark mode (default) */
     .icon-moon {
       transform: rotate(0deg) scale(1);
+      /* Normal position and size */
       opacity: 1;
+      /* Fully visible */
       color: var(--amber);
       text-shadow: var(--amber-glow);
     }
 
-    /* Sun (hidden in dark mode) */
+    /* Sun icon — hidden in dark mode */
     .icon-sun {
       transform: rotate(-90deg) scale(0);
+      /* Rotated and scaled down (hidden) */
       opacity: 0;
+      /* Invisible */
       color: #8a7000;
     }
 
-    /* Light theme — swap */
+    /* Light theme: hide moon icon with rotation animation */
     [data-theme="light"] .icon-moon {
       transform: rotate(90deg) scale(0);
+      /* Rotate out and scale to zero */
       opacity: 0;
     }
 
+    /* Light theme: show sun icon with rotation animation */
     [data-theme="light"] .icon-sun {
       transform: rotate(0deg) scale(1);
+      /* Rotate to normal position */
       opacity: 1;
     }
 
     /* ============================================================
-       MAIN LAYOUT
+       MAIN LAYOUT — Content area with max width and centered
        ============================================================ */
 
+    /* Main content container */
     .main {
       max-width: 1200px;
+      /* Maximum content width */
       margin: 0 auto;
+      /* Center horizontally */
       padding: 1.5rem;
+      /* Inner padding */
       padding-bottom: 3.5rem;
+      /* Extra bottom padding for fixed footer */
       animation: flicker 8s infinite;
+      /* Subtle CRT flicker effect */
     }
 
+    /* Section label — uppercase text above content sections */
     .section-label {
       font-family: var(--mono);
       font-size: 0.7rem;
       color: var(--text-dim);
       letter-spacing: 0.25em;
+      /* Wide letter spacing */
       text-transform: uppercase;
+      /* Force uppercase text */
       margin-bottom: 0.75rem;
       padding-left: 0.25rem;
     }
 
     /* ============================================================
-       GAUGE CARDS — 4 PANEL GRID
+       GAUGE CARDS — 2x2 grid layout for 4 flowmeter panels
        ============================================================ */
 
+    /* Gauges grid container — 2 columns layout */
     .gauges {
       display: grid;
       grid-template-columns: 1fr 1fr;
+      /* Two equal-width columns */
       gap: 1.5rem;
+      /* Space between cards */
       margin-bottom: 1.5rem;
     }
 
+    /* Individual gauge card — styled panel for each flowmeter */
     .gauge-card {
       background: var(--panel);
+      /* Card background color */
       border: 1px solid var(--border);
+      /* Card border */
       border-radius: 4px;
+      /* Slightly rounded corners */
       padding: 1.5rem 2rem;
+      /* Inner padding */
       position: relative;
+      /* For pseudo-element positioning */
       overflow: hidden;
+      /* Clip top gradient line */
       transition: background 0.3s, border-color 0.3s;
+      /* Smooth theme switch */
     }
 
+    /* Gauge card top accent line — decorative gradient at top edge */
     .gauge-card::before {
       content: '';
       position: absolute;
@@ -316,9 +461,12 @@
       left: 0;
       right: 0;
       height: 3px;
+      /* 3px tall accent line */
       background: linear-gradient(90deg, transparent, var(--amber-dim), transparent);
+      /* Fade in/out gradient */
     }
 
+    /* Gauge label — flowmeter name/title text */
     .gauge-label {
       font-family: var(--mono);
       font-size: 0.75rem;
@@ -328,113 +476,102 @@
       margin-bottom: 0.5rem;
     }
 
+    /* Gauge value row — horizontal layout for number and unit */
     .gauge-value-row {
       display: flex;
       align-items: baseline;
+      /* Align number and unit at text baseline */
       gap: 0.5rem;
     }
 
+    /* Gauge value — large flow reading number */
     .gauge-value {
       font-family: var(--display);
+      /* VT323 retro display font */
       font-size: 4.5rem;
+      /* Large text size */
       color: var(--amber);
       text-shadow: var(--amber-glow);
+      /* Glowing text effect */
       line-height: 1;
       transition: color 0.3s;
     }
 
+    /* Gauge unit label — measurement unit text (m³/h) */
     .gauge-unit {
       font-family: var(--mono);
       font-size: 1rem;
       color: var(--amber-dim);
+      /* Dimmed color for unit */
     }
 
-    .gauge-bar-track {
-      margin-top: 1rem;
-      height: 6px;
-      background: var(--bar-track);
-      border-radius: 1px;
-      overflow: hidden;
-      border: 1px solid var(--border);
-    }
-
-    .gauge-bar-fill {
-      height: 100%;
-      background: linear-gradient(90deg, var(--green-dim), var(--green));
-      box-shadow: var(--green-glow);
-      width: 0%;
-      transition: width 0.5s ease;
-      border-radius: 1px;
-    }
-
-    .gauge-bar-fill.high {
-      background: linear-gradient(90deg, var(--amber-dim), var(--amber));
-      box-shadow: var(--amber-glow);
-    }
-
-    .gauge-bar-fill.critical {
-      background: linear-gradient(90deg, #8b0000, var(--red));
-      box-shadow: var(--red-glow);
-    }
-
-    .gauge-meta {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 0.5rem;
-      font-size: 0.7rem;
-      color: var(--text-dim);
-    }
-
-    /* Data receive LED */
+    /* Data receive LED indicator — small dot that blinks green when data arrives */
     .data-led {
       display: inline-block;
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      background: var(--green-dim);
+      /* Circular shape */
+      background: #888;
+      /* Gray color when inactive/no data */
       vertical-align: middle;
+      /* Align with text */
       margin-right: 0.3rem;
-      transition: opacity 0.1s;
+      transition: background 0.1s, box-shadow 0.1s;
+      /* Fast transition for blink effect */
     }
 
+    /* Data LED blink state — bright green when data is received */
     .data-led.blink {
       background: var(--green);
+      /* Bright green */
       box-shadow: var(--green-glow);
+      /* Green glow effect */
     }
 
-    /* Inactive / offline card style */
+    /* Inactive card style — dimmed appearance for unconnected flowmeters */
     .gauge-card.inactive {
       opacity: 0.4;
+      /* 40% opacity to show as inactive */
     }
 
+    /* Inactive card value text — gray without glow */
     .gauge-card.inactive .gauge-value {
       color: var(--text-dim);
       text-shadow: none;
+      /* Remove glow effect */
     }
 
     /* ============================================================
-       FOOTER STATUS BAR
+       FOOTER STATUS BAR — Fixed bottom bar with system info
        ============================================================ */
 
+    /* Footer container — fixed at bottom of viewport */
     .footer {
       background: var(--footer-bg);
       border-top: 1px solid var(--footer-border);
+      /* Top border line */
       padding: 0.6rem 2rem;
       display: flex;
       justify-content: space-between;
+      /* Spread items across width */
       font-size: 0.7rem;
       color: var(--text-dim);
       position: fixed;
+      /* Fixed at bottom */
       bottom: 0;
       left: 0;
       right: 0;
+      /* Stretch full width */
       transition: background 0.3s, border-color 0.3s;
     }
 
+    /* Footer readings text — green colored reading counter */
     .footer-readings {
       color: var(--green-dim);
     }
 
+    /* Footer note text — centered note in amber */
     .footer-note {
       text-align: center;
       font-size: 0.7rem;
@@ -443,26 +580,34 @@
     }
 
     /* ============================================================
-       DATA INTERRUPTION BANNER
+       DATA INTERRUPTION BANNER — Warning shown when data stops
        ============================================================ */
 
+    /* Interruption banner container — hidden by default, shown when data stops */
     .interrupt-banner {
       display: none;
+      /* Hidden by default */
       align-items: center;
       justify-content: center;
       gap: 0.6rem;
       background: var(--interrupt-bg);
+      /* Dark red background */
       border: 1px solid #ff333355;
+      /* Semi-transparent red border */
       border-radius: 4px;
       padding: 0.75rem 1.5rem;
       margin-bottom: 1.5rem;
       animation: banner-pulse 2s ease-in-out infinite;
+      /* Pulsing border animation */
     }
 
+    /* Interruption banner active state — show the banner */
     .interrupt-banner.active {
       display: flex;
+      /* Make visible with flexbox layout */
     }
 
+    /* Banner pulse animation — border color fades between dim and bright red */
     @keyframes banner-pulse {
 
       0%,
@@ -470,17 +615,22 @@
         border-color: #ff333355;
       }
 
+      /* Semi-transparent red */
       50% {
         border-color: #ff3333;
       }
+
+      /* Bright red at midpoint */
     }
 
+    /* Warning icon in the banner */
     .interrupt-icon {
       font-size: 1.2rem;
       color: var(--red);
       text-shadow: var(--red-glow);
     }
 
+    /* Main warning text in the banner */
     .interrupt-text {
       font-family: var(--mono);
       font-size: 0.8rem;
@@ -490,36 +640,44 @@
       text-shadow: var(--red-glow);
     }
 
+    /* Subtitle text showing duration of interruption */
     .interrupt-sub {
       font-size: 0.65rem;
       color: #663333;
+      /* Dark red text */
       letter-spacing: 0.1em;
     }
 
     /* ============================================================
-       RESPONSIVE
+       RESPONSIVE DESIGN — Adapt layout for small screens (<700px)
        ============================================================ */
 
     @media (max-width: 700px) {
+
+      /* Stack gauge cards in single column on mobile */
       .gauges {
         grid-template-columns: 1fr;
       }
 
+      /* Reduce gauge value font size on mobile */
       .gauge-value {
         font-size: 3.2rem;
       }
 
+      /* Stack header vertically on mobile */
       .header {
         flex-direction: column;
         gap: 0.75rem;
         text-align: center;
       }
 
+      /* Wrap header right items on mobile */
       .header-right {
         flex-wrap: wrap;
         justify-content: center;
       }
 
+      /* Reduce main padding on mobile */
       .main {
         padding: 1rem;
       }
@@ -529,315 +687,302 @@
 
 <body>
 
-  <!-- ==================== HEADER ==================== -->
+  <!-- ==================== HEADER — Top bar with logo, status, theme toggle, clock ==================== -->
   <div class="header">
+    <!-- Left side: company logo and connection status -->
     <div class="header-left">
       <div>
-        <div class="logo">FLOW METER</div>
-        <div class="logo-sub">INDUSTRIAL MONITORING SYSTEM</div>
+        <div class="logo">MRESOURCE</div> <!-- Company/project logo text -->
+        <div class="logo-sub">INDUSTRIAL MONITORING SYSTEM</div> <!-- Subtitle describing the system -->
       </div>
+      <!-- Firebase connection status indicator -->
       <div class="status-badge">
-        <div class="status-led" id="statusLed"></div>
-        <span id="statusText">OFFLINE</span>
+        <div class="status-led" id="statusLed"></div> <!-- LED dot: red=offline, green=online -->
+        <span id="statusText">OFFLINE</span> <!-- Status text updated by JavaScript -->
       </div>
     </div>
+    <!-- Right side: theme toggle button and live clock -->
     <div class="header-right">
+      <!-- Dark/Light theme toggle button with animated moon/sun icons -->
       <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Toggle theme">
-        <span class="theme-icon icon-moon">&#9790;</span>
-        <span class="theme-icon icon-sun">&#9728;</span>
+        <span class="theme-icon icon-moon">&#9790;</span> <!-- Moon symbol (visible in dark mode) -->
+        <span class="theme-icon icon-sun">&#9728;</span> <!-- Sun symbol (visible in light mode) -->
       </button>
+      <!-- Live clock display — updated every second by JavaScript -->
       <div class="header-time" id="headerTime">--:--:--</div>
     </div>
   </div>
 
-  <!-- ==================== MAIN ==================== -->
+  <!-- ==================== MAIN CONTENT — Flowmeter gauge cards ==================== -->
   <div class="main">
 
+    <!-- Data interruption warning banner — shown when no data received for 5+ seconds -->
     <div class="interrupt-banner" id="interruptBanner">
-      <span class="interrupt-icon">&#9888;</span>
+      <span class="interrupt-icon">&#9888;</span> <!-- Warning triangle symbol -->
       <div>
-        <div class="interrupt-text">Data acquisition failed</div>
+        <div class="interrupt-text">Data acquisition failed</div> <!-- Main warning message -->
         <div class="interrupt-sub">No data received for <span id="interruptDuration">--</span> seconds</div>
+        <!-- Duration counter -->
       </div>
     </div>
 
-    <div class="section-label">// LIVE READINGS</div>
+    <!-- Section title above flowmeter cards -->
+    <div class="section-label">FLOWMETER LIVE READINGS</div>
 
+    <!-- 2x2 grid of flowmeter gauge cards -->
     <div class="gauges">
-      <!-- Flowmeter 1 — Current Flow -->
+      <!-- Flowmeter 1 — Active, displays current flow from Firebase -->
       <div class="gauge-card" id="card-fm1">
-        <div class="gauge-label"><span class="data-led" id="dataLed1"></span> Flowmeter 1 — Current Flow</div>
+        <div class="gauge-label"><span class="data-led" id="dataLed1"></span> Суларсан уусмал 2</div>
+        <!-- Flowmeter name with data LED indicator -->
         <div class="gauge-value-row">
-          <div class="gauge-value" id="fm1Flow">0.00</div>
-          <div class="gauge-unit">m&sup3;/h</div>
-        </div>
-        <div class="gauge-bar-track">
-          <div class="gauge-bar-fill" id="fm1Bar"></div>
-        </div>
-        <div class="gauge-meta">
-          <span>MIN: <span id="fm1Min">--</span></span>
-          <span>MAX: <span id="fm1Max">--</span></span>
+          <div class="gauge-value" id="fm1Flow">0.00</div> <!-- Current flow value (updated by JS) -->
+          <div class="gauge-unit">m&sup3;/h</div> <!-- Unit: cubic meters per hour -->
         </div>
       </div>
 
-      <!-- Flowmeter 2 — Current Flow -->
+      <!-- Flowmeter 2 — Active, displays current flow from Firebase -->
       <div class="gauge-card" id="card-fm2">
-        <div class="gauge-label"><span class="data-led" id="dataLed2"></span> Flowmeter 2 — Current Flow</div>
+        <div class="gauge-label"><span class="data-led" id="dataLed2"></span> Баян уусмал </div>
+        <!-- Flowmeter name with data LED indicator -->
         <div class="gauge-value-row">
-          <div class="gauge-value" id="fm2Flow">0.00</div>
-          <div class="gauge-unit">m&sup3;/h</div>
-        </div>
-        <div class="gauge-bar-track">
-          <div class="gauge-bar-fill" id="fm2Bar"></div>
-        </div>
-        <div class="gauge-meta">
-          <span>MIN: <span id="fm2Min">--</span></span>
-          <span>MAX: <span id="fm2Max">--</span></span>
+          <div class="gauge-value" id="fm2Flow">0.00</div> <!-- Current flow value (updated by JS) -->
+          <div class="gauge-unit">m&sup3;/h</div> <!-- Unit: cubic meters per hour -->
         </div>
       </div>
 
-      <!-- Flowmeter 3 — Inactive -->
+      <!-- Flowmeter 3 — Inactive (reserved for future connection) -->
       <div class="gauge-card inactive" id="card-fm3">
         <div class="gauge-label"><span class="data-led" id="dataLed3"></span> Flowmeter 3 — Current Flow</div>
+        <!-- Placeholder name -->
         <div class="gauge-value-row">
-          <div class="gauge-value" id="fm3Flow">--</div>
-          <div class="gauge-unit">m&sup3;/h</div>
-        </div>
-        <div class="gauge-bar-track">
-          <div class="gauge-bar-fill" id="fm3Bar"></div>
-        </div>
-        <div class="gauge-meta">
-          <span>MIN: <span id="fm3Min">--</span></span>
-          <span>MAX: <span id="fm3Max">--</span></span>
+          <div class="gauge-value" id="fm3Flow">--</div> <!-- Dashes indicate no data -->
+          <div class="gauge-unit">m&sup3;/h</div> <!-- Unit: cubic meters per hour -->
         </div>
       </div>
 
-      <!-- Flowmeter 4 — Inactive -->
+      <!-- Flowmeter 4 — Inactive (reserved for future connection) -->
       <div class="gauge-card inactive" id="card-fm4">
         <div class="gauge-label"><span class="data-led" id="dataLed4"></span> Flowmeter 4 — Current Flow</div>
+        <!-- Placeholder name -->
         <div class="gauge-value-row">
-          <div class="gauge-value" id="fm4Flow">--</div>
-          <div class="gauge-unit">m&sup3;/h</div>
-        </div>
-        <div class="gauge-bar-track">
-          <div class="gauge-bar-fill" id="fm4Bar"></div>
-        </div>
-        <div class="gauge-meta">
-          <span>MIN: <span id="fm4Min">--</span></span>
-          <span>MAX: <span id="fm4Max">--</span></span>
+          <div class="gauge-value" id="fm4Flow">--</div> <!-- Dashes indicate no data -->
+          <div class="gauge-unit">m&sup3;/h</div> <!-- Unit: cubic meters per hour -->
         </div>
       </div>
     </div>
 
   </div>
 
-  <!-- ==================== FOOTER ==================== -->
+  <!-- ==================== FOOTER — Fixed bottom status bar ==================== -->
   <div class="footer">
-    <span>ESP32 RS485 MODBUS RTU &mdash; FIREBASE RTDB</span>
-    <span class="footer-note">4-CH INDUSTRIAL FLOW MONITORING</span>
+    <span>ESP32 RS485 MODBUS RTU &mdash; FIREBASE RTDB</span> <!-- System architecture description -->
+    <span class="footer-note">4-CH INDUSTRIAL FLOW MONITORING</span> <!-- 4-channel monitoring label -->
+    <!-- Reading counter and last update timestamp -->
     <span class="footer-readings">READINGS: <span id="readingCount">0</span> | LAST UPDATE: <span
         id="lastUpdate">--</span></span>
   </div>
 
-  <!-- ==================== SCRIPTS ==================== -->
+  <!-- ==================== EXTERNAL SCRIPTS — Firebase SDK ==================== -->
+  <!-- Firebase App SDK (compatibility version for simpler API) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <!-- Firebase Realtime Database SDK (compatibility version) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <!-- Firebase configuration with API keys (loaded from separate file) -->
   <script src="config.js"></script>
 
   <script>
     // ============================================================
-    //  THEME TOGGLE
+    //  THEME TOGGLE — Switch between dark and light themes
     // ============================================================
+
+    /*
+     * Toggle between dark and light themes.
+     * Sets the data-theme attribute on <html> element and saves preference to localStorage.
+     */
     function toggleTheme() {
-      const html = document.documentElement;
+      const html = document.documentElement;  // Reference to the <html> element
       if (html.getAttribute("data-theme") === "light") {
-        html.removeAttribute("data-theme");
-        localStorage.setItem("theme", "dark");
+        html.removeAttribute("data-theme");   // Remove attribute to revert to dark (default)
+        localStorage.setItem("theme", "dark"); // Save preference to browser storage
       } else {
-        html.setAttribute("data-theme", "light");
-        localStorage.setItem("theme", "light");
+        html.setAttribute("data-theme", "light"); // Set light theme attribute
+        localStorage.setItem("theme", "light");   // Save preference to browser storage
       }
     }
 
-    // Restore saved theme
+    // Immediately Invoked Function Expression (IIFE) — restore saved theme on page load
     (function () {
-      const saved = localStorage.getItem("theme");
+      const saved = localStorage.getItem("theme"); // Read saved theme preference
       if (saved === "light") {
-        document.documentElement.setAttribute("data-theme", "light");
+        document.documentElement.setAttribute("data-theme", "light"); // Apply light theme if saved
       }
     })();
 
     // ============================================================
-    //  FIREBASE INIT
+    //  FIREBASE INITIALIZATION — Connect to Realtime Database
     // ============================================================
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+    firebase.initializeApp(firebaseConfig);  // Initialize Firebase with config from config.js
+    const db = firebase.database();          // Get reference to the Realtime Database
 
     // ============================================================
-    //  STATE
+    //  APPLICATION STATE — Global variables for tracking data
     // ============================================================
-    let readingCount = 0;
-    let lastDataTime = 0;
-    const DATA_TIMEOUT = 5;
+    let readingCount = 0;       // Total number of data readings received
+    let lastDataTime = 0;       // Timestamp (ms) of last data received from Firebase
+    const DATA_TIMEOUT = 5;     // Seconds without data before showing interruption warning
 
-    // Per-flowmeter state
-    const fmState = {
-      fm1: { min: Infinity, max: -Infinity },
-      fm2: { min: Infinity, max: -Infinity },
-      fm3: { min: Infinity, max: -Infinity },
-      fm4: { min: Infinity, max: -Infinity }
-    };
-
-    // DOM handles
+    // DOM element references — cached for performance (avoids repeated getElementById calls)
     const el = {
-      fm1Flow: document.getElementById("fm1Flow"),
-      fm1Bar: document.getElementById("fm1Bar"),
-      fm1Min: document.getElementById("fm1Min"),
-      fm1Max: document.getElementById("fm1Max"),
-      dataLed1: document.getElementById("dataLed1"),
+      fm1Flow: document.getElementById("fm1Flow"),       // Flowmeter 1 value display element
+      dataLed1: document.getElementById("dataLed1"),     // Flowmeter 1 data receive LED indicator
 
-      fm2Flow: document.getElementById("fm2Flow"),
-      fm2Bar: document.getElementById("fm2Bar"),
-      fm2Min: document.getElementById("fm2Min"),
-      fm2Max: document.getElementById("fm2Max"),
-      dataLed2: document.getElementById("dataLed2"),
+      fm2Flow: document.getElementById("fm2Flow"),       // Flowmeter 2 value display element
+      dataLed2: document.getElementById("dataLed2"),     // Flowmeter 2 data receive LED indicator
 
-      fm3Flow: document.getElementById("fm3Flow"),
-      fm3Bar: document.getElementById("fm3Bar"),
-      fm3Min: document.getElementById("fm3Min"),
-      fm3Max: document.getElementById("fm3Max"),
-      dataLed3: document.getElementById("dataLed3"),
+      fm3Flow: document.getElementById("fm3Flow"),       // Flowmeter 3 value display element
+      dataLed3: document.getElementById("dataLed3"),     // Flowmeter 3 data receive LED indicator
 
-      fm4Flow: document.getElementById("fm4Flow"),
-      fm4Bar: document.getElementById("fm4Bar"),
-      fm4Min: document.getElementById("fm4Min"),
-      fm4Max: document.getElementById("fm4Max"),
-      dataLed4: document.getElementById("dataLed4"),
+      fm4Flow: document.getElementById("fm4Flow"),       // Flowmeter 4 value display element
+      dataLed4: document.getElementById("dataLed4"),     // Flowmeter 4 data receive LED indicator
 
-      statusLed: document.getElementById("statusLed"),
-      statusText: document.getElementById("statusText"),
-      headerTime: document.getElementById("headerTime"),
-      readingCount: document.getElementById("readingCount"),
-      lastUpdate: document.getElementById("lastUpdate"),
-      interruptBanner: document.getElementById("interruptBanner"),
-      interruptDuration: document.getElementById("interruptDuration")
+      statusLed: document.getElementById("statusLed"),   // Firebase connection status LED
+      statusText: document.getElementById("statusText"), // Firebase connection status text
+      headerTime: document.getElementById("headerTime"), // Header clock display
+      readingCount: document.getElementById("readingCount"),       // Total readings counter in footer
+      lastUpdate: document.getElementById("lastUpdate"),           // Last update time in footer
+      interruptBanner: document.getElementById("interruptBanner"), // Data interruption warning banner
+      interruptDuration: document.getElementById("interruptDuration") // Interruption duration counter
     };
 
+    /*
+     * Briefly blink a data LED element green to indicate data was received.
+     * Adds the "blink" CSS class for 300ms then removes it.
+     * @param ledEl - the LED DOM element to blink
+     */
     function blinkLed(ledEl) {
-      ledEl.classList.add("blink");
-      setTimeout(() => ledEl.classList.remove("blink"), 300);
+      ledEl.classList.add("blink");            // Add green blink CSS class
+      setTimeout(() => ledEl.classList.remove("blink"), 300); // Remove after 300ms
     }
 
     // ============================================================
-    //  HEADER CLOCK
+    //  HEADER CLOCK — Updates time display every second
     // ============================================================
+
+    /*
+     * Update the header clock with current time in HH:MM:SS format.
+     * Called every 1000ms by setInterval.
+     */
     function tickClock() {
-      const now = new Date();
-      const h = String(now.getHours()).padStart(2, "0");
-      const m = String(now.getMinutes()).padStart(2, "0");
-      const s = String(now.getSeconds()).padStart(2, "0");
-      el.headerTime.textContent = `${h}:${m}:${s}`;
+      const now = new Date();                                    // Get current date/time
+      const h = String(now.getHours()).padStart(2, "0");        // Hours with leading zero (00-23)
+      const m = String(now.getMinutes()).padStart(2, "0");      // Minutes with leading zero (00-59)
+      const s = String(now.getSeconds()).padStart(2, "0");      // Seconds with leading zero (00-59)
+      el.headerTime.textContent = `${h}:${m}:${s}`;            // Update clock display text
     }
-    setInterval(tickClock, 1000);
-    tickClock();
+    setInterval(tickClock, 1000);  // Run tickClock every 1 second
+    tickClock();                   // Run immediately on page load (don't wait 1 second)
 
-    // Data interruption checker
+    // Data interruption checker — runs every 1 second to monitor data freshness
     setInterval(() => {
       if (lastDataTime === 0) {
-        el.interruptBanner.classList.add("active");
-        el.interruptDuration.textContent = "awaiting first data";
+        // No data has ever been received
+        el.interruptBanner.classList.add("active");          // Show the warning banner
+        el.interruptDuration.textContent = "awaiting first data"; // Display waiting message
         return;
       }
-      const elapsed = Math.floor((Date.now() - lastDataTime) / 1000);
+      const elapsed = Math.floor((Date.now() - lastDataTime) / 1000); // Seconds since last data
       if (elapsed >= DATA_TIMEOUT) {
-        el.interruptBanner.classList.add("active");
-        el.interruptDuration.textContent = elapsed;
+        // Data timeout exceeded — show interruption warning
+        el.interruptBanner.classList.add("active");          // Show the warning banner
+        el.interruptDuration.textContent = elapsed;          // Display elapsed seconds
       } else {
+        // Data is fresh — hide the warning banner
         el.interruptBanner.classList.remove("active");
       }
-    }, 1000);
+    }, 1000);  // Check every 1 second
 
     // ============================================================
-    //  CONNECTION STATUS
+    //  FIREBASE CONNECTION STATUS — Monitor online/offline state
     // ============================================================
+
+    // Listen to Firebase special path ".info/connected" for connection state changes
     db.ref(".info/connected").on("value", (snap) => {
       if (snap.val() === true) {
-        el.statusLed.classList.add("online");
-        el.statusText.textContent = "ONLINE";
+        // Connected to Firebase
+        el.statusLed.classList.add("online");      // Turn LED green with pulse animation
+        el.statusText.textContent = "ONLINE";      // Update status text
       } else {
-        el.statusLed.classList.remove("online");
-        el.statusText.textContent = "OFFLINE";
+        // Disconnected from Firebase
+        el.statusLed.classList.remove("online");   // Turn LED red (default state)
+        el.statusText.textContent = "OFFLINE";     // Update status text
       }
     });
 
     // ============================================================
-    //  GENERIC FLOWMETER UPDATE
+    //  GENERIC FLOWMETER UPDATE — Shared function for all 4 meters
     // ============================================================
+
+    /*
+     * Update a flowmeter card with a new flow reading value.
+     * Updates the display value, blinks the data LED, increments the reading counter,
+     * and removes the "inactive" class from the card if it was previously inactive.
+     * @param key  - flowmeter key string (e.g., "fm1", "fm2", "fm3", "fm4")
+     * @param flow - numeric flow value in m³/h
+     */
     function updateFlowmeter(key, flow) {
-      const flowEl = el[key + "Flow"];
-      const barEl = el[key + "Bar"];
-      const minEl = el[key + "Min"];
-      const maxEl = el[key + "Max"];
-      const ledEl = el["dataLed" + key.charAt(2)];
-      const state = fmState[key];
+      const flowEl = el[key + "Flow"];               // Get the flow value display element (e.g., el.fm1Flow)
+      const ledEl = el["dataLed" + key.charAt(2)];   // Get the data LED element (e.g., el.dataLed1)
 
-      lastDataTime = Date.now();
-      readingCount++;
+      lastDataTime = Date.now();                      // Update last data received timestamp
+      readingCount++;                                 // Increment total reading counter
 
-      flowEl.textContent = flow.toFixed(2);
-      el.readingCount.textContent = readingCount;
-      el.lastUpdate.textContent = new Date().toLocaleTimeString();
+      flowEl.textContent = flow.toFixed(2);           // Display flow value with 2 decimal places
+      el.readingCount.textContent = readingCount;     // Update footer reading counter
+      el.lastUpdate.textContent = new Date().toLocaleTimeString(); // Update footer timestamp
 
-      if (flow < state.min) { state.min = flow; minEl.textContent = flow.toFixed(2); }
-      if (flow > state.max) { state.max = flow; maxEl.textContent = flow.toFixed(2); }
+      blinkLed(ledEl);                                // Blink the data LED green briefly
 
-      const pct = Math.min(100, (flow / 50) * 100);
-      barEl.style.width = pct + "%";
-      barEl.className = "gauge-bar-fill" +
-        (pct > 80 ? " critical" : pct > 50 ? " high" : "");
-
-      blinkLed(ledEl);
-
-      // Mark card as active
-      const card = document.getElementById("card-" + key);
-      if (card) card.classList.remove("inactive");
+      // Remove "inactive" class to show this flowmeter is now active and receiving data
+      const card = document.getElementById("card-" + key); // Get the gauge card element
+      if (card) card.classList.remove("inactive");         // Remove dimmed/inactive styling
     }
 
     // ============================================================
-    //  FIREBASE REALTIME LISTENERS
+    //  FIREBASE REALTIME LISTENERS — Subscribe to data changes
     // ============================================================
 
-    // Timestamp listener
+    // Listen for changes to the last_updated timestamp (any flowmeter update resets the data timeout)
     db.ref("/flow_system/last_updated").on("value", () => {
-      lastDataTime = Date.now();
+      lastDataTime = Date.now();  // Reset data timeout whenever timestamp changes
     });
 
-    // Flowmeter 1
+    // Flowmeter 1 listener — triggers when flowmeter1 current_flow value changes in Firebase
     db.ref("/flow_system/flowmeter1/current_flow").on("value", (snap) => {
-      const val = snap.val();
-      if (val === null) return;
-      updateFlowmeter("fm1", parseFloat(val));
+      const val = snap.val();                  // Get the new value from Firebase snapshot
+      if (val === null) return;                // Skip if no data exists at this path
+      updateFlowmeter("fm1", parseFloat(val)); // Update FM1 card with parsed float value
     });
 
-    // Flowmeter 2
+    // Flowmeter 2 listener — triggers when flowmeter2 current_flow value changes in Firebase
     db.ref("/flow_system/flowmeter2/current_flow").on("value", (snap) => {
-      const val = snap.val();
-      if (val === null) return;
-      updateFlowmeter("fm2", parseFloat(val));
+      const val = snap.val();                  // Get the new value from Firebase snapshot
+      if (val === null) return;                // Skip if no data exists at this path
+      updateFlowmeter("fm2", parseFloat(val)); // Update FM2 card with parsed float value
     });
 
-    // Flowmeter 3 (ирээдүйд холбоход бэлэн)
+    // Flowmeter 3 listener — reserved for future hardware connection
     db.ref("/flow_system/flowmeter3/current_flow").on("value", (snap) => {
-      const val = snap.val();
-      if (val === null) return;
-      updateFlowmeter("fm3", parseFloat(val));
+      const val = snap.val();                  // Get the new value from Firebase snapshot
+      if (val === null) return;                // Skip if no data exists at this path
+      updateFlowmeter("fm3", parseFloat(val)); // Update FM3 card with parsed float value
     });
 
-    // Flowmeter 4 (ирээдүйд холбоход бэлэн)
+    // Flowmeter 4 listener — reserved for future hardware connection
     db.ref("/flow_system/flowmeter4/current_flow").on("value", (snap) => {
-      const val = snap.val();
-      if (val === null) return;
-      updateFlowmeter("fm4", parseFloat(val));
+      const val = snap.val();                  // Get the new value from Firebase snapshot
+      if (val === null) return;                // Skip if no data exists at this path
+      updateFlowmeter("fm4", parseFloat(val)); // Update FM4 card with parsed float value
     });
   </script>
 
