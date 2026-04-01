@@ -8,7 +8,7 @@
 
   <style>
     /* ============================================================
-       RETRO INDUSTRIAL THEME
+       RETRO INDUSTRIAL THEME — DARK (default) & LIGHT
        ============================================================ */
 
     @import url('https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
@@ -17,6 +17,7 @@
       --bg: #0a0a0a;
       --panel: #111111;
       --panel-edge: #1a1a1a;
+      --border: #222;
       --amber: #ffb000;
       --amber-dim: #996a00;
       --amber-glow: 0 0 8px #ffb00066, 0 0 20px #ffb00022;
@@ -27,12 +28,45 @@
       --red-glow: 0 0 8px #ff333366;
       --cyan: #00ffff;
       --cyan-dim: #007777;
-      --grid: #1a2a1a;
       --scanline: rgba(0, 0, 0, 0.12);
       --text-dim: #555555;
+      --header-bg: linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%);
+      --footer-bg: #0d0d0d;
+      --footer-border: #1a1a1a;
+      --chart-bg: #0a0f0a;
+      --bar-track: #1a1a1a;
+      --interrupt-bg: #1a0000;
       --mono: 'Share Tech Mono', 'Courier New', monospace;
       --display: 'VT323', monospace;
       --heading: 'Orbitron', sans-serif;
+    }
+
+    /* ============================================================
+       LIGHT THEME
+       ============================================================ */
+    [data-theme="light"] {
+      --bg: #f5f5f0;
+      --panel: #ffffff;
+      --panel-edge: #e0e0e0;
+      --border: #ccc;
+      --amber: #1a1a1a;
+      --amber-dim: #444;
+      --amber-glow: none;
+      --green: #1a8c1a;
+      --green-dim: #2d7a2d;
+      --green-glow: none;
+      --red: #cc0000;
+      --red-glow: none;
+      --cyan: #006666;
+      --cyan-dim: #338888;
+      --scanline: transparent;
+      --text-dim: #666;
+      --header-bg: linear-gradient(180deg, #e8e8e0 0%, #f0f0ea 100%);
+      --footer-bg: #e8e8e0;
+      --footer-border: #ccc;
+      --chart-bg: #fafaf5;
+      --bar-track: #e0e0d8;
+      --interrupt-bg: #fff0f0;
     }
 
     * {
@@ -47,6 +81,7 @@
       color: var(--amber);
       min-height: 100vh;
       overflow-x: hidden;
+      transition: background 0.3s, color 0.3s;
     }
 
     /* CRT scanline overlay */
@@ -89,12 +124,13 @@
        ============================================================ */
 
     .header {
-      background: linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%);
-      border-bottom: 2px solid #222;
+      background: var(--header-bg);
+      border-bottom: 2px solid var(--border);
       padding: 1rem 2rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      transition: background 0.3s, border-color 0.3s;
     }
 
     .header-left {
@@ -119,16 +155,22 @@
       letter-spacing: 0.2em;
     }
 
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 1.2rem;
+    }
+
     .status-badge {
       display: flex;
       align-items: center;
       gap: 0.5rem;
       font-size: 0.8rem;
       color: var(--text-dim);
-      border: 1px solid #222;
+      border: 1px solid var(--border);
       padding: 0.3rem 0.8rem;
       border-radius: 2px;
-      background: #0a0a0a;
+      background: var(--bg);
     }
 
     .status-led {
@@ -167,6 +209,64 @@
     }
 
     /* ============================================================
+       THEME TOGGLE — Sun/Moon animated button
+       ============================================================ */
+
+    .theme-toggle {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .theme-toggle:hover {
+      border-color: var(--amber);
+    }
+
+    .theme-icon {
+      position: absolute;
+      transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+        opacity 0.3s ease;
+      font-size: 1.1rem;
+      line-height: 1;
+    }
+
+    /* Moon (dark mode default — visible) */
+    .icon-moon {
+      transform: rotate(0deg) scale(1);
+      opacity: 1;
+      color: var(--amber);
+      text-shadow: var(--amber-glow);
+    }
+
+    /* Sun (hidden in dark mode) */
+    .icon-sun {
+      transform: rotate(-90deg) scale(0);
+      opacity: 0;
+      color: #8a7000;
+    }
+
+    /* Light theme — swap */
+    [data-theme="light"] .icon-moon {
+      transform: rotate(90deg) scale(0);
+      opacity: 0;
+    }
+
+    [data-theme="light"] .icon-sun {
+      transform: rotate(0deg) scale(1);
+      opacity: 1;
+    }
+
+    /* ============================================================
        MAIN LAYOUT
        ============================================================ */
 
@@ -174,10 +274,10 @@
       max-width: 1200px;
       margin: 0 auto;
       padding: 1.5rem;
+      padding-bottom: 3.5rem;
       animation: flicker 8s infinite;
     }
 
-    /* Section labels */
     .section-label {
       font-family: var(--mono);
       font-size: 0.7rem;
@@ -189,7 +289,7 @@
     }
 
     /* ============================================================
-       GAUGE CARDS
+       GAUGE CARDS — 4 PANEL GRID
        ============================================================ */
 
     .gauges {
@@ -201,14 +301,14 @@
 
     .gauge-card {
       background: var(--panel);
-      border: 1px solid #222;
+      border: 1px solid var(--border);
       border-radius: 4px;
       padding: 1.5rem 2rem;
       position: relative;
       overflow: hidden;
+      transition: background 0.3s, border-color 0.3s;
     }
 
-    /* Embossed top edge */
     .gauge-card::before {
       content: '';
       position: absolute;
@@ -252,10 +352,10 @@
     .gauge-bar-track {
       margin-top: 1rem;
       height: 6px;
-      background: #1a1a1a;
+      background: var(--bar-track);
       border-radius: 1px;
       overflow: hidden;
-      border: 1px solid #222;
+      border: 1px solid var(--border);
     }
 
     .gauge-bar-fill {
@@ -302,80 +402,14 @@
       box-shadow: var(--green-glow);
     }
 
-    /* Total flow - cyan accent */
-    .gauge-card.total .gauge-value {
-      color: var(--cyan);
-      text-shadow: 0 0 8px #00ffff66, 0 0 20px #00ffff22;
+    /* Inactive / offline card style */
+    .gauge-card.inactive {
+      opacity: 0.4;
     }
 
-    .gauge-card.total::before {
-      background: linear-gradient(90deg, transparent, var(--cyan-dim), transparent);
-    }
-
-    .gauge-card.total .gauge-unit {
-      color: var(--cyan-dim);
-    }
-
-    .gauge-card.total .gauge-bar-fill {
-      background: linear-gradient(90deg, var(--cyan-dim), var(--cyan));
-      box-shadow: 0 0 8px #00ffff44;
-    }
-
-    /* ============================================================
-       CHART AREA
-       ============================================================ */
-
-    .chart-container {
-      background: var(--panel);
-      border: 1px solid #222;
-      border-radius: 4px;
-      padding: 1.25rem;
-      position: relative;
-    }
-
-    .chart-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1rem;
-    }
-
-    .chart-title {
-      font-family: var(--mono);
-      font-size: 0.75rem;
+    .gauge-card.inactive .gauge-value {
       color: var(--text-dim);
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-    }
-
-    .chart-legend {
-      display: flex;
-      gap: 1rem;
-      font-size: 0.7rem;
-    }
-
-    .chart-legend span {
-      display: flex;
-      align-items: center;
-      gap: 0.35rem;
-      color: var(--text-dim);
-    }
-
-    .legend-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 1px;
-    }
-
-    .chart-wrapper {
-      position: relative;
-      width: 100%;
-      height: 320px;
-    }
-
-    canvas#flowChart {
-      width: 100% !important;
-      height: 100% !important;
+      text-shadow: none;
     }
 
     /* ============================================================
@@ -383,8 +417,8 @@
        ============================================================ */
 
     .footer {
-      background: #0d0d0d;
-      border-top: 1px solid #1a1a1a;
+      background: var(--footer-bg);
+      border-top: 1px solid var(--footer-border);
       padding: 0.6rem 2rem;
       display: flex;
       justify-content: space-between;
@@ -394,6 +428,7 @@
       bottom: 0;
       left: 0;
       right: 0;
+      transition: background 0.3s, border-color 0.3s;
     }
 
     .footer-readings {
@@ -403,7 +438,7 @@
     .footer-note {
       text-align: center;
       font-size: 0.7rem;
-      color: #b8860b;
+      color: var(--amber-dim);
       letter-spacing: 0.1em;
     }
 
@@ -416,7 +451,7 @@
       align-items: center;
       justify-content: center;
       gap: 0.6rem;
-      background: #1a0000;
+      background: var(--interrupt-bg);
       border: 1px solid #ff333355;
       border-radius: 4px;
       padding: 0.75rem 1.5rem;
@@ -480,8 +515,9 @@
         text-align: center;
       }
 
-      .chart-wrapper {
-        height: 220px;
+      .header-right {
+        flex-wrap: wrap;
+        justify-content: center;
       }
 
       .main {
@@ -505,7 +541,13 @@
         <span id="statusText">OFFLINE</span>
       </div>
     </div>
-    <div class="header-time" id="headerTime">--:--:--</div>
+    <div class="header-right">
+      <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Toggle theme">
+        <span class="theme-icon icon-moon">&#9790;</span>
+        <span class="theme-icon icon-sun">&#9728;</span>
+      </button>
+      <div class="header-time" id="headerTime">--:--:--</div>
+    </div>
   </div>
 
   <!-- ==================== MAIN ==================== -->
@@ -522,78 +564,111 @@
     <div class="section-label">// LIVE READINGS</div>
 
     <div class="gauges">
-      <!-- Current Flow -->
-      <div class="gauge-card">
-        <div class="gauge-label"><span class="data-led" id="dataLed"></span> Current Flow Rate</div>
+      <!-- Flowmeter 1 — Current Flow -->
+      <div class="gauge-card" id="card-fm1">
+        <div class="gauge-label"><span class="data-led" id="dataLed1"></span> Flowmeter 1 — Current Flow</div>
         <div class="gauge-value-row">
-          <div class="gauge-value" id="currentFlow">0.00</div>
+          <div class="gauge-value" id="fm1Flow">0.00</div>
           <div class="gauge-unit">m&sup3;/h</div>
         </div>
         <div class="gauge-bar-track">
-          <div class="gauge-bar-fill" id="currentBar"></div>
+          <div class="gauge-bar-fill" id="fm1Bar"></div>
         </div>
         <div class="gauge-meta">
-          <span>MIN: <span id="minFlow">--</span></span>
-          <span>MAX: <span id="maxFlow">--</span></span>
+          <span>MIN: <span id="fm1Min">--</span></span>
+          <span>MAX: <span id="fm1Max">--</span></span>
         </div>
       </div>
 
-      <!-- Total Flow -->
-      <div class="gauge-card total">
-        <div class="gauge-label">Total Flow (Accumulated)</div>
+      <!-- Flowmeter 2 — Current Flow -->
+      <div class="gauge-card" id="card-fm2">
+        <div class="gauge-label"><span class="data-led" id="dataLed2"></span> Flowmeter 2 — Current Flow</div>
         <div class="gauge-value-row">
-          <div class="gauge-value" id="totalFlow">0.00</div>
-          <div class="gauge-unit">m&sup3;</div>
+          <div class="gauge-value" id="fm2Flow">0.00</div>
+          <div class="gauge-unit">m&sup3;/h</div>
         </div>
         <div class="gauge-bar-track">
-          <div class="gauge-bar-fill" id="totalBar"></div>
+          <div class="gauge-bar-fill" id="fm2Bar"></div>
         </div>
         <div class="gauge-meta">
-          <span>SESSION START: <span id="sessionStart">--</span></span>
-          <span>UPTIME: <span id="uptime">--</span></span>
+          <span>MIN: <span id="fm2Min">--</span></span>
+          <span>MAX: <span id="fm2Max">--</span></span>
+        </div>
+      </div>
+
+      <!-- Flowmeter 3 — Inactive -->
+      <div class="gauge-card inactive" id="card-fm3">
+        <div class="gauge-label"><span class="data-led" id="dataLed3"></span> Flowmeter 3 — Current Flow</div>
+        <div class="gauge-value-row">
+          <div class="gauge-value" id="fm3Flow">--</div>
+          <div class="gauge-unit">m&sup3;/h</div>
+        </div>
+        <div class="gauge-bar-track">
+          <div class="gauge-bar-fill" id="fm3Bar"></div>
+        </div>
+        <div class="gauge-meta">
+          <span>MIN: <span id="fm3Min">--</span></span>
+          <span>MAX: <span id="fm3Max">--</span></span>
+        </div>
+      </div>
+
+      <!-- Flowmeter 4 — Inactive -->
+      <div class="gauge-card inactive" id="card-fm4">
+        <div class="gauge-label"><span class="data-led" id="dataLed4"></span> Flowmeter 4 — Current Flow</div>
+        <div class="gauge-value-row">
+          <div class="gauge-value" id="fm4Flow">--</div>
+          <div class="gauge-unit">m&sup3;/h</div>
+        </div>
+        <div class="gauge-bar-track">
+          <div class="gauge-bar-fill" id="fm4Bar"></div>
+        </div>
+        <div class="gauge-meta">
+          <span>MIN: <span id="fm4Min">--</span></span>
+          <span>MAX: <span id="fm4Max">--</span></span>
         </div>
       </div>
     </div>
 
-    <!-- 24-Hour Chart -->
-    <div class="section-label">// 24-HOUR FLOW HISTORY</div>
-
-    <div class="chart-container">
-      <div class="chart-header">
-        <div class="chart-title">Flow Rate vs Time</div>
-        <div class="chart-legend">
-          <span>
-            <div class="legend-dot" style="background:var(--amber)"></div> Flow Rate (m&sup3;/h)
-          </span>
-          <span>
-            <div class="legend-dot" style="background:var(--green-dim)"></div> Average
-          </span>
-        </div>
-      </div>
-      <div class="chart-wrapper">
-        <canvas id="flowChart"></canvas>
-      </div>
-    </div>
   </div>
 
   <!-- ==================== FOOTER ==================== -->
   <div class="footer">
     <span>ESP32 RS485 MODBUS RTU &mdash; FIREBASE RTDB</span>
-    <span class="footer-note">This project is expandable</span>
+    <span class="footer-note">4-CH INDUSTRIAL FLOW MONITORING</span>
     <span class="footer-readings">READINGS: <span id="readingCount">0</span> | LAST UPDATE: <span
         id="lastUpdate">--</span></span>
   </div>
 
   <!-- ==================== SCRIPTS ==================== -->
-  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-  <!-- Firebase тохиргоо — тусдаа файл, Git-д ороогүй -->
   <script src="config.js"></script>
 
   <script>
     // ============================================================
-    //  FIREBASE INIT — config.js-с firebaseConfig уншина
+    //  THEME TOGGLE
+    // ============================================================
+    function toggleTheme() {
+      const html = document.documentElement;
+      if (html.getAttribute("data-theme") === "light") {
+        html.removeAttribute("data-theme");
+        localStorage.setItem("theme", "dark");
+      } else {
+        html.setAttribute("data-theme", "light");
+        localStorage.setItem("theme", "light");
+      }
+    }
+
+    // Restore saved theme
+    (function () {
+      const saved = localStorage.getItem("theme");
+      if (saved === "light") {
+        document.documentElement.setAttribute("data-theme", "light");
+      }
+    })();
+
+    // ============================================================
+    //  FIREBASE INIT
     // ============================================================
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
@@ -601,39 +676,56 @@
     // ============================================================
     //  STATE
     // ============================================================
-    const MAX_POINTS = 1440;           // 24h at 1-per-minute
-    const DOWNSAMPLE = 60;             // store 1 point per ~60 readings
-    let readingSample = 0;
     let readingCount = 0;
-    let minFlow = Infinity;
-    let maxFlow = -Infinity;
-    let totalFlowStart = null;
-    let sessionTime = Date.now();
-    let lastDataTime = 0;              // сүүлийн өгөгдөл хүлээн авсан хугацаа
-    const DATA_TIMEOUT = 5;            // 5 секунд өгөгдөл ирэхгүй бол анхааруулга
-    const chartData = [];              // { t: Date, v: number }
+    let lastDataTime = 0;
+    const DATA_TIMEOUT = 5;
+
+    // Per-flowmeter state
+    const fmState = {
+      fm1: { min: Infinity, max: -Infinity },
+      fm2: { min: Infinity, max: -Infinity },
+      fm3: { min: Infinity, max: -Infinity },
+      fm4: { min: Infinity, max: -Infinity }
+    };
 
     // DOM handles
-    const elCurrentFlow = document.getElementById("currentFlow");
-    const elTotalFlow = document.getElementById("totalFlow");
-    const elCurrentBar = document.getElementById("currentBar");
-    const elTotalBar = document.getElementById("totalBar");
-    const elMinFlow = document.getElementById("minFlow");
-    const elMaxFlow = document.getElementById("maxFlow");
-    const elSessionStart = document.getElementById("sessionStart");
-    const elUptime = document.getElementById("uptime");
-    const elStatusLed = document.getElementById("statusLed");
-    const elStatusText = document.getElementById("statusText");
-    const elHeaderTime = document.getElementById("headerTime");
-    const elReadingCount = document.getElementById("readingCount");
-    const elLastUpdate = document.getElementById("lastUpdate");
-    const elInterruptBanner = document.getElementById("interruptBanner");
-    const elInterruptDuration = document.getElementById("interruptDuration");
-    const elDataLed = document.getElementById("dataLed");
+    const el = {
+      fm1Flow: document.getElementById("fm1Flow"),
+      fm1Bar: document.getElementById("fm1Bar"),
+      fm1Min: document.getElementById("fm1Min"),
+      fm1Max: document.getElementById("fm1Max"),
+      dataLed1: document.getElementById("dataLed1"),
 
-    function blinkLed() {
-      elDataLed.classList.add("blink");
-      setTimeout(() => elDataLed.classList.remove("blink"), 300);
+      fm2Flow: document.getElementById("fm2Flow"),
+      fm2Bar: document.getElementById("fm2Bar"),
+      fm2Min: document.getElementById("fm2Min"),
+      fm2Max: document.getElementById("fm2Max"),
+      dataLed2: document.getElementById("dataLed2"),
+
+      fm3Flow: document.getElementById("fm3Flow"),
+      fm3Bar: document.getElementById("fm3Bar"),
+      fm3Min: document.getElementById("fm3Min"),
+      fm3Max: document.getElementById("fm3Max"),
+      dataLed3: document.getElementById("dataLed3"),
+
+      fm4Flow: document.getElementById("fm4Flow"),
+      fm4Bar: document.getElementById("fm4Bar"),
+      fm4Min: document.getElementById("fm4Min"),
+      fm4Max: document.getElementById("fm4Max"),
+      dataLed4: document.getElementById("dataLed4"),
+
+      statusLed: document.getElementById("statusLed"),
+      statusText: document.getElementById("statusText"),
+      headerTime: document.getElementById("headerTime"),
+      readingCount: document.getElementById("readingCount"),
+      lastUpdate: document.getElementById("lastUpdate"),
+      interruptBanner: document.getElementById("interruptBanner"),
+      interruptDuration: document.getElementById("interruptDuration")
+    };
+
+    function blinkLed(ledEl) {
+      ledEl.classList.add("blink");
+      setTimeout(() => ledEl.classList.remove("blink"), 300);
     }
 
     // ============================================================
@@ -644,35 +736,24 @@
       const h = String(now.getHours()).padStart(2, "0");
       const m = String(now.getMinutes()).padStart(2, "0");
       const s = String(now.getSeconds()).padStart(2, "0");
-      elHeaderTime.textContent = `${h}:${m}:${s}`;
+      el.headerTime.textContent = `${h}:${m}:${s}`;
     }
     setInterval(tickClock, 1000);
     tickClock();
 
-    // Uptime counter
-    function tickUptime() {
-      const diff = Math.floor((Date.now() - sessionTime) / 1000);
-      const hh = String(Math.floor(diff / 3600)).padStart(2, "0");
-      const mm = String(Math.floor((diff % 3600) / 60)).padStart(2, "0");
-      const ss = String(diff % 60).padStart(2, "0");
-      elUptime.textContent = `${hh}:${mm}:${ss}`;
-    }
-    setInterval(tickUptime, 1000);
-
-    // Data interruption checker — 1 секунд тутамд шалгана
+    // Data interruption checker
     setInterval(() => {
       if (lastDataTime === 0) {
-        // Анхны өгөгдөл ирээгүй
-        elInterruptBanner.classList.add("active");
-        elInterruptDuration.textContent = "awaiting first data";
+        el.interruptBanner.classList.add("active");
+        el.interruptDuration.textContent = "awaiting first data";
         return;
       }
       const elapsed = Math.floor((Date.now() - lastDataTime) / 1000);
       if (elapsed >= DATA_TIMEOUT) {
-        elInterruptBanner.classList.add("active");
-        elInterruptDuration.textContent = elapsed;
+        el.interruptBanner.classList.add("active");
+        el.interruptDuration.textContent = elapsed;
       } else {
-        elInterruptBanner.classList.remove("active");
+        el.interruptBanner.classList.remove("active");
       }
     }, 1000);
 
@@ -681,267 +762,83 @@
     // ============================================================
     db.ref(".info/connected").on("value", (snap) => {
       if (snap.val() === true) {
-        elStatusLed.classList.add("online");
-        elStatusText.textContent = "ONLINE";
+        el.statusLed.classList.add("online");
+        el.statusText.textContent = "ONLINE";
       } else {
-        elStatusLed.classList.remove("online");
-        elStatusText.textContent = "OFFLINE";
+        el.statusLed.classList.remove("online");
+        el.statusText.textContent = "OFFLINE";
       }
     });
 
     // ============================================================
-    //  CANVAS CHART (no external library)
+    //  GENERIC FLOWMETER UPDATE
     // ============================================================
-    const canvas = document.getElementById("flowChart");
-    const ctx = canvas.getContext("2d");
-    let chartW, chartH;
-    const PAD = { top: 20, right: 20, bottom: 40, left: 60 };
+    function updateFlowmeter(key, flow) {
+      const flowEl = el[key + "Flow"];
+      const barEl = el[key + "Bar"];
+      const minEl = el[key + "Min"];
+      const maxEl = el[key + "Max"];
+      const ledEl = el["dataLed" + key.charAt(2)];
+      const state = fmState[key];
 
-    function resizeCanvas() {
-      const rect = canvas.parentElement.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      chartW = rect.width;
-      chartH = rect.height;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    }
+      lastDataTime = Date.now();
+      readingCount++;
 
-    window.addEventListener("resize", () => { resizeCanvas(); drawChart(); });
-    resizeCanvas();
+      flowEl.textContent = flow.toFixed(2);
+      el.readingCount.textContent = readingCount;
+      el.lastUpdate.textContent = new Date().toLocaleTimeString();
 
-    function drawChart() {
-      ctx.clearRect(0, 0, chartW, chartH);
+      if (flow < state.min) { state.min = flow; minEl.textContent = flow.toFixed(2); }
+      if (flow > state.max) { state.max = flow; maxEl.textContent = flow.toFixed(2); }
 
-      const plotX = PAD.left;
-      const plotY = PAD.top;
-      const plotW = chartW - PAD.left - PAD.right;
-      const plotH = chartH - PAD.top - PAD.bottom;
+      const pct = Math.min(100, (flow / 50) * 100);
+      barEl.style.width = pct + "%";
+      barEl.className = "gauge-bar-fill" +
+        (pct > 80 ? " critical" : pct > 50 ? " high" : "");
 
-      // Background
-      ctx.fillStyle = "#0a0f0a";
-      ctx.fillRect(plotX, plotY, plotW, plotH);
+      blinkLed(ledEl);
 
-      // Grid
-      const gridRows = 5;
-      const gridCols = 6;
-
-      ctx.strokeStyle = "#142014";
-      ctx.lineWidth = 1;
-
-      // Horizontal grid lines
-      for (let i = 0; i <= gridRows; i++) {
-        const y = plotY + (plotH / gridRows) * i;
-        ctx.beginPath();
-        ctx.moveTo(plotX, y);
-        ctx.lineTo(plotX + plotW, y);
-        ctx.stroke();
-      }
-
-      // Vertical grid lines
-      for (let i = 0; i <= gridCols; i++) {
-        const x = plotX + (plotW / gridCols) * i;
-        ctx.beginPath();
-        ctx.moveTo(x, plotY);
-        ctx.lineTo(x, plotY + plotH);
-        ctx.stroke();
-      }
-
-      if (chartData.length < 2) {
-        // No data message
-        ctx.fillStyle = "#333";
-        ctx.font = '14px "Share Tech Mono", monospace';
-        ctx.textAlign = "center";
-        ctx.fillText("AWAITING DATA...", plotX + plotW / 2, plotY + plotH / 2);
-        return;
-      }
-
-      // Compute range
-      const now = Date.now();
-      const t24ago = now - 24 * 60 * 60 * 1000;
-      const visible = chartData.filter(d => d.t >= t24ago);
-      if (visible.length < 2) {
-        ctx.fillStyle = "#333";
-        ctx.font = '14px "Share Tech Mono", monospace';
-        ctx.textAlign = "center";
-        ctx.fillText("COLLECTING DATA...", plotX + plotW / 2, plotY + plotH / 2);
-        return;
-      }
-
-      const tMin = t24ago;
-      const tMax = now;
-      const vals = visible.map(d => d.v);
-      let vMin = Math.min(...vals);
-      let vMax = Math.max(...vals);
-      if (vMax === vMin) { vMax = vMin + 1; }
-      const vPad = (vMax - vMin) * 0.1;
-      vMin = Math.max(0, vMin - vPad);
-      vMax = vMax + vPad;
-
-      function xOf(t) { return plotX + ((t - tMin) / (tMax - tMin)) * plotW; }
-      function yOf(v) { return plotY + plotH - ((v - vMin) / (vMax - vMin)) * plotH; }
-
-      // Y axis labels
-      ctx.fillStyle = "#555";
-      ctx.font = '11px "Share Tech Mono", monospace';
-      ctx.textAlign = "right";
-      for (let i = 0; i <= gridRows; i++) {
-        const v = vMin + ((vMax - vMin) / gridRows) * (gridRows - i);
-        const y = plotY + (plotH / gridRows) * i;
-        ctx.fillText(v.toFixed(1), plotX - 8, y + 4);
-      }
-
-      // X axis labels (time)
-      ctx.textAlign = "center";
-      for (let i = 0; i <= gridCols; i++) {
-        const t = tMin + ((tMax - tMin) / gridCols) * i;
-        const d = new Date(t);
-        const label = String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
-        const x = plotX + (plotW / gridCols) * i;
-        ctx.fillText(label, x, plotY + plotH + 18);
-      }
-
-      // Average line
-      const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
-      const avgY = yOf(avg);
-      ctx.strokeStyle = "#1a8c1a";
-      ctx.lineWidth = 1;
-      ctx.setLineDash([4, 4]);
-      ctx.beginPath();
-      ctx.moveTo(plotX, avgY);
-      ctx.lineTo(plotX + plotW, avgY);
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      // Avg label
-      ctx.fillStyle = "#1a8c1a";
-      ctx.font = '10px "Share Tech Mono", monospace';
-      ctx.textAlign = "left";
-      ctx.fillText("AVG " + avg.toFixed(2), plotX + 5, avgY - 5);
-
-      // Glow fill under line
-      const gradient = ctx.createLinearGradient(0, plotY, 0, plotY + plotH);
-      gradient.addColorStop(0, "rgba(255, 176, 0, 0.15)");
-      gradient.addColorStop(1, "rgba(255, 176, 0, 0.0)");
-
-      ctx.beginPath();
-      ctx.moveTo(xOf(visible[0].t), yOf(visible[0].v));
-      for (let i = 1; i < visible.length; i++) {
-        ctx.lineTo(xOf(visible[i].t), yOf(visible[i].v));
-      }
-      ctx.lineTo(xOf(visible[visible.length - 1].t), plotY + plotH);
-      ctx.lineTo(xOf(visible[0].t), plotY + plotH);
-      ctx.closePath();
-      ctx.fillStyle = gradient;
-      ctx.fill();
-
-      // Main line
-      ctx.strokeStyle = "#ffb000";
-      ctx.lineWidth = 1.5;
-      ctx.shadowColor = "#ffb00066";
-      ctx.shadowBlur = 6;
-      ctx.beginPath();
-      ctx.moveTo(xOf(visible[0].t), yOf(visible[0].v));
-      for (let i = 1; i < visible.length; i++) {
-        ctx.lineTo(xOf(visible[i].t), yOf(visible[i].v));
-      }
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-
-      // Latest point dot
-      const last = visible[visible.length - 1];
-      ctx.fillStyle = "#ffb000";
-      ctx.shadowColor = "#ffb000";
-      ctx.shadowBlur = 10;
-      ctx.beginPath();
-      ctx.arc(xOf(last.t), yOf(last.v), 3, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.shadowBlur = 0;
-
-      // Axis labels
-      ctx.fillStyle = "#444";
-      ctx.font = '10px "Share Tech Mono", monospace';
-      ctx.textAlign = "center";
-      ctx.fillText("TIME (24H)", plotX + plotW / 2, plotY + plotH + 34);
-      ctx.save();
-      ctx.translate(12, plotY + plotH / 2);
-      ctx.rotate(-Math.PI / 2);
-      ctx.fillText("FLOW RATE (m\u00B3/h)", 0, 0);
-      ctx.restore();
+      // Mark card as active
+      const card = document.getElementById("card-" + key);
+      if (card) card.classList.remove("inactive");
     }
 
     // ============================================================
     //  FIREBASE REALTIME LISTENERS
     // ============================================================
 
-    // Timestamp listener — ижил утга дахин илгээхэд lastDataTime шинэчилнэ
+    // Timestamp listener
     db.ref("/flow_system/last_updated").on("value", () => {
       lastDataTime = Date.now();
-      blinkLed();
     });
 
-    // Current Flow
-    db.ref("/flow_system/current_flow").on("value", (snap) => {
+    // Flowmeter 1
+    db.ref("/flow_system/flowmeter1/current_flow").on("value", (snap) => {
       const val = snap.val();
       if (val === null) return;
-
-      const flow = parseFloat(val);
-      lastDataTime = Date.now();
-      readingCount++;
-      readingSample++;
-
-      // Update display
-      elCurrentFlow.textContent = flow.toFixed(2);
-      elReadingCount.textContent = readingCount;
-      elLastUpdate.textContent = new Date().toLocaleTimeString();
-
-      // Min / Max tracking
-      if (flow < minFlow) { minFlow = flow; elMinFlow.textContent = flow.toFixed(2); }
-      if (flow > maxFlow) { maxFlow = flow; elMaxFlow.textContent = flow.toFixed(2); }
-
-      // Bar (assume 0-50 m³/h range, adjust as needed)
-      const pct = Math.min(100, (flow / 50) * 100);
-      elCurrentBar.style.width = pct + "%";
-      elCurrentBar.className = "gauge-bar-fill" +
-        (pct > 80 ? " critical" : pct > 50 ? " high" : "");
-
-      // Chart data — downsample to ~1 per minute
-      if (readingSample >= DOWNSAMPLE) {
-        readingSample = 0;
-        chartData.push({ t: Date.now(), v: flow });
-        // Trim to 24h
-        const cutoff = Date.now() - 24 * 60 * 60 * 1000;
-        while (chartData.length > 0 && chartData[0].t < cutoff) {
-          chartData.shift();
-        }
-        if (chartData.length > MAX_POINTS) chartData.shift();
-        drawChart();
-      }
+      updateFlowmeter("fm1", parseFloat(val));
     });
 
-    // Total Flow
-    db.ref("/flow_system/total_flow").on("value", (snap) => {
+    // Flowmeter 2
+    db.ref("/flow_system/flowmeter2/current_flow").on("value", (snap) => {
       const val = snap.val();
       if (val === null) return;
-
-      const total = parseFloat(val);
-      elTotalFlow.textContent = total.toFixed(2);
-
-      if (totalFlowStart === null) {
-        totalFlowStart = total;
-        elSessionStart.textContent = total.toFixed(1) + " m\u00B3";
-      }
-
-      // Bar (session delta, assume max 1000 m³ range)
-      const delta = total - (totalFlowStart || 0);
-      const pct = Math.min(100, (delta / 1000) * 100);
-      elTotalBar.style.width = pct + "%";
+      updateFlowmeter("fm2", parseFloat(val));
     });
 
-    // ============================================================
-    //  INITIAL DRAW
-    // ============================================================
-    drawChart();
+    // Flowmeter 3 (ирээдүйд холбоход бэлэн)
+    db.ref("/flow_system/flowmeter3/current_flow").on("value", (snap) => {
+      const val = snap.val();
+      if (val === null) return;
+      updateFlowmeter("fm3", parseFloat(val));
+    });
+
+    // Flowmeter 4 (ирээдүйд холбоход бэлэн)
+    db.ref("/flow_system/flowmeter4/current_flow").on("value", (snap) => {
+      const val = snap.val();
+      if (val === null) return;
+      updateFlowmeter("fm4", parseFloat(val));
+    });
   </script>
 
 </body>

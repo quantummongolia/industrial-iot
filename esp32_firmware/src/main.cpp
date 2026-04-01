@@ -1,18 +1,16 @@
 /*
  * ============================================================
- *  ESP32 Түвшин хэмжигч → Firebase Realtime Database
+ *  ESP32 Урсгал Хэмжигч (x2) → Firebase Realtime Database
  * ============================================================
  *
  * Тоног төхөөрөмж:
  *   - ESP32 DevKit
  *   - MAX485 RS485 хөрвүүлэгч (RE/DE → GPIO 4, RX2 → GPIO 16, TX2 → GPIO 17)
- *   - Ultrasonic түвшин хэмжигч (Modbus RTU, Slave ID 1, 9600 8N1)
+ *   - Flowmeter 1 (Modbus RTU, Slave ID 2, 9600 8N1)
+ *   - Flowmeter 2 (Modbus RTU, Slave ID 3, 9600 8N1)
  *
  * Шаардлагатай сангууд (platformio.ini-д тохируулсан):
  *   - Firebase Arduino Client Library (Mobizt)
- *
- * Регистрийн зураглал:
- *   0x2001 (1 регистр) → Түвшний утга (uint16)
  */
 
 #include "secrets.h"
@@ -31,7 +29,8 @@
 #define RS485_TX_PIN 17
 
 // Modbus slave тохиргоо
-#define MODBUS_SLAVE_ID 2
+#define FLOWMETER1_SLAVE_ID 2
+#define FLOWMETER2_SLAVE_ID 3
 #define MODBUS_BAUD 9600
 
 // Регистрийн хаяг
@@ -43,7 +42,9 @@
 #define WDT_TIMEOUT_S 30
 
 // Firebase RTDB зам
-#define FB_PATH_CURRENT "/flow_system/current_flow"
+#define FB_PATH_FM1_CURRENT "/flow_system/flowmeter1/current_flow"
+#define FB_PATH_FM2_CURRENT "/flow_system/flowmeter2/current_flow"
+#define FB_PATH_LAST_UPDATED "/flow_system/last_updated"
 
 // ========================== ГЛОБАЛ ОБЪЕКТУУД ==========================
 
@@ -77,9 +78,9 @@ uint16_t crc16(uint8_t *buf, uint16_t len) {
 
 static uint8_t rxbuf[64];
 
-int sendAndRead(uint16_t reg, uint16_t count) {
+int sendAndRead(uint8_t slaveId, uint16_t reg, uint16_t count) {
   uint8_t req[8];
-  req[0] = MODBUS_SLAVE_ID;
+  req[0] = slaveId;
   req[1] = 0x03; // Read Holding Register
   req[2] = (reg >> 8) & 0xFF;
   req[3] = reg & 0xFF;
@@ -99,23 +100,22 @@ int sendAndRead(uint16_t reg, uint16_t count) {
   delayMicroseconds(500);
   digitalWrite(MAX485_DE_RE, LOW);
 
-  Serial.print("[TX] ");
+  Serial.printf("[TX → Slave %d] ", slaveId);
   for (int i = 0; i < 8; i++)
     Serial.printf("%02X ", req[i]);
   Serial.println();
 
-  // Timeout-тэй хүлээлт — байт ирэхийг 100ms хүртэл хүлээнэ
   int len = 0;
   unsigned long t = millis();
   while (millis() - t < 100) {
     while (Serial2.available() && len < 64) {
       rxbuf[len++] = Serial2.read();
-      t = millis(); // шинэ байт ирэх бүрт timeout сэргээнэ
+      t = millis();
     }
     delay(1);
   }
 
-  Serial.printf("[RX] (%d bytes): ", len);
+  Serial.printf("[RX ← Slave %d] (%d bytes): ", slaveId, len);
   for (int i = 0; i < len; i++)
     Serial.printf("%02X ", rxbuf[i]);
   Serial.println();
@@ -137,16 +137,15 @@ float parseFloatBE(uint8_t *data) {
 }
 
 /*
- * Өгөгдсөн хаягаас 2 holding регистр уншиж float утга буцаана.
- * Noise-с хамгаалж slave ID + FC pattern хайж, CRC шалгана.
+ * Өгөгдсөн slave-аас holding регистр уншиж float утга буцаана.
  */
-bool readFlowFloat(uint16_t reg, float &outValue) {
-  int len = sendAndRead(reg, 2);
+bool readFlowFloat(uint8_t slaveId, uint16_t reg, float &outValue) {
+  int len = sendAndRead(slaveId, reg, 2);
   if (len < 9)
     return false;
 
   for (int i = 0; i <= len - 9; i++) {
-    if (rxbuf[i] == MODBUS_SLAVE_ID && rxbuf[i + 1] == 0x03) {
+    if (rxbuf[i] == slaveId && rxbuf[i + 1] == 0x03) {
       uint8_t byteCount = rxbuf[i + 2];
       if (byteCount != 4)
         continue;
@@ -222,19 +221,20 @@ bool ensureFirebase() {
 void setup() {
   Serial.begin(115200);
   delay(100);
-  Serial.println("\n========= Түвшин Хэмжигч IoT Систем =========");
+  Serial.println("\n========= Урсгал Хэмжигч IoT Систем (x2) =========");
 
   pinMode(MAX485_DE_RE, OUTPUT);
   digitalWrite(MAX485_DE_RE, LOW);
   pinMode(RS485_RX_PIN, INPUT_PULLUP);
 
   Serial2.begin(MODBUS_BAUD, SERIAL_8N1, RS485_RX_PIN, RS485_TX_PIN);
-  Serial.println("[Modbus] Эхлүүлсэн — Slave ID: " + String(MODBUS_SLAVE_ID));
+  Serial.printf(
+      "[Modbus] Эхлүүлсэн — Flowmeter 1: Slave %d, Flowmeter 2: Slave %d\n",
+      FLOWMETER1_SLAVE_ID, FLOWMETER2_SLAVE_ID);
 
   wifiConnect();
   firebaseInit();
 
-  // Watchdog Timer эхлүүлэх (30 секунд)
   esp_task_wdt_config_t wdtConfig = {.timeout_ms = WDT_TIMEOUT_S * 1000,
                                      .idle_core_mask = 0,
                                      .trigger_panic = true};
@@ -258,33 +258,63 @@ void loop() {
     return;
   lastReadTime = now;
 
-  float flowValue = 0.0;
-  bool ok = false;
-  for (int attempt = 0; attempt < 3 && !ok; attempt++) {
-    ok = readFlowFloat(REG_CURRENT_FLOW, flowValue);
-    if (!ok && attempt < 2)
+  // ---- Flowmeter 1 (Slave ID 2) ----
+  float flow1 = 0.0;
+  bool ok1 = false;
+  for (int attempt = 0; attempt < 3 && !ok1; attempt++) {
+    ok1 = readFlowFloat(FLOWMETER1_SLAVE_ID, REG_CURRENT_FLOW, flow1);
+    if (!ok1 && attempt < 2)
       delay(50);
   }
 
-  if (!ok) {
-    Serial.println("[Modbus] Уншилт амжилтгүй (3 оролдлого)");
-    return;
+  if (ok1) {
+    Serial.printf("[FM1] Урсгал: %.4f\n", flow1);
+  } else {
+    Serial.println("[FM1] Уншилт амжилтгүй (3 оролдлого)");
   }
 
-  Serial.printf("[Өгөгдөл] Урсгал: %.4f\n", flowValue);
+  // Flowmeter 2-г уншихын өмнө богино хугацаа хүлээнэ (bus дээрх collision-аас
+  // сэргийлэх)
+  delay(50);
 
+  // ---- Flowmeter 2 (Slave ID 3) ----
+  float flow2 = 0.0;
+  bool ok2 = false;
+  for (int attempt = 0; attempt < 3 && !ok2; attempt++) {
+    ok2 = readFlowFloat(FLOWMETER2_SLAVE_ID, REG_CURRENT_FLOW, flow2);
+    if (!ok2 && attempt < 2)
+      delay(50);
+  }
+
+  if (ok2) {
+    Serial.printf("[FM2] Урсгал: %.4f\n", flow2);
+  } else {
+    Serial.println("[FM2] Уншилт амжилтгүй (3 оролдлого)");
+  }
+
+  // ---- Firebase руу илгээх ----
   if (!ensureFirebase()) {
     Serial.println("[Систем] Firebase бэлэн биш");
     return;
   }
 
-  if (Firebase.RTDB.setFloat(&fbData, FB_PATH_CURRENT, flowValue)) {
-    Serial.println("[Firebase] current_flow шинэчлэгдлээ");
-  } else {
-    Serial.printf("[Firebase] АЛДАА: %s\n", fbData.errorReason().c_str());
+  if (ok1) {
+    if (Firebase.RTDB.setFloat(&fbData, FB_PATH_FM1_CURRENT, flow1)) {
+      Serial.println("[Firebase] FM1 current_flow шинэчлэгдлээ");
+    } else {
+      Serial.printf("[Firebase] FM1 АЛДАА: %s\n", fbData.errorReason().c_str());
+    }
   }
 
-  // Timestamp тусдаа бичнэ — ижил утга дахин илгээхэд listener ажиллахын тулд
-  Firebase.RTDB.setInt(&fbData, "/flow_system/last_updated",
-                       (int)(millis() / 1000));
+  if (ok2) {
+    if (Firebase.RTDB.setFloat(&fbData, FB_PATH_FM2_CURRENT, flow2)) {
+      Serial.println("[Firebase] FM2 current_flow шинэчлэгдлээ");
+    } else {
+      Serial.printf("[Firebase] FM2 АЛДАА: %s\n", fbData.errorReason().c_str());
+    }
+  }
+
+  if (ok1 || ok2) {
+    Firebase.RTDB.setInt(&fbData, FB_PATH_LAST_UPDATED, (int)(millis() / 1000));
+  }
 }
