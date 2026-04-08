@@ -1,0 +1,509 @@
+/* ============================================================
+   LOGIN OVERLAY (used by login.html)
+   ============================================================ */
+.login-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.login-overlay.hidden { display: none; }
+
+.login-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 40px 32px 32px;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+.login-title {
+  font-family: var(--display);
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-align: center;
+  margin-bottom: 6px;
+  background: linear-gradient(180deg,
+    var(--accent-bright) 0%,
+    var(--accent) 50%,
+    var(--accent-dim) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 12px rgba(245, 184, 0, 0.45));
+}
+.login-sub {
+  font-size: 13px;
+  color: var(--text-soft);
+  text-align: center;
+  margin-bottom: 28px;
+}
+.login-step { display: none; }
+.login-step.active { display: block; }
+.login-label {
+  font-size: 12px;
+  color: var(--text-soft);
+  font-weight: 500;
+  margin-bottom: 8px;
+  display: block;
+}
+.login-input {
+  width: 100%;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 16px;
+  font-weight: 500;
+  padding: 12px 16px;
+  text-align: center;
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: all 0.2s var(--ease);
+}
+.login-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
+.login-btn {
+  width: 100%;
+  margin-top: 16px;
+  background: linear-gradient(180deg, var(--accent-bright), var(--accent));
+  border: 1px solid var(--accent);
+  color: #1a1208;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  letter-spacing: 0.02em;
+  box-shadow: 0 4px 14px rgba(245, 184, 0, 0.3),
+              inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  transition: all 0.2s var(--ease);
+}
+.login-btn:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(245, 184, 0, 0.4),
+              inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.login-btn:active { transform: scale(0.98); }
+.login-hint {
+  font-size: 12px;
+  color: var(--text-dim);
+  text-align: center;
+  margin-top: 16px;
+  line-height: 1.5;
+}
+.login-error {
+  color: var(--red);
+  font-size: 12px;
+  text-align: center;
+  margin-top: 8px;
+  min-height: 14px;
+}
+
+/* ============================================================
+   APP LAYOUT
+   ============================================================ */
+.app {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ============================================================
+   SIDEBAR — nested, always-expanded, retro amber
+   ============================================================ */
+.sidebar {
+  width: 270px;
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 26px 14px 24px;
+  flex-shrink: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 100;
+  overflow-y: auto;
+  transition: transform 0.3s var(--ease);
+}
+
+/* Subtle inner amber wash */
+.sidebar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 80% 40% at 50% 0%, rgba(245, 184, 0, 0.06), transparent 70%);
+  pointer-events: none;
+}
+
+/* ============================================================
+   SIDEBAR LOGO — Always amber, retro futuristic
+   ============================================================ */
+.sidebar-logo {
+  font-family: var(--display);
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-align: center;
+  padding: 4px 0 28px;
+  margin-bottom: 8px;
+  background: linear-gradient(180deg,
+    var(--accent-bright) 0%,
+    var(--accent) 50%,
+    var(--accent-dim) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 10px rgba(245, 184, 0, 0.4))
+          drop-shadow(0 2px 0 rgba(245, 184, 0, 0.18));
+  position: relative;
+  z-index: 1;
+  user-select: none;
+}
+
+.sidebar-logo::after {
+  content: '';
+  display: block;
+  width: 60%;
+  height: 1px;
+  margin: 16px auto 0;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0.6;
+  -webkit-text-fill-color: initial;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  position: relative;
+  z-index: 1;
+}
+
+.nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  text-decoration: none;
+  user-select: none;
+  font-family: var(--sans);
+  transition: background 0.18s var(--ease), color 0.18s var(--ease), transform 0.18s var(--ease);
+}
+.nav-item:hover {
+  background: var(--bg-card-hover);
+  color: var(--accent-bright);
+}
+.nav-item.active {
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-weight: 600;
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+.nav-item .icon {
+  flex-shrink: 0;
+}
+.nav-item .dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--text-faint);
+  flex-shrink: 0;
+  margin-right: 12px;
+}
+.nav-item.active .dot {
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+}
+
+/* ──────── LEVEL 1 — Том, том logo (Эрчим хүч / Процесс / Хүнд машин) ──────── */
+.nav-item.level-1 {
+  gap: 14px;
+  padding: 14px 14px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  margin-top: 2px;
+}
+.nav-item.level-1 .icon {
+  width: 22px;
+  height: 22px;
+  color: var(--accent);
+}
+.nav-item.level-1.active .icon {
+  filter: drop-shadow(0 0 6px var(--accent));
+}
+
+/* ──────── LEVEL 2 — Дунд (Бутлан / Үйлдвэр / Баян уусмал) ──────── */
+.nav-item.level-2 {
+  gap: 12px;
+  padding: 9px 12px 9px 22px;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.nav-item.level-2 .icon {
+  width: 16px;
+  height: 16px;
+  color: var(--text-soft);
+}
+.nav-item.level-2.active .icon {
+  color: var(--accent);
+}
+
+/* ──────── LEVEL 3 — Жижиг (CV7 / Тээрэм / гэх мэт) ──────── */
+.level-3-group {
+  margin: 2px 0 4px;
+  padding-left: 8px;
+  border-left: 1px dashed var(--border-strong);
+  margin-left: 30px;
+}
+.nav-item.level-3 {
+  padding: 6px 10px 6px 12px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-soft);
+}
+.nav-item.level-3:hover {
+  color: var(--accent-bright);
+}
+.nav-item.level-3.active {
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 99;
+}
+.sidebar-backdrop.active { display: block; }
+
+/* ============================================================
+   MAIN CONTENT
+   ============================================================ */
+.main {
+  flex: 1;
+  margin-left: 270px;
+  padding: 28px 32px 40px;
+  max-width: 1400px;
+  min-width: 0;
+}
+
+/* PAGE HEADER */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.page-header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.sidebar-toggle {
+  display: none;
+  width: 38px;
+  height: 38px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  align-items: center;
+  justify-content: center;
+}
+
+.page-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.page-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-soft);
+}
+.pill .led {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--red);
+}
+.pill .led.online { background: var(--green); }
+.pill.internal { color: var(--green); border-color: rgba(74, 222, 128, 0.3); }
+.pill.external { color: var(--accent); border-color: var(--accent-border); }
+.pill.time { font-variant-numeric: tabular-nums; color: var(--text); }
+
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-soft);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.18s var(--ease);
+}
+.icon-btn:hover {
+  color: var(--text);
+  background: var(--bg-card-hover);
+  border-color: var(--border-strong);
+}
+.icon-btn .icon { width: 16px; height: 16px; }
+
+.logout-btn {
+  padding: 7px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-soft);
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 999px;
+  transition: all 0.18s var(--ease);
+}
+.logout-btn:hover {
+  color: var(--red);
+  border-color: rgba(248, 113, 113, 0.3);
+}
+
+.theme-toggle {
+  position: relative;
+  overflow: hidden;
+}
+.theme-toggle .icon-moon,
+.theme-toggle .icon-sun {
+  position: absolute;
+  transition: transform 0.4s var(--ease), opacity 0.3s var(--ease);
+}
+.theme-toggle .icon-moon { transform: rotate(0deg) scale(1); opacity: 1; }
+.theme-toggle .icon-sun { transform: rotate(-90deg) scale(0); opacity: 0; }
+[data-theme="light"] .theme-toggle .icon-moon { transform: rotate(90deg) scale(0); opacity: 0; }
+[data-theme="light"] .theme-toggle .icon-sun { transform: rotate(0deg) scale(1); opacity: 1; }
+
+/* TAB PANELS */
+.tab-panel { display: none; }
+.tab-panel.active {
+  display: block;
+  animation: tab-in 0.25s var(--ease);
+}
+@keyframes tab-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* SENSOR GRID — used by Нуруулдан уусгалт / Баян уусмалын сан */
+.sensor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.sensor-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+}
+.sensor-label {
+  font-size: 13px;
+  color: var(--text-soft);
+  margin-bottom: 12px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sensor-led {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-faint);
+  transition: background 0.3s var(--ease), box-shadow 0.3s var(--ease);
+}
+.sensor-led.blink {
+  background: var(--green);
+  box-shadow: 0 0 10px var(--green);
+}
+.sensor-value {
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.sensor-unit {
+  font-size: 16px;
+  color: var(--text-dim);
+  font-weight: 500;
+  margin-left: 4px;
+}
+
+/* PLACEHOLDER (other tabs) */
+.placeholder-card {
+  background: var(--bg-card);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  padding: 80px 20px;
+  text-align: center;
+}
+.placeholder-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 16px;
+  background: var(--accent-bg);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+}
+.placeholder-icon .icon { width: 28px; height: 28px; }
+.placeholder-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.placeholder-text {
+  font-size: 13px;
+  color: var(--text-soft);
+}

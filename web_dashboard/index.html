@@ -1,685 +1,1222 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="mn" data-theme="dark">
 
 <head>
-  <meta charset="UTF-8"> <!-- Set character encoding to UTF-8 for international characters -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Responsive viewport for mobile devices -->
-  <title>INDUSTRIAL IoT system</title> <!-- Browser tab title -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0a0c">
+  <title>MRESOURCE — Industrial IoT</title>
 
   <style>
-    /* ============================================================
-       RETRO INDUSTRIAL THEME — CSS Custom Properties (Variables)
-       Dark theme is the default, light theme overrides below.
-       ============================================================ */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-    /* Import Google Fonts: VT323 (retro display), Share Tech Mono (monospace), Orbitron (futuristic headings) */
-    @import url('https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
-
-    /* Root CSS variables — Dark theme defaults */
-    :root {
-      --bg: #0a0a0a;
-      /* Page background color (near black) */
-      --panel: #111111;
-      /* Card/panel background color */
-      --panel-edge: #1a1a1a;
-      /* Panel edge highlight color */
-      --border: #222;
-      /* Border color for elements */
-      --amber: #ffb000;
-      /* Primary amber/gold text color */
-      --amber-dim: #996a00;
-      /* Dimmed amber for secondary text */
-      --amber-glow: 0 0 8px #ffb00066, 0 0 20px #ffb00022;
-      /* Amber glow effect for text-shadow */
-      --green: #33ff33;
-      /* Bright green for active/online indicators */
-      --green-dim: #1a8c1a;
-      /* Dimmed green for subtle indicators */
-      --green-glow: 0 0 8px #33ff3366, 0 0 20px #33ff3322;
-      /* Green glow effect */
-      --red: #ff3333;
-      /* Red for errors and offline status */
-      --red-glow: 0 0 8px #ff333366;
-      /* Red glow effect */
-      --cyan: #00ffff;
-      /* Cyan accent color */
-      --cyan-dim: #007777;
-      /* Dimmed cyan */
-      --scanline: rgba(0, 0, 0, 0.12);
-      /* CRT scanline overlay opacity */
-      --text-dim: #555555;
-      /* Dimmed text color for labels */
-      --header-bg: linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%);
-      /* Header gradient background */
-      --footer-bg: #0d0d0d;
-      /* Footer background color */
-      --footer-border: #1a1a1a;
-      /* Footer top border color */
-      --chart-bg: #0a0f0a;
-      /* Chart area background */
-      --bar-track: #1a1a1a;
-      /* Progress bar track background */
-      --interrupt-bg: #1a0000;
-      /* Data interruption banner background (dark red) */
-      --mono: 'Share Tech Mono', 'Courier New', monospace;
-      /* Monospace font stack */
-      --display: 'VT323', monospace;
-      /* Retro display font */
-      --heading: 'Orbitron', sans-serif;
-      /* Futuristic heading font */
-    }
-
-    /* ============================================================
-       LIGHT THEME — Override CSS variables when data-theme="light"
-       ============================================================ */
-    [data-theme="light"] {
-      --bg: #f5f5f0;
-      /* Light beige background */
-      --panel: #ffffff;
-      /* White card backgrounds */
-      --panel-edge: #e0e0e0;
-      /* Light gray panel edges */
-      --border: #ccc;
-      /* Light gray borders */
-      --amber: #1a1a1a;
-      /* Dark text replaces amber in light mode */
-      --amber-dim: #444;
-      /* Medium gray for secondary text */
-      --amber-glow: none;
-      /* No glow effects in light mode */
-      --green: #1a8c1a;
-      /* Darker green for light backgrounds */
-      --green-dim: #2d7a2d;
-      /* Medium green */
-      --green-glow: none;
-      /* No glow in light mode */
-      --red: #cc0000;
-      /* Darker red for light mode */
-      --red-glow: none;
-      /* No glow in light mode */
-      --cyan: #006666;
-      /* Dark cyan for light backgrounds */
-      --cyan-dim: #338888;
-      /* Medium cyan */
-      --scanline: transparent;
-      /* No CRT scanlines in light mode */
-      --text-dim: #666;
-      /* Medium gray text */
-      --header-bg: linear-gradient(180deg, #e8e8e0 0%, #f0f0ea 100%);
-      /* Light header gradient */
-      --footer-bg: #e8e8e0;
-      /* Light footer background */
-      --footer-border: #ccc;
-      /* Light footer border */
-      --chart-bg: #fafaf5;
-      /* Light chart background */
-      --bar-track: #e0e0d8;
-      /* Light bar track */
-      --interrupt-bg: #fff0f0;
-      /* Light red for interruption banner */
-    }
-
-    /* Universal reset — remove default margins, padding, use border-box sizing */
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
     }
 
-    /* Body — base page styling */
+    :root {
+      /* Dark theme (default) - Premium industrial palette */
+      --bg: #0a0a0c;
+      --bg-sidebar: #0e0e11;
+      --bg-card: rgba(21, 21, 26, 0.7);
+      --bg-card-hover: rgba(28, 28, 34, 0.9);
+      --bg-elevated: #1f1f25;
+      --border: rgba(255, 255, 255, 0.05);
+      --border-strong: rgba(255, 255, 255, 0.08);
+      --text: #f5f5f7;
+      --text-soft: #a1a1aa;
+      --text-dim: #71717a;
+      --text-faint: #3f3f46;
+      --accent: #6195ff;
+      --accent-glow: rgba(97, 149, 255, 0.15);
+      --accent-bg: rgba(97, 149, 255, 0.08);
+      --accent-border: rgba(97, 149, 255, 0.2);
+      --green: #4ade80;
+      --green-glow: rgba(74, 222, 128, 0.2);
+      --orange: #fb923c;
+      --red: #f87171;
+      --radius: 16px;
+      --radius-sm: 12px;
+      --radius-lg: 20px;
+      --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+      --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    [data-theme="light"] {
+      --bg: #f8f8fa;
+      --bg-sidebar: #ffffff;
+      --bg-card: rgba(255, 255, 255, 0.8);
+      --bg-card-hover: rgba(255, 255, 255, 1);
+      --bg-elevated: #f0f0f4;
+      --border: rgba(0, 0, 0, 0.04);
+      --border-strong: rgba(0, 0, 0, 0.08);
+      --text: #18181b;
+      --text-soft: #52525b;
+      --text-dim: #71717a;
+      --text-faint: #a1a1aa;
+      --accent: #2563eb;
+      --accent-glow: rgba(37, 99, 235, 0.1);
+      --accent-bg: rgba(37, 99, 235, 0.06);
+      --accent-border: rgba(37, 99, 235, 0.2);
+    }
+
+    html,
     body {
-      font-family: var(--mono);
-      /* Use monospace font as default */
+      height: 100%;
+    }
+
+    body {
+      font-family: var(--sans);
       background: var(--bg);
-      /* Apply background color from theme */
-      color: var(--amber);
-      /* Apply text color from theme */
+      color: var(--text);
       min-height: 100vh;
-      /* Minimum full viewport height */
-      overflow-x: hidden;
-      /* Prevent horizontal scrollbar */
-      transition: background 0.3s, color 0.3s;
-      /* Smooth theme transition */
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      letter-spacing: -0.01em;
+      font-size: 14px;
+      transition: background 0.3s var(--ease), color 0.3s var(--ease);
     }
 
-    /* CRT scanline overlay — creates horizontal line effect over entire page */
-    body::after {
-      content: '';
-      /* Required for pseudo-element to render */
-      position: fixed;
-      /* Fixed position covers viewport */
-      inset: 0;
-      /* Stretch to all edges */
-      background: repeating-linear-gradient(0deg,
-          var(--scanline) 0px,
-          /* Dark line */
-          var(--scanline) 1px,
-          /* 1px thick dark line */
-          transparent 1px,
-          /* Transparent gap */
-          transparent 3px);
-      /* 2px gap between lines */
-      pointer-events: none;
-      /* Allow clicking through the overlay */
-      z-index: 9999;
-      /* Place on top of everything */
-    }
-
-    /* Subtle CRT flicker animation — brief opacity dip simulating old monitor */
-    @keyframes flicker {
-
-      0%,
-      100% {
-        opacity: 1;
-      }
-
-      /* Normal opacity at start and end */
-      92% {
-        opacity: 1;
-      }
-
-      /* Normal until 92% */
-      93% {
-        opacity: 0.8;
-      }
-
-      /* Brief flicker at 93% */
-      94% {
-        opacity: 1;
-      }
-
-      /* Back to normal at 94% */
-    }
-
-    /* ============================================================
-       HEADER — Top navigation bar with logo, status, and controls
-       ============================================================ */
-
-    /* Header container — flexbox layout with space between left and right groups */
-    .header {
-      background: var(--header-bg);
-      /* Gradient background */
-      border-bottom: 2px solid var(--border);
-      /* Bottom border line */
-      padding: 1rem 2rem;
-      /* Vertical and horizontal padding */
-      display: flex;
-      /* Flexbox layout */
-      justify-content: space-between;
-      /* Push left and right groups apart */
-      align-items: center;
-      /* Vertically center items */
-      transition: background 0.3s, border-color 0.3s;
-      /* Smooth theme switch */
-    }
-
-    /* Header left group — contains logo and status badge */
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      /* Space between logo and status badge */
-    }
-
-    /* Logo text styling — large, bold, futuristic font */
-    .logo {
-      font-family: var(--heading);
-      /* Orbitron futuristic font */
-      font-size: 1.4rem;
-      font-weight: 900;
-      /* Extra bold weight */
-      color: var(--amber);
-      text-shadow: var(--amber-glow);
-      /* Glowing text effect in dark mode */
-      letter-spacing: 0.15em;
-      /* Wide letter spacing */
-    }
-
-    /* Logo subtitle — smaller monospace text below logo */
-    .logo-sub {
-      font-family: var(--mono);
-      font-size: 0.7rem;
-      color: var(--text-dim);
-      /* Dimmed color for subtitle */
-      letter-spacing: 0.2em;
-    }
-
-    /* Header right group — contains theme toggle and clock */
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 1.2rem;
-      /* Space between toggle and clock */
-    }
-
-    /* Status badge — connection status indicator container */
-    .status-badge {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      /* Space between LED dot and text */
-      font-size: 0.8rem;
-      color: var(--text-dim);
-      border: 1px solid var(--border);
-      padding: 0.3rem 0.8rem;
-      border-radius: 2px;
-      background: var(--bg);
-    }
-
-    /* Status LED indicator — small colored circle showing connection state */
-    .status-led {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      /* Make it circular */
-      background: var(--red);
-      /* Red = offline (default state) */
-      box-shadow: var(--red-glow);
-      /* Red glow effect */
-      transition: all 0.3s;
-      /* Smooth color transition */
-    }
-
-    /* Status LED online state — green with pulsing animation */
-    .status-led.online {
-      background: var(--green);
-      /* Green = online */
-      box-shadow: var(--green-glow);
-      /* Green glow effect */
-      animation: pulse-led 2s ease-in-out infinite;
-      /* Continuous pulse animation */
-    }
-
-    /* LED pulse animation — fades in and out for "breathing" effect */
-    @keyframes pulse-led {
-
-      0%,
-      100% {
-        opacity: 1;
-      }
-
-      /* Full opacity at start and end */
-      50% {
-        opacity: 0.5;
-      }
-
-      /* Half opacity at midpoint */
-    }
-
-    /* Header clock display — shows current time in retro green digits */
-    .header-time {
-      font-family: var(--display);
-      /* VT323 retro font */
-      font-size: 1.3rem;
-      color: var(--green);
-      text-shadow: var(--green-glow);
-      /* Green glow for CRT effect */
-      letter-spacing: 0.1em;
-    }
-
-    /* ============================================================
-       THEME TOGGLE — Circular button with animated Sun/Moon icons
-       ============================================================ */
-
-    /* Theme toggle button — circular button in header */
-    .theme-toggle {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 50%;
-      /* Circular shape */
-      width: 36px;
-      height: 36px;
-      padding: 0;
+    button {
+      font-family: inherit;
       cursor: pointer;
-      /* Hand cursor on hover */
-      position: relative;
-      overflow: hidden;
-      /* Hide icons when they animate out */
-      transition: all 0.3s;
+    }
+
+    /* ============================================================
+       LOGIN OVERLAY
+       ============================================================ */
+    .login-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      background: var(--bg);
       display: flex;
       align-items: center;
       justify-content: center;
+      padding: 24px;
     }
 
-    /* Theme toggle hover effect — highlight border */
-    .theme-toggle:hover {
-      border-color: var(--amber);
+    .login-overlay.hidden {
+      display: none;
     }
 
-    /* Theme icon base styles — positioned absolutely for crossfade animation */
-    .theme-icon {
-      position: absolute;
-      transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-        /* Smooth rotation/scale */
-        opacity 0.3s ease;
-      /* Smooth fade */
-      font-size: 1.1rem;
-      line-height: 1;
+    .login-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-lg);
+      padding: 48px 40px 40px;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
     }
 
-    /* Moon icon — visible in dark mode (default) */
-    .icon-moon {
-      transform: rotate(0deg) scale(1);
-      /* Normal position and size */
-      opacity: 1;
-      /* Fully visible */
-      color: var(--amber);
-      text-shadow: var(--amber-glow);
+    .login-title {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      color: var(--accent);
+      text-align: center;
+      margin-bottom: 4px;
     }
 
-    /* Sun icon — hidden in dark mode */
-    .icon-sun {
-      transform: rotate(-90deg) scale(0);
-      /* Rotated and scaled down (hidden) */
-      opacity: 0;
-      /* Invisible */
-      color: #8a7000;
+    .login-sub {
+      font-size: 13px;
+      color: var(--text-soft);
+      text-align: center;
+      margin-bottom: 28px;
     }
 
-    /* Light theme: hide moon icon with rotation animation */
-    [data-theme="light"] .icon-moon {
-      transform: rotate(90deg) scale(0);
-      /* Rotate out and scale to zero */
-      opacity: 0;
+    .login-step {
+      display: none;
     }
 
-    /* Light theme: show sun icon with rotation animation */
-    [data-theme="light"] .icon-sun {
-      transform: rotate(0deg) scale(1);
-      /* Rotate to normal position */
-      opacity: 1;
+    .login-step.active {
+      display: block;
     }
 
-    /* ============================================================
-       MAIN LAYOUT — Content area with max width and centered
-       ============================================================ */
-
-    /* Main content container */
-    .main {
-      max-width: 1200px;
-      /* Maximum content width */
-      margin: 0 auto;
-      /* Center horizontally */
-      padding: 1.5rem;
-      /* Inner padding */
-      padding-bottom: 3.5rem;
-      /* Extra bottom padding for fixed footer */
-      animation: flicker 8s infinite;
-      /* Subtle CRT flicker effect */
+    .login-label {
+      font-size: 12px;
+      color: var(--text-soft);
+      font-weight: 500;
+      margin-bottom: 8px;
+      display: block;
     }
 
-    /* Section label — uppercase text above content sections */
-    .section-label {
-      font-family: var(--mono);
-      font-size: 0.7rem;
-      color: var(--text-dim);
-      letter-spacing: 0.25em;
-      /* Wide letter spacing */
-      text-transform: uppercase;
-      /* Force uppercase text */
-      margin-bottom: 0.75rem;
-      padding-left: 0.25rem;
-    }
-
-    /* ============================================================
-       GAUGE CARDS — 2x2 grid layout for 4 flowmeter panels
-       ============================================================ */
-
-    /* Gauges grid container — 2 columns layout */
-    .gauges {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      /* Two equal-width columns */
-      gap: 1.5rem;
-      /* Space between cards */
-      margin-bottom: 1.5rem;
-    }
-
-    /* Individual gauge card — styled panel for each flowmeter */
-    .gauge-card {
-      background: var(--panel);
-      /* Card background color */
+    .login-input {
+      width: 100%;
+      background: var(--bg-elevated);
       border: 1px solid var(--border);
-      /* Card border */
-      border-radius: 4px;
-      /* Slightly rounded corners */
-      padding: 1.5rem 2rem;
-      /* Inner padding */
-      position: relative;
-      /* For pseudo-element positioning */
-      overflow: hidden;
-      /* Clip top gradient line */
-      transition: background 0.3s, border-color 0.3s;
-      /* Smooth theme switch */
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 16px;
+      font-weight: 500;
+      padding: 12px 16px;
+      text-align: center;
+      border-radius: var(--radius-sm);
+      outline: none;
+      transition: all 0.2s var(--ease);
     }
 
-    /* Gauge card top accent line — decorative gradient at top edge */
-    .gauge-card::before {
+    .login-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-bg);
+    }
+
+    .login-btn {
+      width: 100%;
+      margin-top: 16px;
+      background: var(--accent);
+      border: none;
+      color: white;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 12px;
+      border-radius: var(--radius-sm);
+      transition: opacity 0.2s var(--ease), transform 0.1s var(--ease);
+    }
+
+    .login-btn:hover {
+      opacity: 0.9;
+    }
+
+    .login-btn:active {
+      transform: scale(0.98);
+    }
+
+    .login-hint {
+      font-size: 12px;
+      color: var(--text-dim);
+      text-align: center;
+      margin-top: 16px;
+      line-height: 1.5;
+    }
+
+    .login-error {
+      color: var(--red);
+      font-size: 12px;
+      text-align: center;
+      margin-top: 8px;
+      min-height: 14px;
+    }
+
+    /* ============================================================
+       APP LAYOUT
+       ============================================================ */
+    .app {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ============================================================
+       SIDEBAR
+       ============================================================ */
+    .sidebar {
+      width: 240px;
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 24px 16px;
+      flex-shrink: 0;
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      z-index: 100;
+      overflow-y: auto;
+      transition: transform 0.3s var(--ease);
+    }
+
+    .sidebar-logo {
+      padding: 0 12px 32px;
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+    }
+
+    .sidebar-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      color: var(--text-soft);
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: background 0.18s var(--ease), color 0.18s var(--ease);
+      text-decoration: none;
+      user-select: none;
+    }
+
+    .nav-item:hover {
+      background: var(--bg-card);
+      color: var(--text);
+    }
+
+    .nav-item.active {
+      background: var(--accent-bg);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .nav-item .icon {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+
+    .sidebar-section {
+      padding: 28px 12px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    /* DROPDOWN SUBMENU */
+    .nav-item.has-submenu {
+      justify-content: flex-start;
+    }
+
+    .nav-item .submenu-chev {
+      width: 14px;
+      height: 14px;
+      margin-left: auto;
+      transition: transform 0.2s var(--ease);
+      color: var(--text-dim);
+    }
+
+    .nav-item.open .submenu-chev {
+      transform: rotate(180deg);
+    }
+
+    .submenu {
+      display: none;
+      flex-direction: column;
+      gap: 2px;
+      padding-left: 14px;
+      margin: 4px 0 4px 22px;
+      border-left: 1px solid var(--border-strong);
+    }
+
+    .submenu.open {
+      display: flex;
+      animation: submenu-in 0.2s var(--ease);
+    }
+
+    @keyframes submenu-in {
+      from {
+        opacity: 0;
+        transform: translateY(-4px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .submenu-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border-radius: var(--radius-sm);
+      color: var(--text-soft);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: background 0.18s var(--ease), color 0.18s var(--ease);
+      user-select: none;
+    }
+
+    .submenu-item:hover {
+      background: var(--bg-card);
+      color: var(--text);
+    }
+
+    .submenu-item.has-subsubmenu .submenu-chev {
+      width: 12px;
+      height: 12px;
+    }
+
+    .submenu-item.open .submenu-chev {
+      transform: rotate(180deg);
+    }
+
+    .subsubmenu {
+      display: none;
+      flex-direction: column;
+      gap: 2px;
+      padding-left: 12px;
+      margin: 2px 0 4px 12px;
+      border-left: 1px solid var(--border);
+    }
+
+    .subsubmenu.open {
+      display: flex;
+      animation: submenu-in 0.2s var(--ease);
+    }
+
+    .subsubmenu-item {
+      padding: 7px 12px;
+      border-radius: var(--radius-sm);
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      transition: background 0.18s var(--ease), color 0.18s var(--ease);
+      user-select: none;
+    }
+
+    .subsubmenu-item:hover {
+      background: var(--bg-card);
+      color: var(--text);
+    }
+
+    .sidebar-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 99;
+    }
+
+    .sidebar-backdrop.active {
+      display: block;
+    }
+
+    /* ============================================================
+       MAIN CONTENT
+       ============================================================ */
+    .main {
+      flex: 1;
+      margin-left: 240px;
+      padding: 32px 40px 48px;
+      max-width: 1600px;
+      min-width: 0;
+    }
+
+    /* PAGE HEADER */
+    .page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 32px;
+      padding: 12px 0;
+      position: sticky;
+      top: 0;
+      background: rgba(10, 10, 12, 0.01);
+      backdrop-filter: blur(8px);
+      z-index: 50;
+    }
+
+    .page-header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .sidebar-toggle {
+      display: none;
+      width: 42px;
+      height: 42px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-strong);
+      color: var(--text);
+      border-radius: var(--radius-sm);
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s var(--ease);
+    }
+
+    .sidebar-toggle:hover {
+      background: var(--bg-card-hover);
+      transform: scale(1.05);
+    }
+
+    .page-title {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, var(--text) 0%, var(--text-soft) 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .page-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-soft);
+    }
+
+    .pill .led {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-faint);
+      position: relative;
+    }
+
+    .pill .led.online {
+      background: var(--green);
+      box-shadow: 0 0 12px var(--green-glow);
+    }
+
+    .pill .led.online::after {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border: 2px solid var(--green);
+      border-radius: 50%;
+      animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    .pill.internal {
+      color: var(--green);
+      border-color: rgba(74, 222, 128, 0.3);
+    }
+
+    .pill.external {
+      color: var(--accent);
+      border-color: var(--accent-border);
+    }
+
+    .pill.time {
+      font-variant-numeric: tabular-nums;
+      color: var(--text);
+    }
+
+    .icon-btn {
+      width: 36px;
+      height: 36px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-soft);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.18s var(--ease);
+    }
+
+    .icon-btn:hover {
+      color: var(--text);
+      background: var(--bg-card-hover);
+      border-color: var(--border-strong);
+    }
+
+    .icon-btn .icon {
+      width: 16px;
+      height: 16px;
+    }
+
+    .logout-btn {
+      padding: 7px 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-soft);
+      font-size: 12px;
+      font-weight: 500;
+      border-radius: 999px;
+      transition: all 0.18s var(--ease);
+    }
+
+    .logout-btn:hover {
+      color: var(--red);
+      border-color: rgba(248, 113, 113, 0.3);
+    }
+
+    .theme-toggle {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .theme-toggle .icon-moon,
+    .theme-toggle .icon-sun {
+      position: absolute;
+      transition: transform 0.4s var(--ease), opacity 0.3s var(--ease);
+    }
+
+    .theme-toggle .icon-moon {
+      transform: rotate(0deg) scale(1);
+      opacity: 1;
+    }
+
+    .theme-toggle .icon-sun {
+      transform: rotate(-90deg) scale(0);
+      opacity: 0;
+    }
+
+    [data-theme="light"] .theme-toggle .icon-moon {
+      transform: rotate(90deg) scale(0);
+      opacity: 0;
+    }
+
+    [data-theme="light"] .theme-toggle .icon-sun {
+      transform: rotate(0deg) scale(1);
+      opacity: 1;
+    }
+
+    /* FILTERS */
+    .filters {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+
+    .filter-pill {
+      padding: 9px 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      color: var(--text-soft);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+      min-width: 200px;
+      max-width: 320px;
+      justify-content: space-between;
+    }
+
+    .filter-pill strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .filter-pill .chev {
+      width: 14px;
+      height: 14px;
+      color: var(--text-dim);
+    }
+
+    /* TAB PANELS */
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+      animation: tab-in 0.25s var(--ease);
+    }
+
+    @keyframes tab-in {
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* STATS GRID */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr) 1.5fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      transition: all 0.3s var(--ease);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-card:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-strong);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+    }
+
+    .stat-card::before {
       content: '';
       position: absolute;
       top: 0;
       left: 0;
-      right: 0;
-      height: 3px;
-      /* 3px tall accent line */
-      background: linear-gradient(90deg, transparent, var(--amber-dim), transparent);
-      /* Fade in/out gradient */
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0;
+      transition: opacity 0.3s var(--ease);
     }
 
-    /* Gauge label — flowmeter name/title text */
-    .gauge-label {
-      font-family: var(--mono);
-      font-size: 0.75rem;
+    .stat-card:hover::before {
+      opacity: 0.5;
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: var(--text-soft);
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text);
+    }
+
+    .stat-suffix {
+      font-size: 16px;
       color: var(--text-dim);
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      margin-bottom: 0.5rem;
+      font-weight: 500;
     }
 
-    /* Gauge value row — horizontal layout for number and unit */
-    .gauge-value-row {
+    /* CHART CARD (right side, spans 2 rows) */
+    .chart-card {
+      grid-column: 4 / 5;
+      grid-row: 1 / 3;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
       display: flex;
-      align-items: baseline;
-      /* Align number and unit at text baseline */
-      gap: 0.5rem;
+      flex-direction: column;
+      min-height: 240px;
     }
 
-    /* Gauge value — large flow reading number */
-    .gauge-value {
-      font-family: var(--display);
-      /* VT323 retro display font */
-      font-size: 4.5rem;
-      /* Large text size */
-      color: var(--amber);
-      text-shadow: var(--amber-glow);
-      /* Glowing text effect */
-      line-height: 1;
-      transition: color 0.3s;
-    }
-
-    /* Gauge unit label — measurement unit text (m³/h) */
-    .gauge-unit {
-      font-family: var(--mono);
-      font-size: 1rem;
-      color: var(--amber-dim);
-      /* Dimmed color for unit */
-    }
-
-    /* Data receive LED indicator — small dot that blinks green when data arrives */
-    .data-led {
-      display: inline-block;
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      /* Circular shape */
-      background: #888;
-      /* Gray color when inactive/no data */
-      vertical-align: middle;
-      /* Align with text */
-      margin-right: 0.3rem;
-      transition: background 0.1s, box-shadow 0.1s;
-      /* Fast transition for blink effect */
-    }
-
-    /* Data LED blink state — bright green when data is received */
-    .data-led.blink {
-      background: var(--green);
-      /* Bright green */
-      box-shadow: var(--green-glow);
-      /* Green glow effect */
-    }
-
-    /* Inactive card style — dimmed appearance for unconnected flowmeters */
-    .gauge-card.inactive {
-      opacity: 0.4;
-      /* 40% opacity to show as inactive */
-    }
-
-    /* Inactive card value text — gray without glow */
-    .gauge-card.inactive .gauge-value {
-      color: var(--text-dim);
-      text-shadow: none;
-      /* Remove glow effect */
-    }
-
-    /* ============================================================
-       FOOTER STATUS BAR — Fixed bottom bar with system info
-       ============================================================ */
-
-    /* Footer container — fixed at bottom of viewport */
-    .footer {
-      background: var(--footer-bg);
-      border-top: 1px solid var(--footer-border);
-      /* Top border line */
-      padding: 0.6rem 2rem;
+    .chart-header {
       display: flex;
       justify-content: space-between;
-      /* Spread items across width */
-      font-size: 0.7rem;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+
+    .chart-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .chart-period {
+      font-size: 12px;
+      color: var(--text-soft);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .bar-chart {
+      flex: 1;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 6px;
+      padding-top: 24px;
+      min-height: 160px;
+      position: relative;
+    }
+
+    .bar-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .bar-stack {
+      width: 100%;
+      max-width: 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      height: 100%;
+      position: relative;
+    }
+
+    .bar {
+      width: 100%;
+      background: linear-gradient(180deg, var(--accent) 0%, rgba(97, 149, 255, 0.5) 100%);
+      border-radius: 6px 6px 0 0;
+      position: relative;
+    }
+
+    .bar::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, transparent 0%, rgba(97, 149, 255, 0.15) 100%);
+      border-radius: inherit;
+      filter: blur(8px);
+      z-index: -1;
+    }
+
+    .bar-label {
+      font-size: 10px;
       color: var(--text-dim);
-      position: fixed;
-      /* Fixed at bottom */
-      bottom: 0;
-      left: 0;
-      right: 0;
-      /* Stretch full width */
-      transition: background 0.3s, border-color 0.3s;
+      text-transform: uppercase;
+      font-weight: 500;
     }
 
-    /* Footer readings text — green colored reading counter */
-    .footer-readings {
-      color: var(--green-dim);
+    /* PERCENTAGE GRID */
+    .percentage-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 16px;
     }
 
-    /* Footer note text — centered note in amber */
-    .footer-note {
-      text-align: center;
-      font-size: 0.7rem;
-      color: var(--amber-dim);
-      letter-spacing: 0.1em;
+    .percentage-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
     }
 
-    /* ============================================================
-       DATA INTERRUPTION BANNER — Warning shown when data stops
-       ============================================================ */
+    .percentage-label {
+      font-size: 13px;
+      color: var(--text-soft);
+      margin-bottom: 8px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
 
-    /* Interruption banner container — hidden by default, shown when data stops */
-    .interrupt-banner {
-      display: none;
-      /* Hidden by default */
+    .percentage-led {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--text-faint);
+      transition: background 0.3s var(--ease), box-shadow 0.3s var(--ease);
+    }
+
+    .percentage-led.blink {
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+    }
+
+    .percentage-value {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .sparkline {
+      width: 100%;
+      height: 28px;
+      display: block;
+    }
+
+    .sparkline path.line {
+      fill: none;
+      stroke: var(--accent);
+      stroke-width: 1.5;
+    }
+
+    .sparkline path.fill {
+      fill: url(#sparkGrad);
+      opacity: 0.3;
+    }
+
+    /* TOPICS GRID */
+    .topics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .topics-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+    }
+
+    .topics-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 16px;
+    }
+
+    .topic-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+    }
+
+    .topic-row+.topic-row {
+      border-top: 1px solid var(--border);
+    }
+
+    .topic-thumb {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      background: var(--bg-elevated);
+      flex-shrink: 0;
+      display: flex;
       align-items: center;
       justify-content: center;
-      gap: 0.6rem;
-      background: var(--interrupt-bg);
-      /* Dark red background */
-      border: 1px solid #ff333355;
-      /* Semi-transparent red border */
-      border-radius: 4px;
-      padding: 0.75rem 1.5rem;
-      margin-bottom: 1.5rem;
-      animation: banner-pulse 2s ease-in-out infinite;
-      /* Pulsing border animation */
+      color: var(--accent);
     }
 
-    /* Interruption banner active state — show the banner */
-    .interrupt-banner.active {
-      display: flex;
-      /* Make visible with flexbox layout */
+    .topic-info {
+      flex: 1;
+      min-width: 0;
     }
 
-    /* Banner pulse animation — border color fades between dim and bright red */
-    @keyframes banner-pulse {
+    .topic-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
 
-      0%,
+    .progress-bar {
+      height: 6px;
+      background: var(--bg-elevated);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--orange), var(--green));
+      transition: width 0.5s var(--ease);
+    }
+
+    .progress-fill.green {
+      background: var(--green);
+    }
+
+    .topic-percent {
+      font-size: 12px;
+      color: var(--text-soft);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .topic-percent strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    /* LEADERBOARD */
+    .leaderboard-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .leaderboard-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    /* ANIMATIONS */
+    @keyframes pulse-ring {
+      0% {
+        transform: scale(0.33);
+        opacity: 1;
+      }
+
+      80%,
       100% {
-        border-color: #ff333355;
+        transform: scale(3);
+        opacity: 0;
+      }
+    }
+
+    @keyframes pulse-dot {
+      0% {
+        transform: scale(0.8);
+        box-shadow: 0 0 0 0 var(--green-glow);
       }
 
-      /* Semi-transparent red */
-      50% {
-        border-color: #ff3333;
+      70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 10px rgba(74, 222, 128, 0);
       }
 
-      /* Bright red at midpoint */
+      100% {
+        transform: scale(0.8);
+        box-shadow: 0 0 0 0 rgba(74, 222, 128, 0);
+      }
     }
 
-    /* Warning icon in the banner */
-    .interrupt-icon {
-      font-size: 1.2rem;
-      color: var(--red);
-      text-shadow: var(--red-glow);
+    .led-pulse {
+      position: relative;
+      width: 10px;
+      height: 10px;
+      background: var(--green);
+      border-radius: 50%;
     }
 
-    /* Main warning text in the banner */
-    .interrupt-text {
-      font-family: var(--mono);
-      font-size: 0.8rem;
-      color: var(--red);
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      text-shadow: var(--red-glow);
+    .led-pulse::before {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border: 2px solid var(--green);
+      border-radius: 50%;
+      animation: pulse-ring 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
     }
 
-    /* Subtitle text showing duration of interruption */
-    .interrupt-sub {
-      font-size: 0.65rem;
-      color: #663333;
-      /* Dark red text */
-      letter-spacing: 0.1em;
+    /* CUSTOM SCROLLBAR */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--text-faint);
+      border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-dim);
+    }
+
+    .leader-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+    }
+
+    .leader-row+.leader-row {
+      border-top: 1px solid var(--border);
+    }
+
+    .leader-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--bg-elevated);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-soft);
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    .leader-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .leader-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .leader-meta {
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+
+    .leader-rank {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .rank-arrow {
+      width: 12px;
+      height: 12px;
+      color: var(--green);
+    }
+
+    /* PLACEHOLDER (other tabs) */
+    .placeholder-card {
+      background: var(--bg-card);
+      border: 1px dashed var(--border-strong);
+      border-radius: var(--radius);
+      padding: 80px 20px;
+      text-align: center;
+    }
+
+    .placeholder-icon {
+      width: 56px;
+      height: 56px;
+      margin: 0 auto 16px;
+      background: var(--accent-bg);
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+    }
+
+    .placeholder-icon .icon {
+      width: 28px;
+      height: 28px;
+    }
+
+    .placeholder-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .placeholder-text {
+      font-size: 13px;
+      color: var(--text-soft);
     }
 
     /* ============================================================
-       RESPONSIVE DESIGN — Adapt layout for small screens (<700px)
+       RESPONSIVE
        ============================================================ */
+    @media (max-width: 1100px) {
+      .stats-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .chart-card {
+        grid-column: 1 / -1;
+        grid-row: auto;
+      }
+    }
+
+    @media (max-width: 880px) {
+      .percentage-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .topics-grid,
+      .leaderboard-grid {
+        grid-template-columns: 1fr;
+      }
+    }
 
     @media (max-width: 700px) {
+      .sidebar {
+        transform: translateX(-100%);
+        width: 260px;
+      }
 
-      /* Stack gauge cards in single column on mobile */
-      .gauges {
+      .sidebar.expanded {
+        transform: translateX(0);
+      }
+
+      .main {
+        margin-left: 0;
+        padding: 20px 16px 32px;
+      }
+
+      .page-header {
+        flex-wrap: wrap;
+      }
+
+      .sidebar-toggle {
+        display: flex;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .stats-grid .stat-card:nth-child(3) {
+        grid-column: 1 / -1;
+      }
+
+      .percentage-grid {
         grid-template-columns: 1fr;
       }
 
-      /* Reduce gauge value font size on mobile */
-      .gauge-value {
-        font-size: 3.2rem;
+      .filter-pill {
+        min-width: unset;
+        max-width: unset;
       }
 
-      /* Stack header vertically on mobile */
-      .header {
+      .filters {
         flex-direction: column;
-        gap: 0.75rem;
-        text-align: center;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .stats-grid {
+        grid-template-columns: 1fr;
       }
 
-      /* Wrap header right items on mobile */
-      .header-right {
-        flex-wrap: wrap;
-        justify-content: center;
+      .stats-grid .stat-card:nth-child(3) {
+        grid-column: auto;
       }
 
-      /* Reduce main padding on mobile */
-      .main {
-        padding: 1rem;
+      .page-actions {
+        gap: 6px;
+      }
+
+      .pill {
+        font-size: 11px;
+        padding: 6px 10px;
+      }
+
+      .logout-btn {
+        font-size: 11px;
+        padding: 6px 10px;
       }
     }
   </style>
@@ -687,303 +1224,516 @@
 
 <body>
 
-  <!-- ==================== HEADER — Top bar with logo, status, theme toggle, clock ==================== -->
-  <div class="header">
-    <!-- Left side: company logo and connection status -->
-    <div class="header-left">
-      <div>
-        <div class="logo">MRESOURCE</div> <!-- Company/project logo text -->
-        <div class="logo-sub">INDUSTRIAL MONITORING SYSTEM</div> <!-- Subtitle describing the system -->
+  <!-- ==================== LOGIN OVERLAY ==================== -->
+  <div class="login-overlay" id="loginOverlay">
+    <div class="login-card">
+      <div class="login-title">MRESOURCE</div>
+      <div class="login-sub">Secure Access Portal</div>
+
+      <div class="login-step active" id="loginStep1">
+        <label class="login-label" for="phoneInput">Утасны дугаар</label>
+        <input type="tel" id="phoneInput" class="login-input" placeholder="+976" maxlength="15" autocomplete="tel">
+        <button class="login-btn" onclick="sendVerificationCode()">Код илгээх</button>
+        <div class="login-error" id="loginError1"></div>
+        <div class="login-hint">Verification код таны утсанд илгээгдэнэ</div>
       </div>
-      <!-- Firebase connection status indicator -->
-      <div class="status-badge">
-        <div class="status-led" id="statusLed"></div> <!-- LED dot: red=offline, green=online -->
-        <span id="statusText">OFFLINE</span> <!-- Status text updated by JavaScript -->
+
+      <div class="login-step" id="loginStep2">
+        <label class="login-label" for="codeInput">6 оронтой код</label>
+        <input type="text" id="codeInput" class="login-input" placeholder="••••••" maxlength="6" inputmode="numeric">
+        <button class="login-btn" onclick="verifyCode()">Баталгаажуулах</button>
+        <div class="login-error" id="loginError2"></div>
+        <div class="login-hint">
+          MOCK горим: дурын 6 оронтой тоо ажиллана.<br>
+          Баталгаажилт 7 хоног хадгалагдана.
+        </div>
       </div>
-    </div>
-    <!-- Right side: theme toggle button and live clock -->
-    <div class="header-right">
-      <!-- Dark/Light theme toggle button with animated moon/sun icons -->
-      <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Toggle theme">
-        <span class="theme-icon icon-moon">&#9790;</span> <!-- Moon symbol (visible in dark mode) -->
-        <span class="theme-icon icon-sun">&#9728;</span> <!-- Sun symbol (visible in light mode) -->
-      </button>
-      <!-- Live clock display — updated every second by JavaScript -->
-      <div class="header-time" id="headerTime">--:--:--</div>
     </div>
   </div>
 
-  <!-- ==================== MAIN CONTENT — Flowmeter gauge cards ==================== -->
-  <div class="main">
+  <!-- ==================== APP ==================== -->
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+  <div class="app" id="appShell" style="display:none;">
 
-    <!-- Data interruption warning banner — shown when no data received for 5+ seconds -->
-    <div class="interrupt-banner" id="interruptBanner">
-      <span class="interrupt-icon">&#9888;</span> <!-- Warning triangle symbol -->
-      <div>
-        <div class="interrupt-text">Data acquisition failed</div> <!-- Main warning message -->
-        <div class="interrupt-sub">No data received for <span id="interruptDuration">--</span> seconds</div>
-        <!-- Duration counter -->
-      </div>
-    </div>
+    <!-- ==================== SIDEBAR ==================== -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">MRESOURCE</div>
 
-    <!-- Section title above flowmeter cards -->
-    <div class="section-label">FLOWMETER LIVE READINGS</div>
-
-    <!-- 2x2 grid of flowmeter gauge cards -->
-    <div class="gauges">
-      <!-- Flowmeter 1 — Active, displays current flow from Firebase -->
-      <div class="gauge-card" id="card-fm1">
-        <div class="gauge-label"><span class="data-led" id="dataLed1"></span> Суларсан уусмал 2</div>
-        <!-- Flowmeter name with data LED indicator -->
-        <div class="gauge-value-row">
-          <div class="gauge-value" id="fm1Flow">0.00</div> <!-- Current flow value (updated by JS) -->
-          <div class="gauge-unit">m&sup3;/h</div> <!-- Unit: cubic meters per hour -->
+      <div class="sidebar-section">Industrial IoT Platform</div>
+      <nav class="sidebar-nav">
+        <div class="nav-item active" data-tab="energy">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+          </svg>
+          Energy consumption
         </div>
-      </div>
-
-      <!-- Flowmeter 2 — Active, displays current flow from Firebase -->
-      <div class="gauge-card" id="card-fm2">
-        <div class="gauge-label"><span class="data-led" id="dataLed2"></span> Баян уусмал </div>
-        <!-- Flowmeter name with data LED indicator -->
-        <div class="gauge-value-row">
-          <div class="gauge-value" id="fm2Flow">0.00</div> <!-- Current flow value (updated by JS) -->
-          <div class="gauge-unit">m&sup3;/h</div> <!-- Unit: cubic meters per hour -->
+        <div class="nav-item" data-tab="analytics">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10" />
+            <line x1="12" y1="20" x2="12" y2="4" />
+            <line x1="6" y1="20" x2="6" y2="14" />
+          </svg>
+          Analytics
         </div>
-      </div>
-
-      <!-- Flowmeter 3 — Inactive (reserved for future connection) -->
-      <div class="gauge-card inactive" id="card-fm3">
-        <div class="gauge-label"><span class="data-led" id="dataLed3"></span> Flowmeter 3 — Current Flow</div>
-        <!-- Placeholder name -->
-        <div class="gauge-value-row">
-          <div class="gauge-value" id="fm3Flow">--</div> <!-- Dashes indicate no data -->
-          <div class="gauge-unit">m&sup3;/h</div> <!-- Unit: cubic meters per hour -->
+        <div class="nav-item" data-tab="alerts">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+            <line x1="12" y1="9" x2="12" y2="13" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>
+          Alerts
         </div>
-      </div>
-
-      <!-- Flowmeter 4 — Inactive (reserved for future connection) -->
-      <div class="gauge-card inactive" id="card-fm4">
-        <div class="gauge-label"><span class="data-led" id="dataLed4"></span> Flowmeter 4 — Current Flow</div>
-        <!-- Placeholder name -->
-        <div class="gauge-value-row">
-          <div class="gauge-value" id="fm4Flow">--</div> <!-- Dashes indicate no data -->
-          <div class="gauge-unit">m&sup3;/h</div> <!-- Unit: cubic meters per hour -->
+        <div class="nav-item" data-tab="documents">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+            <polyline points="10 9 9 9 8 9" />
+          </svg>
+          Documents
         </div>
-      </div>
-    </div>
 
+        <!-- Process Monitoring (dropdown) -->
+        <div class="nav-item has-submenu" data-submenu="process-monitoring">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7" />
+            <rect x="14" y="3" width="7" height="7" />
+            <rect x="14" y="14" width="7" height="7" />
+            <rect x="3" y="14" width="7" height="7" />
+          </svg>
+          Process Monitoring
+          <svg class="submenu-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </div>
+        <div class="submenu" id="submenu-process-monitoring">
+          <div class="submenu-item has-subsubmenu" data-subsubmenu="pm-sub-1">
+            Crushing and Screening
+            <svg class="submenu-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </div>
+          <div class="subsubmenu" id="subsubmenu-pm-sub-1">
+            <div class="subsubmenu-item">Sub 1-1</div>
+            <div class="subsubmenu-item">Sub 1-2</div>
+            <div class="subsubmenu-item">Sub 1-3</div>
+            <div class="subsubmenu-item">Sub 1-4</div>
+            <div class="subsubmenu-item">Sub 1-5</div>
+            <div class="subsubmenu-item">Sub 1-6</div>
+            <div class="subsubmenu-item">Sub 1-7</div>
+          </div>
+
+          <div class="submenu-item has-subsubmenu" data-subsubmenu="pm-sub-2">
+            Factory
+            <svg class="submenu-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </div>
+          <div class="subsubmenu" id="subsubmenu-pm-sub-2">
+            <div class="subsubmenu-item">Sub 2-1</div>
+            <div class="subsubmenu-item">Sub 2-2</div>
+            <div class="subsubmenu-item">Sub 2-3</div>
+            <div class="subsubmenu-item">Sub 2-4</div>
+            <div class="subsubmenu-item">Sub 2-5</div>
+            <div class="subsubmenu-item">Sub 2-6</div>
+            <div class="subsubmenu-item">Sub 2-7</div>
+          </div>
+
+          <div class="submenu-item has-subsubmenu" data-subsubmenu="pm-sub-3">
+            Heap leaching
+            <svg class="submenu-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </div>
+          <div class="subsubmenu" id="subsubmenu-pm-sub-3">
+            <div class="subsubmenu-item">Sub 3-1</div>
+            <div class="subsubmenu-item">Sub 3-2</div>
+            <div class="subsubmenu-item">Sub 3-3</div>
+            <div class="subsubmenu-item">Sub 3-4</div>
+            <div class="subsubmenu-item">Sub 3-5</div>
+            <div class="subsubmenu-item">Sub 3-6</div>
+            <div class="subsubmenu-item">Sub 3-7</div>
+          </div>
+
+          <div class="submenu-item has-subsubmenu" data-subsubmenu="pm-sub-4">
+            Mining
+            <svg class="submenu-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </div>
+          <div class="subsubmenu" id="subsubmenu-pm-sub-4">
+            <div class="subsubmenu-item">Sub 4-1</div>
+            <div class="subsubmenu-item">Sub 4-2</div>
+            <div class="subsubmenu-item">Sub 4-3</div>
+            <div class="subsubmenu-item">Sub 4-4</div>
+            <div class="subsubmenu-item">Sub 4-5</div>
+            <div class="subsubmenu-item">Sub 4-6</div>
+            <div class="subsubmenu-item">Sub 4-7</div>
+          </div>
+        </div>
+      </nav>
+
+      <div class="sidebar-section">Quick Actions</div>
+      <nav class="sidebar-nav">
+        <div class="nav-item" data-tab="upload-sop">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+          Upload SOP
+        </div>
+        <div class="nav-item" data-tab="reports">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+          </svg>
+          Reports
+        </div>
+        <div class="nav-item" data-tab="settings">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path
+              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+          Settings
+        </div>
+      </nav>
+    </aside>
+
+    <!-- ==================== MAIN ==================== -->
+    <main class="main">
+
+      <!-- ============== TAB: ENERGY CONSUMPTION ============== -->
+      <div class="tab-panel active" id="tab-energy">
+
+        <div class="page-header">
+          <div class="page-header-left">
+            <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
+            <h1 class="page-title">Energy consumption</h1>
+          </div>
+          <div class="page-actions">
+            <div class="pill">
+              <div class="led" id="statusLed"></div>
+              <span id="statusText">OFFLINE</span>
+            </div>
+            <div class="pill" id="userBadge">— — —</div>
+            <div class="pill time" id="headerTime">--:--:--</div>
+            <button class="logout-btn" onclick="logout()">Гарах</button>
+            <button class="icon-btn theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+              <svg class="icon icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+              </svg>
+              <svg class="icon icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="5" />
+                <line x1="12" y1="1" x2="12" y2="3" />
+                <line x1="12" y1="21" x2="12" y2="23" />
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                <line x1="1" y1="12" x2="3" y2="12" />
+                <line x1="21" y1="12" x2="23" y2="12" />
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </main>
   </div>
 
-  <!-- ==================== FOOTER — Fixed bottom status bar ==================== -->
-  <div class="footer">
-    <span>ESP32 RS485 MODBUS RTU &mdash; FIREBASE RTDB</span> <!-- System architecture description -->
-    <span class="footer-note">4-CH INDUSTRIAL FLOW MONITORING</span> <!-- 4-channel monitoring label -->
-    <!-- Reading counter and last update timestamp -->
-    <span class="footer-readings">READINGS: <span id="readingCount">0</span> | LAST UPDATE: <span
-        id="lastUpdate">--</span></span>
-  </div>
-
-  <!-- ==================== EXTERNAL SCRIPTS — Firebase SDK ==================== -->
-  <!-- Firebase App SDK (compatibility version for simpler API) -->
+  <!-- ==================== SCRIPTS ==================== -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <!-- Firebase Realtime Database SDK (compatibility version) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-  <!-- Firebase configuration with API keys (loaded from separate file) -->
   <script src="config.js"></script>
 
   <script>
     // ============================================================
-    //  THEME TOGGLE — Switch between dark and light themes
+    //  THEME TOGGLE
     // ============================================================
-
-    /*
-     * Toggle between dark and light themes.
-     * Sets the data-theme attribute on <html> element and saves preference to localStorage.
-     */
     function toggleTheme() {
-      const html = document.documentElement;  // Reference to the <html> element
+      const html = document.documentElement;
       if (html.getAttribute("data-theme") === "light") {
-        html.removeAttribute("data-theme");   // Remove attribute to revert to dark (default)
-        localStorage.setItem("theme", "dark"); // Save preference to browser storage
+        html.setAttribute("data-theme", "dark");
+        localStorage.setItem("theme", "dark");
       } else {
-        html.setAttribute("data-theme", "light"); // Set light theme attribute
-        localStorage.setItem("theme", "light");   // Save preference to browser storage
+        html.setAttribute("data-theme", "light");
+        localStorage.setItem("theme", "light");
       }
     }
-
-    // Immediately Invoked Function Expression (IIFE) — restore saved theme on page load
     (function () {
-      const saved = localStorage.getItem("theme"); // Read saved theme preference
-      if (saved === "light") {
-        document.documentElement.setAttribute("data-theme", "light"); // Apply light theme if saved
-      }
+      const saved = localStorage.getItem("theme");
+      if (saved === "light") document.documentElement.setAttribute("data-theme", "light");
     })();
 
     // ============================================================
-    //  FIREBASE INITIALIZATION — Connect to Realtime Database
+    //  LOGIN — Mock phone verification (7-day cache)
     // ============================================================
-    firebase.initializeApp(firebaseConfig);  // Initialize Firebase with config from config.js
-    const db = firebase.database();          // Get reference to the Realtime Database
+    const VERIFY_KEY = "phone_verified_until";
+    const VERIFY_DAYS = 7;
+    const VERIFY_MS = VERIFY_DAYS * 24 * 60 * 60 * 1000;
 
-    // ============================================================
-    //  APPLICATION STATE — Global variables for tracking data
-    // ============================================================
-    let readingCount = 0;       // Total number of data readings received
-    let lastDataTime = 0;       // Timestamp (ms) of last data received from Firebase
-    const DATA_TIMEOUT = 5;     // Seconds without data before showing interruption warning
-
-    // DOM element references — cached for performance (avoids repeated getElementById calls)
-    const el = {
-      fm1Flow: document.getElementById("fm1Flow"),       // Flowmeter 1 value display element
-      dataLed1: document.getElementById("dataLed1"),     // Flowmeter 1 data receive LED indicator
-
-      fm2Flow: document.getElementById("fm2Flow"),       // Flowmeter 2 value display element
-      dataLed2: document.getElementById("dataLed2"),     // Flowmeter 2 data receive LED indicator
-
-      fm3Flow: document.getElementById("fm3Flow"),       // Flowmeter 3 value display element
-      dataLed3: document.getElementById("dataLed3"),     // Flowmeter 3 data receive LED indicator
-
-      fm4Flow: document.getElementById("fm4Flow"),       // Flowmeter 4 value display element
-      dataLed4: document.getElementById("dataLed4"),     // Flowmeter 4 data receive LED indicator
-
-      statusLed: document.getElementById("statusLed"),   // Firebase connection status LED
-      statusText: document.getElementById("statusText"), // Firebase connection status text
-      headerTime: document.getElementById("headerTime"), // Header clock display
-      readingCount: document.getElementById("readingCount"),       // Total readings counter in footer
-      lastUpdate: document.getElementById("lastUpdate"),           // Last update time in footer
-      interruptBanner: document.getElementById("interruptBanner"), // Data interruption warning banner
-      interruptDuration: document.getElementById("interruptDuration") // Interruption duration counter
-    };
-
-    /*
-     * Briefly blink a data LED element green to indicate data was received.
-     * Adds the "blink" CSS class for 300ms then removes it.
-     * @param ledEl - the LED DOM element to blink
-     */
-    function blinkLed(ledEl) {
-      ledEl.classList.add("blink");            // Add green blink CSS class
-      setTimeout(() => ledEl.classList.remove("blink"), 300); // Remove after 300ms
+    function isVerified() {
+      const until = parseInt(localStorage.getItem(VERIFY_KEY) || "0", 10);
+      return until > Date.now();
     }
-
-    // ============================================================
-    //  HEADER CLOCK — Updates time display every second
-    // ============================================================
-
-    /*
-     * Update the header clock with current time in HH:MM:SS format.
-     * Called every 1000ms by setInterval.
-     */
-    function tickClock() {
-      const now = new Date();                                    // Get current date/time
-      const h = String(now.getHours()).padStart(2, "0");        // Hours with leading zero (00-23)
-      const m = String(now.getMinutes()).padStart(2, "0");      // Minutes with leading zero (00-59)
-      const s = String(now.getSeconds()).padStart(2, "0");      // Seconds with leading zero (00-59)
-      el.headerTime.textContent = `${h}:${m}:${s}`;            // Update clock display text
+    function showLogin() {
+      document.getElementById("loginOverlay").classList.remove("hidden");
+      document.getElementById("appShell").style.display = "none";
     }
-    setInterval(tickClock, 1000);  // Run tickClock every 1 second
-    tickClock();                   // Run immediately on page load (don't wait 1 second)
-
-    // Data interruption checker — runs every 1 second to monitor data freshness
-    setInterval(() => {
-      if (lastDataTime === 0) {
-        // No data has ever been received
-        el.interruptBanner.classList.add("active");          // Show the warning banner
-        el.interruptDuration.textContent = "awaiting first data"; // Display waiting message
+    function hideLogin() {
+      document.getElementById("loginOverlay").classList.add("hidden");
+      document.getElementById("appShell").style.display = "flex";
+      bootApp();
+    }
+    function sendVerificationCode() {
+      const phone = document.getElementById("phoneInput").value.trim();
+      const errEl = document.getElementById("loginError1");
+      if (phone.length < 6) {
+        errEl.textContent = "Утасны дугаараа зөв оруулна уу";
         return;
       }
-      const elapsed = Math.floor((Date.now() - lastDataTime) / 1000); // Seconds since last data
-      if (elapsed >= DATA_TIMEOUT) {
-        // Data timeout exceeded — show interruption warning
-        el.interruptBanner.classList.add("active");          // Show the warning banner
-        el.interruptDuration.textContent = elapsed;          // Display elapsed seconds
-      } else {
-        // Data is fresh — hide the warning banner
-        el.interruptBanner.classList.remove("active");
+      errEl.textContent = "";
+      document.getElementById("loginStep1").classList.remove("active");
+      document.getElementById("loginStep2").classList.add("active");
+      setTimeout(() => document.getElementById("codeInput").focus(), 50);
+    }
+    function verifyCode() {
+      const code = document.getElementById("codeInput").value.trim();
+      const errEl = document.getElementById("loginError2");
+      if (!/^\d{6}$/.test(code)) {
+        errEl.textContent = "6 оронтой тоог оруулна уу";
+        return;
       }
-    }, 1000);  // Check every 1 second
+      errEl.textContent = "";
+      localStorage.setItem(VERIFY_KEY, String(Date.now() + VERIFY_MS));
+      hideLogin();
+    }
+    function logout() {
+      localStorage.removeItem(VERIFY_KEY);
+      location.reload();
+    }
 
-    // ============================================================
-    //  FIREBASE CONNECTION STATUS — Monitor online/offline state
-    // ============================================================
+    document.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("phoneInput").addEventListener("keydown", e => {
+        if (e.key === "Enter") sendVerificationCode();
+      });
+      document.getElementById("codeInput").addEventListener("keydown", e => {
+        if (e.key === "Enter") verifyCode();
+      });
 
-    // Listen to Firebase special path ".info/connected" for connection state changes
-    db.ref(".info/connected").on("value", (snap) => {
-      if (snap.val() === true) {
-        // Connected to Firebase
-        el.statusLed.classList.add("online");      // Turn LED green with pulse animation
-        el.statusText.textContent = "ONLINE";      // Update status text
+      if (isVerified()) {
+        hideLogin();
       } else {
-        // Disconnected from Firebase
-        el.statusLed.classList.remove("online");   // Turn LED red (default state)
-        el.statusText.textContent = "OFFLINE";     // Update status text
+        showLogin();
+        document.getElementById("phoneInput").focus();
       }
     });
 
     // ============================================================
-    //  GENERIC FLOWMETER UPDATE — Shared function for all 4 meters
+    //  SIDEBAR + TABS
     // ============================================================
+    function setupTabs() {
+      const tabItems = document.querySelectorAll(".nav-item:not(.has-submenu)");
+      const sidebar = document.getElementById("sidebar");
+      const backdrop = document.getElementById("sidebarBackdrop");
+      const toggle = document.getElementById("sidebarToggle");
 
-    /*
-     * Update a flowmeter card with a new flow reading value.
-     * Updates the display value, blinks the data LED, increments the reading counter,
-     * and removes the "inactive" class from the card if it was previously inactive.
-     * @param key  - flowmeter key string (e.g., "fm1", "fm2", "fm3", "fm4")
-     * @param flow - numeric flow value in m³/h
-     */
-    function updateFlowmeter(key, flow) {
-      const flowEl = el[key + "Flow"];               // Get the flow value display element (e.g., el.fm1Flow)
-      const ledEl = el["dataLed" + key.charAt(2)];   // Get the data LED element (e.g., el.dataLed1)
+      function closeSidebar() {
+        sidebar.classList.remove("expanded");
+        backdrop.classList.remove("active");
+      }
+      function openSidebar() {
+        sidebar.classList.add("expanded");
+        backdrop.classList.add("active");
+      }
+      if (toggle) {
+        toggle.addEventListener("click", () => {
+          if (sidebar.classList.contains("expanded")) closeSidebar();
+          else openSidebar();
+        });
+      }
+      backdrop.addEventListener("click", closeSidebar);
 
-      lastDataTime = Date.now();                      // Update last data received timestamp
-      readingCount++;                                 // Increment total reading counter
+      // Tab switching for regular nav items
+      tabItems.forEach(item => {
+        item.addEventListener("click", () => {
+          const tab = item.dataset.tab;
+          document.querySelectorAll(".nav-item").forEach(i => i.classList.remove("active"));
+          item.classList.add("active");
+          document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+          const panel = document.getElementById("tab-" + tab);
+          if (panel) panel.classList.add("active");
+          if (window.matchMedia("(max-width: 700px)").matches) closeSidebar();
+        });
+      });
 
-      flowEl.textContent = flow.toFixed(2);           // Display flow value with 2 decimal places
-      el.readingCount.textContent = readingCount;     // Update footer reading counter
-      el.lastUpdate.textContent = new Date().toLocaleTimeString(); // Update footer timestamp
+      // Top-level submenu (Process Monitoring) toggle
+      document.querySelectorAll(".nav-item.has-submenu").forEach(item => {
+        item.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const id = item.dataset.submenu;
+          const submenu = document.getElementById("submenu-" + id);
+          if (!submenu) return;
+          submenu.classList.toggle("open");
+          item.classList.toggle("open");
+        });
+      });
 
-      blinkLed(ledEl);                                // Blink the data LED green briefly
-
-      // Remove "inactive" class to show this flowmeter is now active and receiving data
-      const card = document.getElementById("card-" + key); // Get the gauge card element
-      if (card) card.classList.remove("inactive");         // Remove dimmed/inactive styling
+      // Nested submenu (Sub 1/2/3) toggle
+      document.querySelectorAll(".submenu-item.has-subsubmenu").forEach(item => {
+        item.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const id = item.dataset.subsubmenu;
+          const subsubmenu = document.getElementById("subsubmenu-" + id);
+          if (!subsubmenu) return;
+          subsubmenu.classList.toggle("open");
+          item.classList.toggle("open");
+        });
+      });
     }
 
     // ============================================================
-    //  FIREBASE REALTIME LISTENERS — Subscribe to data changes
+    //  IP DETECTION
     // ============================================================
+    async function detectUserRole() {
+      const badge = document.getElementById("userBadge");
+      try {
+        const res = await fetch("https://api.ipify.org?format=json");
+        const data = await res.json();
+        const ip = data.ip;
+        const allowed = (typeof ALLOWED_IPS !== "undefined" ? ALLOWED_IPS : []);
+        if (allowed.includes(ip)) {
+          badge.textContent = "INTERNAL · " + ip;
+          badge.classList.add("internal");
+        } else {
+          badge.textContent = "EXTERNAL · " + ip;
+          badge.classList.add("external");
+        }
+      } catch (e) {
+        badge.textContent = "IP UNKNOWN";
+      }
+    }
 
-    // Listen for changes to the last_updated timestamp (any flowmeter update resets the data timeout)
-    db.ref("/flow_system/last_updated").on("value", () => {
-      lastDataTime = Date.now();  // Reset data timeout whenever timestamp changes
-    });
+    // ============================================================
+    //  APP BOOT
+    // ============================================================
+    let appBooted = false;
+    function bootApp() {
+      if (appBooted) return;
+      appBooted = true;
+      setupTabs();
+      detectUserRole();
+      initFirebase();
+    }
 
-    // Flowmeter 1 listener — triggers when flowmeter1 current_flow value changes in Firebase
-    db.ref("/flow_system/flowmeter1/current_flow").on("value", (snap) => {
-      const val = snap.val();                  // Get the new value from Firebase snapshot
-      if (val === null) return;                // Skip if no data exists at this path
-      updateFlowmeter("fm1", parseFloat(val)); // Update FM1 card with parsed float value
-    });
+    // ============================================================
+    //  FIREBASE
+    // ============================================================
+    let readingCount = 0;
+    let lastDataTime = 0;
+    let fm1Val = 0, fm2Val = 0;
+    let el = {};
 
-    // Flowmeter 2 listener — triggers when flowmeter2 current_flow value changes in Firebase
-    db.ref("/flow_system/flowmeter2/current_flow").on("value", (snap) => {
-      const val = snap.val();                  // Get the new value from Firebase snapshot
-      if (val === null) return;                // Skip if no data exists at this path
-      updateFlowmeter("fm2", parseFloat(val)); // Update FM2 card with parsed float value
-    });
+    function initFirebase() {
+      el = {
+        fm1Flow: document.getElementById("fm1Flow"),
+        fm2Flow: document.getElementById("fm2Flow"),
+        fmTotal: document.getElementById("fmTotal"),
+        dataLed1: document.getElementById("dataLed1"),
+        dataLed2: document.getElementById("dataLed2"),
+        statusLed: document.getElementById("statusLed"),
+        statusText: document.getElementById("statusText"),
+        headerTime: document.getElementById("headerTime"),
+        readingCount: document.getElementById("readingCount"),
+        lastUpdate: document.getElementById("lastUpdate")
+      };
 
-    // Flowmeter 3 listener — reserved for future hardware connection
-    db.ref("/flow_system/flowmeter3/current_flow").on("value", (snap) => {
-      const val = snap.val();                  // Get the new value from Firebase snapshot
-      if (val === null) return;                // Skip if no data exists at this path
-      updateFlowmeter("fm3", parseFloat(val)); // Update FM3 card with parsed float value
-    });
+      tickClock();
+      setInterval(tickClock, 1000);
 
-    // Flowmeter 4 listener — reserved for future hardware connection
-    db.ref("/flow_system/flowmeter4/current_flow").on("value", (snap) => {
-      const val = snap.val();                  // Get the new value from Firebase snapshot
-      if (val === null) return;                // Skip if no data exists at this path
-      updateFlowmeter("fm4", parseFloat(val)); // Update FM4 card with parsed float value
-    });
+      // Firebase is optional during UI/UX work — skip if SDK or config missing
+      if (typeof firebase === "undefined" || typeof firebaseConfig === "undefined") return;
+      try {
+        firebase.initializeApp(firebaseConfig);
+      } catch (e) { return; }
+      const db = firebase.database();
+
+      db.ref(".info/connected").on("value", (snap) => {
+        if (!el.statusLed || !el.statusText) return;
+        if (snap.val() === true) {
+          el.statusLed.classList.add("online");
+          el.statusText.textContent = "ONLINE";
+        } else {
+          el.statusLed.classList.remove("online");
+          el.statusText.textContent = "OFFLINE";
+        }
+      });
+
+      db.ref("/flow_system/last_updated").on("value", () => { lastDataTime = Date.now(); });
+      db.ref("/flow_system/flowmeter1/current_flow").on("value", s => {
+        const v = s.val(); if (v !== null) updateFlowmeter("fm1", parseFloat(v));
+      });
+      db.ref("/flow_system/flowmeter2/current_flow").on("value", s => {
+        const v = s.val(); if (v !== null) updateFlowmeter("fm2", parseFloat(v));
+      });
+    }
+
+    function blinkLed(ledEl) {
+      if (!ledEl) return;
+      ledEl.classList.add("blink");
+      setTimeout(() => ledEl.classList.remove("blink"), 400);
+    }
+
+    function tickClock() {
+      const now = new Date();
+      const h = String(now.getHours()).padStart(2, "0");
+      const m = String(now.getMinutes()).padStart(2, "0");
+      const s = String(now.getSeconds()).padStart(2, "0");
+      if (el.headerTime) el.headerTime.textContent = `${h}:${m}:${s}`;
+    }
+
+    function updateFlowmeter(key, flow) {
+      lastDataTime = Date.now();
+      readingCount++;
+      if (key === "fm1") {
+        fm1Val = flow;
+        if (el.fm1Flow) el.fm1Flow.textContent = flow.toFixed(2);
+        blinkLed(el.dataLed1);
+      }
+      if (key === "fm2") {
+        fm2Val = flow;
+        if (el.fm2Flow) el.fm2Flow.textContent = flow.toFixed(2);
+        blinkLed(el.dataLed2);
+      }
+      if (el.fmTotal) el.fmTotal.textContent = (fm1Val + fm2Val).toFixed(2);
+      if (el.readingCount) el.readingCount.textContent = readingCount;
+      if (el.lastUpdate) el.lastUpdate.textContent = new Date().toLocaleTimeString();
+    }
   </script>
 
 </body>

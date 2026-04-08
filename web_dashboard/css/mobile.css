@@ -1,0 +1,32 @@
+/* ============================================================
+   RESPONSIVE — Tablet
+   ============================================================ */
+@media (max-width: 1024px) {
+  .main { padding: 24px 24px 32px; }
+}
+
+/* ============================================================
+   RESPONSIVE — Mobile / PWA drawer
+   ============================================================ */
+@media (max-width: 700px) {
+  .sidebar {
+    transform: translateX(-100%);
+    width: 280px;
+  }
+  .sidebar.expanded { transform: translateX(0); }
+  .main {
+    margin-left: 0;
+    padding: 20px 16px 32px;
+  }
+  .page-header { flex-wrap: wrap; }
+  .sidebar-toggle { display: flex; }
+  .sensor-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 480px) {
+  .page-actions { gap: 6px; }
+  .pill { font-size: 11px; padding: 6px 10px; }
+  .logout-btn { font-size: 11px; padding: 6px 10px; }
+  .sensor-value { font-size: 30px; }
+  .page-title { font-size: 18px; }
+}

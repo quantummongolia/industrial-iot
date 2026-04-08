@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="mn" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0a0c">
+  <title>MRESOURCE — Нэвтрэх</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/mobile.css">
+</head>
+
+<body>
+
+  <div class="login-overlay" id="loginOverlay">
+    <div class="login-card">
+      <div class="login-title">MRESOURCE</div>
+      <div class="login-sub">Secure Access Portal</div>
+
+      <div class="login-step active" id="loginStep1">
+        <label class="login-label" for="phoneInput">Утасны дугаар</label>
+        <input type="tel" id="phoneInput" class="login-input" placeholder="+976" maxlength="15" autocomplete="tel">
+        <button class="login-btn" onclick="sendVerificationCode()">Код илгээх</button>
+        <div class="login-error" id="loginError1"></div>
+        <div class="login-hint">Verification код таны утсанд илгээгдэнэ</div>
+      </div>
+
+      <div class="login-step" id="loginStep2">
+        <label class="login-label" for="codeInput">6 оронтой код</label>
+        <input type="text" id="codeInput" class="login-input" placeholder="••••••" maxlength="6" inputmode="numeric">
+        <button class="login-btn" onclick="verifyCode()">Баталгаажуулах</button>
+        <div class="login-error" id="loginError2"></div>
+        <div class="login-hint">
+          MOCK горим: дурын 6 оронтой тоо ажиллана.<br>
+          Баталгаажилт 7 хоног хадгалагдана.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/theme.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", setupLoginPage);
+  </script>
+
+</body>
+
+</html>

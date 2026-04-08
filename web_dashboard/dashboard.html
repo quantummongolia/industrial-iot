@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="mn" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0a0c">
+  <title>MRESOURCE — Industrial IoT</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/mobile.css">
+</head>
+
+<body>
+
+  <!-- Backdrop for mobile drawer -->
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <div class="app">
+
+    <!-- ==================== SIDEBAR ==================== -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">MRESOURCE</div>
+
+      <nav class="sidebar-nav">
+
+        <!-- ════════ LEVEL 1: Эрчим хүч ════════ -->
+        <div class="nav-item level-1" data-tab="energy">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          Эрчим хүч
+        </div>
+
+        <!-- ════════ LEVEL 1: Процесс хяналт ════════ -->
+        <div class="nav-item level-1" data-tab="process">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          Процесс хяналт
+        </div>
+
+        <!-- ──── LEVEL 2 sub-items under Процесс хяналт ──── -->
+        <div class="nav-group">
+          <div class="nav-item level-2" data-tab="butlan">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            Бутлан ангилах
+          </div>
+
+          <!-- Үйлдвэр (level-2 + clickable, opens overview) -->
+          <div class="nav-item level-2" data-tab="uildver">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20"/><path d="M5 20V8l5 4V8l5 4V8l4 3v9"/></svg>
+            Үйлдвэр
+          </div>
+
+          <!-- ──── LEVEL 3: Үйлдвэрийн дэд тав ──── -->
+          <div class="nav-group level-3-group">
+            <div class="nav-item level-3" data-tab="cv7"><span class="dot"></span>CV7 (Конвейер 7)</div>
+            <div class="nav-item level-3" data-tab="teerem"><span class="dot"></span>Тээрэм</div>
+            <div class="nav-item level-3" data-tab="hydrocyclone"><span class="dot"></span>Hydrocyclone</div>
+            <div class="nav-item level-3" data-tab="utguurlegch"><span class="dot"></span>Утгуурлагч</div>
+            <div class="nav-item level-3" data-tab="uusgaltgan"><span class="dot"></span>Уусгалтын ган</div>
+            <div class="nav-item level-3" data-tab="shuun"><span class="dot"></span>Шүүн шахах</div>
+            <div class="nav-item level-3 active" data-tab="nuruuldan"><span class="dot"></span>Нуруулдан уусгалт</div>
+          </div>
+
+          <div class="nav-item level-2" data-tab="bayan">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+            Баян уусмалын сан
+          </div>
+        </div>
+
+        <!-- ════════ LEVEL 1: Хүнд машин механизм ════════ -->
+        <div class="nav-item level-1" data-tab="hund">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Хүнд машин механизм
+        </div>
+
+      </nav>
+    </aside>
+
+    <!-- ==================== MAIN ==================== -->
+    <main class="main">
+
+      <!-- Persistent header (always visible across tabs) -->
+      <div class="page-header">
+        <div class="page-header-left">
+          <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <h1 class="page-title" id="pageTitle">Нуруулдан уусгалт</h1>
+        </div>
+        <div class="page-actions">
+          <div class="pill"><div class="led" id="statusLed"></div><span id="statusText">OFFLINE</span></div>
+          <div class="pill" id="userBadge">— — —</div>
+          <div class="pill time" id="headerTime">--:--:--</div>
+          <button class="logout-btn" onclick="logout()">Гарах</button>
+          <button class="icon-btn theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+            <svg class="icon icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            <svg class="icon icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- ==================== TAB: Эрчим хүч ==================== -->
+      <div class="tab-panel" id="tab-energy">
+        <div class="placeholder-card">
+          <div class="placeholder-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
+          <div class="placeholder-title">Эрчим хүчний хяналт</div>
+          <div class="placeholder-text">Генератор болон хэсэглэлийн эрчим хүчний өгөгдөл удахгүй нэмэгдэнэ</div>
+        </div>
+      </div>
+
+      <!-- ==================== TAB: Процесс хяналт ==================== -->
+      <div class="tab-panel" id="tab-process">
+        <div class="placeholder-card">
+          <div class="placeholder-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
+          <div class="placeholder-title">Процесс хяналт — Ерөнхий</div>
+          <div class="placeholder-text">Зүүн талаас процессын дэд хэсгүүдийг сонгоно уу</div>
+        </div>
+      </div>
+
+      <!-- ==================== TAB: Үйлдвэр ==================== -->
+      <div class="tab-panel" id="tab-uildver">
+        <div class="placeholder-card">
+          <div class="placeholder-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20"/><path d="M5 20V8l5 4V8l5 4V8l4 3v9"/></svg></div>
+          <div class="placeholder-title">Үйлдвэр — Ерөнхий</div>
+          <div class="placeholder-text">Зүүн талаас үйлдвэрийн дэд хэсгүүдийг сонгоно уу (CV7, Тээрэм, Hydrocyclone, г.м.)</div>
+        </div>
+      </div>
+
+      <!-- ==================== TAB: Бутлан ангилах ==================== -->
+      <div class="tab-panel" id="tab-butlan">
+        <div class="placeholder-card">
+          <div class="placeholder-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg></div>
+          <div class="placeholder-title">Бутлан ангилах процесс</div>
+          <div class="placeholder-text">Сенсорын өгөгдөл удахгүй нэмэгдэнэ</div>
+        </div>
+      </div>
+
+      <!-- ==================== TAB: CV7 ==================== -->
+      <div class="tab-panel" id="tab-cv7">
+        <div class="placeholder-card">
+          <div class="placeholder-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg></div>
+          <div class="placeholder-title">CV7 conveyor</div>
+          <div class="placeholder-text">Сенсорын өгөгдөл удахгүй нэмэгдэнэ</div>
+        </div>
+      </div>
+
+      <!-- ==================== TAB: Тээрэм ==================== -->
+      <div class="tab-panel" id="tab-teerem">
+        <div class="placeholder-card">
+          <div class="placeholder-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg></div>
+          <div class="placeholder-title">Тээрэм</div>
+          <div class="placeholder-text">Сенсорын өгөгдөл удахгүй нэмэгдэнэ</div>
+        </div>
+      </div>
+
+      <!-- ==================== TAB: Hydrocyclone ==================== -->
+      <div class="tab-panel" id="tab-hydrocyclone">
+        <div class="placeholder-card">
+          <div class="placeholder-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg></div>
+          <div class="placeholder-title">Hydrocyclone</div>
+          <div class="placeholder-text">Сенсорын өгөгдөл удахгүй нэмэгдэнэ</div>
+        </div>
+      </div>
+
+      <!-- ==================== TAB: Утгуурлагч ==================== -->
+      <div class="tab-panel" id="tab-utguurlegch">
+        <div class="placeholder-card">
+          <div class="placeholder-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg></div>
+          <div class="placeholder-title">Утгуурлагч</div>
+          <div class="placeholder-text">Сенсорын өгөгдөл удахгүй нэмэгдэнэ</div>
+        </div>
+      </div>
+
+      <!-- ==================== TAB: Уусгалтын ган ==================== -->
+      <div class="tab-panel" id="tab-uusgaltgan">
+        <div class="placeholder-card">
+          <div class="placeholder-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg></div>
+          <div class="placeholder-title">Уусгалтын ган</div>
+          <div class="placeholder-text">Сенсорын өгөгдөл удахгүй нэмэгдэнэ</div>
+        </div>
+      </div>
+
+      <!-- ==================== TAB: Шүүн шахах ==================== -->
+      <div class="tab-panel" id="tab-shuun">
+        <div class="placeholder-card">
+          <div class="placeholder-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg></div>
+          <div class="placeholder-title">Шүүн шахах</div>
+          <div class="placeholder-text">Сенсорын өгөгдөл удахгүй нэмэгдэнэ</div>
+        </div>
+      </div>
+
+      <!-- ==================== TAB: Нуруулдан уусгалт (LIVE: fm1) ==================== -->
+      <div class="tab-panel active" id="tab-nuruuldan">
+        <div class="sensor-grid">
+          <div class="sensor-card">
+            <div class="sensor-label">
+              <span class="sensor-led" id="dataLed1"></span>
+              Суларсан уусмал 2
+            </div>
+            <div>
+              <span class="sensor-value" id="fm1Flow">0.00</span><span class="sensor-unit">m³/h</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== TAB: Баян уусмалын сан (LIVE: fm2) ==================== -->
+      <div class="tab-panel" id="tab-bayan">
+        <div class="sensor-grid">
+          <div class="sensor-card">
+            <div class="sensor-label">
+              <span class="sensor-led" id="dataLed2"></span>
+              Баян уусмал
+            </div>
+            <div>
+              <span class="sensor-value" id="fm2Flow">0.00</span><span class="sensor-unit">m³/h</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== TAB: Хүнд машин механизм ==================== -->
+      <div class="tab-panel" id="tab-hund">
+        <div class="placeholder-card">
+          <div class="placeholder-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+          <div class="placeholder-title">Хүнд машин механизм</div>
+          <div class="placeholder-text">Тоног төхөөрөмжийн өгөгдөл удахгүй нэмэгдэнэ</div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ==================== SCRIPTS ==================== -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/firebase-init.js"></script>
+  <script src="js/sidebar.js"></script>
+  <script src="js/ip-detect.js"></script>
+  <script src="js/realtime.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      if (!requireAuth()) return;
+      setupSidebar();
+      detectUserRole();
+      initRealtime();
+    });
+  </script>
+
+</body>
+
+</html>
