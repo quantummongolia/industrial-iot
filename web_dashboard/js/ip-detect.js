@@ -1,15 +1,20 @@
 // ============================================================
-//  IP DETECTION — Public IP fetch + role badge update
-//  Requires ALLOWED_IPS array from config.js (optional)
+//  IP DETECTION — Public IP fetch + role badge
+//  ------------------------------------------------------------
+//  config.js дотор ALLOWED_IPS массив байвал түүнтэй харьцуулна.
+//  Үр дүнд #userBadge pill-ийг INTERNAL эсвэл EXTERNAL гэж тэмдэглэнэ.
 // ============================================================
+
 async function detectUserRole() {
   const badge = document.getElementById("userBadge");
   if (!badge) return;
+
   try {
-    const res = await fetch("https://api.ipify.org?format=json");
+    const res  = await fetch("https://api.ipify.org?format=json");
     const data = await res.json();
-    const ip = data.ip;
+    const ip   = data.ip;
     const allowed = (typeof ALLOWED_IPS !== "undefined" ? ALLOWED_IPS : []);
+
     if (allowed.includes(ip)) {
       badge.textContent = "INTERNAL · " + ip;
       badge.classList.add("internal");

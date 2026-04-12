@@ -1,0 +1,75 @@
+/* ============================================================
+   ANIMATIONS — All @keyframes + pulsing LEDs
+   Бүх animation-ыг нэг газар төвлөрүүлсэн.
+   ============================================================ */
+
+/* Tab content fade-in */
+@keyframes tab-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Submenu slide-in */
+@keyframes submenu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Pulse ring around online LED */
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.33);
+    opacity: 1;
+  }
+  80%,
+  100% {
+    transform: scale(3);
+    opacity: 0;
+  }
+}
+
+/* Pulsing green dot (alternative style) */
+@keyframes pulse-dot {
+  0% {
+    transform: scale(0.8);
+    box-shadow: 0 0 0 0 var(--green-glow);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 10px rgba(74, 222, 128, 0);
+  }
+  100% {
+    transform: scale(0.8);
+    box-shadow: 0 0 0 0 rgba(74, 222, 128, 0);
+  }
+}
+
+/* ---------- Standalone LED pulse component ---------- */
+.led-pulse {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  background: var(--green);
+  border-radius: 50%;
+}
+
+.led-pulse::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border: 2px solid var(--green);
+  border-radius: 50%;
+  animation: pulse-ring 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}

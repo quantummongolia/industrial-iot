@@ -1,11 +1,24 @@
 // ============================================================
-//  AUTH — Mock phone verification (7-day cache)
-//  Used by both login.html and dashboard.html
+//  AUTH — Mock phone verification with 7-day cache
+//  ------------------------------------------------------------
+//  Энэ файл нь index.html (dashboard) болон login.html-ийн аль
+//  алинд ашиглагдана. localStorage-д verification expiration
+//  timestamp хадгалж, 7 хоног баталгаажилтыг санана.
+//
+//  Public API:
+//    isVerified()             — одоогоор нэвтэрсэн эсэхийг шалгана
+//    sendVerificationCode()   — login form step 1 handler
+//    verifyCode()             — login form step 2 handler
+//    logout()                 — verification цэвэрлээд reload хийнэ
+//    showLogin() / hideLogin()— index.html-ийн overlay toggle (optional)
+//    setupLoginPage()         — standalone login.html-д зориулсан
 // ============================================================
-const VERIFY_KEY = "phone_verified_until";
-const VERIFY_DAYS = 7;
-const VERIFY_MS = VERIFY_DAYS * 24 * 60 * 60 * 1000;
 
+const VERIFY_KEY  = "phone_verified_until";
+const VERIFY_DAYS = 7;
+const VERIFY_MS   = VERIFY_DAYS * 24 * 60 * 60 * 1000;
+
+// ---------- Core state ----------
 function isVerified() {
   const until = parseInt(localStorage.getItem(VERIFY_KEY) || "0", 10);
   return until > Date.now();
@@ -20,34 +33,12 @@ function logout() {
   location.replace("login.html");
 }
 
-/**
- * Used by dashboard.html — if not verified, kick to login.html.
- * Returns true if user is verified (allow boot to continue).
- */
-function requireAuth() {
-  if (!isVerified()) {
-    location.replace("login.html");
-    return false;
-  }
-  return true;
-}
-
-// ----- Login form handlers (used by login.html) -----
-function sendVerificationCode() {
-  const phone = document.getElementById("phoneInput").value.trim();
-  const errEl = document.getElementById("loginError1");
-  if (phone.length < 6) {
-    errEl.textContent = "Утасны дугаараа зөв оруулна уу";
-    return;
-  }
-  errEl.textContent = "";
-  document.getElementById("loginStep1").classList.remove("active");
-  document.getElementById("loginStep2").classList.add("active");
-  setTimeout(() => document.getElementById("codeInput").focus(), 50);
-}
+// ---------- Login form handlers ----------
+// Credentials-ийг js/login-form.js (submitCredentials) хариуцна.
+// Энэ файл нь зөвхөн SMS код баталгаажуулж session үүсгэх үүрэгтэй.
 
 function verifyCode() {
-  const code = document.getElementById("codeInput").value.trim();
+  const code  = document.getElementById("codeInput").value.trim();
   const errEl = document.getElementById("loginError2");
   if (!/^\d{6}$/.test(code)) {
     errEl.textContent = "6 оронтой тоог оруулна уу";
@@ -55,30 +46,25 @@ function verifyCode() {
   }
   errEl.textContent = "";
   setVerified();
-  location.replace("dashboard.html");
+
+  // Хэрэв бид index.html дотор байгаа бол overlay-г хааж app-аа эхлүүлнэ.
+  // Үгүй бол (standalone login.html) dashboard руу үсэрнэ.
+  if (typeof hideLogin === "function" && document.getElementById("appShell")) {
+    hideLogin();
+  } else {
+    location.replace("index.html");
+  }
 }
 
-/**
- * Wire up Enter key + auto-redirect for login.html.
- * Call this only on the login page.
- */
+// ---------- Standalone login.html setup ----------
 function setupLoginPage() {
-  // If already verified, skip the form entirely
+  // Аль хэдийн verified бол dashboard руу шууд шилжүүлнэ.
   if (isVerified()) {
-    location.replace("dashboard.html");
+    location.replace("index.html");
     return;
   }
-  const phoneEl = document.getElementById("phoneInput");
-  const codeEl = document.getElementById("codeInput");
-  if (phoneEl) {
-    phoneEl.addEventListener("keydown", e => {
-      if (e.key === "Enter") sendVerificationCode();
-    });
-    phoneEl.focus();
-  }
-  if (codeEl) {
-    codeEl.addEventListener("keydown", e => {
-      if (e.key === "Enter") verifyCode();
-    });
+  // Шинэ form-ын Enter key, step switching бүгд js/login-form.js дотор.
+  if (typeof setupLoginForm === "function") {
+    setupLoginForm();
   }
 }

@@ -1,0 +1,85 @@
+/* ============================================================
+   RESPONSIVE — All breakpoints in one place
+   ============================================================
+   Breakpoints:
+     1100px  - tablet landscape   (chart moves below stats)
+      880px  - tablet portrait    (2-col grids collapse)
+      700px  - mobile / PWA       (sidebar becomes drawer)
+      480px  - small mobile       (single col, compact pills)
+   ============================================================ */
+
+@media (max-width: 1100px) {
+  .stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .chart-card {
+    grid-column: 1 / -1;
+    grid-row: auto;
+  }
+}
+
+@media (max-width: 880px) {
+  .percentage-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .topics-grid,
+  .leaderboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .sidebar {
+    transform: translateX(-100%);
+    width: 260px;
+  }
+  .sidebar.expanded {
+    transform: translateX(0);
+  }
+  .main {
+    margin-left: 0;
+    padding: 20px 16px 32px;
+  }
+  .page-header {
+    flex-wrap: wrap;
+  }
+  .sidebar-toggle {
+    display: flex;
+  }
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .stats-grid .stat-card:nth-child(3) {
+    grid-column: 1 / -1;
+  }
+  .percentage-grid {
+    grid-template-columns: 1fr;
+  }
+  .filter-pill {
+    min-width: unset;
+    max-width: unset;
+  }
+  .filters {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  .stats-grid .stat-card:nth-child(3) {
+    grid-column: auto;
+  }
+  .page-actions {
+    gap: 6px;
+  }
+  .pill {
+    font-size: 11px;
+    padding: 6px 10px;
+  }
+  .logout-btn {
+    font-size: 11px;
+    padding: 6px 10px;
+  }
+}
