@@ -1,6 +1,6 @@
-# Flowmeter IoT
+# industrial-iot 
 
-ESP32 + RS485 flowmeter → Firebase Realtime Database → Вэб Dashboard
+ESP32 + RS485 → Firebase Realtime Database → Вэб Dashboard
 
 ## Structure
 
@@ -23,7 +23,7 @@ Flowmeter-iot/
 |---------|---------|
 | ESP32 DevKit | Main controller |
 | MAX485 модуль | RS485 converter |
-| Flowmeter | Modbus RTU (Slave ID 1, 9600 8N1) |
+| Flowmeter | Modbus RTU (Slave ID 2,3 9600 8N1) |
 
 ### Connection diagram
 
