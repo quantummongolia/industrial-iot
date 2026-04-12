@@ -1,0 +1,726 @@
+/* ============================================================
+   PORTFOLIO — Navbar + Hero
+   ============================================================ */
+
+/* ----- Navbar ----- */
+.pf-nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 clamp(20px, 5vw, 48px);
+  height: 56px;
+  background: #000000;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  overflow: hidden;
+}
+
+.lightning-canvas {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 380px;
+  height: 400px;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.9;
+}
+
+.pf-logo,
+.pf-signin-btn {
+  position: relative;
+  z-index: 1;
+}
+
+.pf-logo {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text);
+  text-decoration: none;
+}
+
+
+.pf-signin-btn {
+  height: 34px;
+  padding: 0 18px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s var(--ease), border-color 0.15s var(--ease);
+}
+
+.pf-signin-btn:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--accent-border);
+}
+
+/* ----- Hero ----- */
+.pf-hero {
+  min-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 80px 24px 40px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* MagicRings canvas wrapper — delgetsiin tuvd */
+.pf-rings-wrap {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.pf-rings-wrap canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Hero text — rings-ийн дээр */
+.pf-hero-text {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.pf-hero-eyebrow {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0;
+}
+
+.pf-hero-title {
+  font-size: clamp(40px, 8vw, 80px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  margin: 0;
+  line-height: 1.05;
+}
+
+/* GradientText — vanilla JS/CSS хөрвүүлэл */
+.gradient-text {
+  display: inline-block;
+  background-image: linear-gradient(
+    to right,
+    #f35353, #fdf73f, #66f568, #d074f1, #f35353
+  );
+  background-size: 300% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  background-position: 0% 50%;
+}
+
+.pf-hero-sub {
+  font-size: clamp(15px, 2.5vw, 18px);
+  color: var(--text-soft);
+  margin: 0;
+  max-width: 480px;
+}
+
+/* ============================================================
+   LOGO MARQUEE — hero дотор, subtitle-ийн доор
+   ============================================================ */
+.marquee-wrap {
+  position: relative;
+  width: min(700px, 90vw);
+  overflow: hidden;
+  margin-top: 32px;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%);
+}
+
+.marquee-track {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 36px;
+  width: max-content;
+  will-change: transform;
+}
+
+.marquee-inner {
+  display: flex;
+  align-items: center;
+  gap: 36px;
+  width: max-content;
+  will-change: transform;
+  flex-shrink: 0;
+}
+
+.marquee-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  cursor: default;
+  user-select: none;
+  opacity: 0.85;
+  transition: opacity 0.2s var(--ease);
+  flex-shrink: 0;
+}
+
+.marquee-item:hover { opacity: 1; }
+
+/* icon — брэндийн өнгө */
+.m-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: var(--c, var(--text-dim));
+}
+
+/* текст — үргэлж цагаан */
+.marquee-item span {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--text);
+}
+
+/* ============================================================
+   LOGIN MODAL — fullscreen backdrop + centered card
+   (login.html portfolio болон index.html хоёуланд ашиглагдана)
+   ============================================================ */
+.login-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: modal-in 0.2s var(--ease);
+}
+
+.login-modal.hidden {
+  display: none;
+}
+
+@keyframes modal-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ----- Card ----- */
+.login-card {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  padding: 36px 32px 28px;
+  background: rgba(14, 14, 17, 0.95);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow:
+    0 32px 64px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+  animation: card-in 0.25s var(--ease);
+}
+
+[data-theme="light"] .login-card {
+  background: rgba(255, 255, 255, 0.97);
+}
+
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ----- Close button ----- */
+.login-close {
+  position: absolute;
+  top: 14px; right: 14px;
+  width: 30px; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: color 0.15s var(--ease), background 0.15s var(--ease);
+}
+
+.login-close:hover {
+  color: var(--text);
+  background: var(--border-strong);
+}
+
+.login-close svg { width: 16px; height: 16px; }
+
+/* ----- Header ----- */
+.login-logo {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text);
+  text-align: center;
+  margin-bottom: 6px;
+}
+
+.login-sub {
+  font-size: 13px;
+  color: var(--text-soft);
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+/* ============================================================
+   STEPS
+   ============================================================ */
+.login-step { display: none; }
+
+.login-step.active {
+  display: block;
+  animation: step-in 0.3s var(--ease);
+}
+
+@keyframes step-in {
+  from { opacity: 0; transform: translateX(6px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ============================================================
+   FIELDS
+   ============================================================ */
+.login-field { margin-bottom: 14px; }
+
+.login-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.login-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-soft);
+  margin-bottom: 6px;
+  letter-spacing: 0.01em;
+}
+
+.login-label-row .login-label { margin-bottom: 0; }
+
+.login-input {
+  width: 100%;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 400;
+  padding: 11px 14px;
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+  box-sizing: border-box;
+}
+
+.login-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
+
+.login-input::placeholder { color: var(--text-faint); }
+
+/* SMS code — large, centered */
+.login-input.code {
+  text-align: center;
+  font-size: 22px;
+  letter-spacing: 0.4em;
+  padding: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ----- Password wrap ----- */
+.password-wrap { position: relative; }
+.password-wrap .login-input { padding-right: 44px; }
+
+.password-toggle {
+  position: absolute;
+  right: 8px; top: 50%;
+  transform: translateY(-50%);
+  width: 30px; height: 30px;
+  border: none; background: transparent;
+  color: var(--text-dim);
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color 0.15s var(--ease), background 0.15s var(--ease);
+}
+
+.password-toggle:hover {
+  color: var(--text);
+  background: var(--border-strong);
+}
+
+.password-toggle svg { width: 15px; height: 15px; }
+.password-toggle .eye-off { display: none; }
+.password-wrap.revealed .password-toggle .eye-on  { display: none; }
+.password-wrap.revealed .password-toggle .eye-off { display: block; }
+
+/* ----- Forgot link ----- */
+.login-forgot {
+  font-size: 12px;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+.login-forgot:hover { text-decoration: underline; }
+
+/* ============================================================
+   BUTTON
+   ============================================================ */
+.login-btn {
+  width: 100%;
+  background: var(--accent);
+  border: none;
+  color: #fff;
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: opacity 0.2s var(--ease), transform 0.08s var(--ease), box-shadow 0.2s var(--ease);
+  box-shadow: 0 4px 16px -6px var(--accent);
+  margin-top: 4px;
+}
+
+.login-btn:hover  { opacity: 0.88; box-shadow: 0 8px 20px -6px var(--accent); }
+.login-btn:active { transform: scale(0.99); }
+.login-btn:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
+
+.login-btn.secondary {
+  background: transparent;
+  color: var(--text-soft);
+  border: 1px solid var(--border-strong);
+  box-shadow: none;
+  margin-top: 8px;
+}
+.login-btn.secondary:hover {
+  color: var(--text);
+  background: var(--bg-elevated);
+}
+
+/* ============================================================
+   SMS STEP — icon + hint
+   ============================================================ */
+.login-sms-icon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+.login-sms-icon svg {
+  width: 36px; height: 36px;
+  color: var(--accent);
+  opacity: 0.7;
+}
+
+.login-sms-hint {
+  font-size: 13px;
+  color: var(--text-soft);
+  text-align: center;
+  margin: 0 0 18px;
+  line-height: 1.5;
+}
+
+/* ============================================================
+   ERRORS / HINTS
+   ============================================================ */
+.login-error {
+  color: var(--red);
+  font-size: 12px;
+  text-align: center;
+  margin-top: 8px;
+  min-height: 14px;
+}
+
+.login-hint {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: center;
+  margin-top: 14px;
+  line-height: 1.5;
+}
+
+/* ============================================================
+   STEP DOTS
+   ============================================================ */
+.login-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 20px;
+}
+
+.login-dots .dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--border-strong);
+  transition: background 0.2s var(--ease), transform 0.2s var(--ease);
+}
+
+.login-dots .dot.active {
+  background: var(--accent);
+  transform: scale(1.4);
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 480px) {
+  .login-card {
+    padding: 28px 20px 22px;
+  }
+}
+
+/* ============================================================
+   CARD SWAP SECTION
+   ============================================================ */
+.cardswap-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: clamp(40px, 6vw, 100px);
+  padding: 80px clamp(24px, 8vw, 120px);
+  background: var(--bg-base, #0a0a0c);
+  position: relative;
+  overflow: hidden;
+}
+
+/* left text block */
+.cardswap-eyebrow {
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--accent, #a78bfa);
+  margin: 0 0 14px;
+}
+
+.cardswap-title {
+  font-size: clamp(1.8rem, 3.5vw, 3rem);
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--text-primary, #e6edf3);
+  margin: 0 0 16px;
+}
+
+.cardswap-sub {
+  font-size: 1rem;
+  color: var(--text-secondary, #7d8590);
+  margin: 0;
+}
+
+/* right stage — perspective container */
+.cardswap-stage {
+  position: relative;
+  width: 500px;
+  height: 340px;
+  flex-shrink: 0;
+  perspective: 900px;
+}
+
+/* individual cards */
+.cs-card {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 420px;
+  height: 280px;
+  border-radius: 16px;
+  background: var(--bg-surface, #161b22);
+  border: 1px solid var(--border-strong, rgba(255,255,255,0.08));
+  overflow: hidden;
+  cursor: pointer;
+  will-change: transform;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+}
+
+.cs-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  /* hidden until src is set */
+}
+
+.cs-card-img[src=""] {
+  /* placeholder gradient until real image is provided */
+  background: linear-gradient(135deg,
+    rgba(167,139,250,0.15) 0%,
+    rgba(139,92,246,0.08) 50%,
+    rgba(30,30,40,0.6) 100%);
+}
+
+.cs-card-label {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  padding: 4px 12px;
+  background: rgba(10,10,12,0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--border-strong, rgba(255,255,255,0.08));
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-primary, #e6edf3);
+  pointer-events: none;
+}
+
+/* responsive — stack vertically on narrow */
+@media (max-width: 860px) {
+  .cardswap-section {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 60px 24px;
+  }
+  .cardswap-stage {
+    width: 340px;
+    height: 240px;
+    align-self: center;
+  }
+  .cs-card {
+    width: 300px;
+    height: 200px;
+  }
+}
+
+/* ============================================================
+   FIREBASE SECURITY SECTION
+   ============================================================ */
+.firebase-section {
+  display: flex;
+  align-items: center;
+  gap: clamp(40px, 6vw, 100px);
+  padding: 80px clamp(24px, 8vw, 120px);
+  background: var(--bg-base, #0a0a0c);
+  position: relative;
+}
+
+/* LetterGlitch — зүүн тал */
+.firebase-glitch {
+  position: relative;
+  flex-shrink: 0;
+  width: 420px;
+  height: 320px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #000;
+}
+
+.firebase-glitch canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.glitch-vignette-center {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 60%);
+}
+
+/* баруун тал — текст */
+.firebase-eyebrow {
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--accent, #a78bfa);
+  margin: 0 0 14px;
+}
+
+.firebase-title {
+  font-size: clamp(1.6rem, 3vw, 2.6rem);
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-primary, #e6edf3);
+  margin: 0 0 28px;
+}
+
+.firebase-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.firebase-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  color: var(--text-secondary, #7d8590);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.firebase-list li svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--accent, #a78bfa);
+}
+
+@media (max-width: 860px) {
+  .firebase-section {
+    flex-direction: column;
+    padding: 60px 24px;
+  }
+  .firebase-glitch {
+    width: 100%;
+    height: 240px;
+  }
+}
+
+.firebase-logo-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.firebase-logo {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+.firebase-logo-label {
+  font-size: 0.82rem;
+  color: var(--text-secondary, #7d8590);
+  letter-spacing: 0.05em;
+}

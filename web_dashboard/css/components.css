@@ -1,0 +1,469 @@
+/* ============================================================
+   COMPONENTS — Stats, charts, percentage, topics, leaderboard, filters, placeholder
+   Dashboard хэсэгт ашиглагдах бүх reusable card/grid компонентууд.
+   ============================================================ */
+
+/* ============================================================
+   FILTERS — Filter pills row
+   ============================================================ */
+.filters {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.filter-pill {
+  flex: 1;
+  min-width: 200px;
+  max-width: 320px;
+  padding: 9px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--text-soft);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.filter-pill strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.filter-pill .chev {
+  width: 14px;
+  height: 14px;
+  color: var(--text-dim);
+}
+
+/* ============================================================
+   STATS GRID — 3 stats + 1 chart on the right
+   ============================================================ */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr) 1.5fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: all 0.3s var(--ease);
+}
+
+.stat-card:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-strong);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0;
+  transition: opacity 0.3s var(--ease);
+}
+
+.stat-card:hover::before {
+  opacity: 0.5;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: var(--text-soft);
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.stat-suffix {
+  font-size: 16px;
+  color: var(--text-dim);
+  font-weight: 500;
+}
+
+/* ============================================================
+   CHART CARD — Bar chart (right side, spans 2 rows)
+   ============================================================ */
+.chart-card {
+  grid-column: 4 / 5;
+  grid-row: 1 / 3;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  min-height: 240px;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.chart-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.chart-period {
+  font-size: 12px;
+  color: var(--text-soft);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.bar-chart {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 6px;
+  padding-top: 24px;
+  min-height: 160px;
+  position: relative;
+}
+
+.bar-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.bar-stack {
+  width: 100%;
+  max-width: 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 100%;
+  position: relative;
+}
+
+.bar {
+  width: 100%;
+  background: linear-gradient(180deg, var(--accent) 0%, rgba(97, 149, 255, 0.5) 100%);
+  border-radius: 6px 6px 0 0;
+  position: relative;
+}
+
+.bar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 0%, rgba(97, 149, 255, 0.15) 100%);
+  border-radius: inherit;
+  filter: blur(8px);
+  z-index: -1;
+}
+
+.bar-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+/* ============================================================
+   PERCENTAGE GRID — 3 metric cards with sparkline
+   ============================================================ */
+.percentage-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.percentage-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+}
+
+.percentage-label {
+  font-size: 13px;
+  color: var(--text-soft);
+  margin-bottom: 8px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.percentage-led {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-faint);
+  transition: background 0.3s var(--ease), box-shadow 0.3s var(--ease);
+}
+
+.percentage-led.blink {
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+}
+
+.percentage-value {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 8px;
+}
+
+.sparkline {
+  width: 100%;
+  height: 28px;
+  display: block;
+}
+
+.sparkline path.line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+
+.sparkline path.fill {
+  fill: url(#sparkGrad);
+  opacity: 0.3;
+}
+
+/* ============================================================
+   TOPICS GRID — Progress rows
+   ============================================================ */
+.topics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.topics-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+}
+
+.topics-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 16px;
+}
+
+.topic-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+}
+
+.topic-row + .topic-row {
+  border-top: 1px solid var(--border);
+}
+
+.topic-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+}
+
+.topic-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.topic-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.topic-percent {
+  font-size: 12px;
+  color: var(--text-soft);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.topic-percent strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* ---------- Progress bar (shared) ---------- */
+.progress-bar {
+  height: 6px;
+  background: var(--bg-elevated);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--orange), var(--green));
+  transition: width 0.5s var(--ease);
+}
+
+.progress-fill.green {
+  background: var(--green);
+}
+
+/* ============================================================
+   LEADERBOARD — Ranked rows with avatars
+   ============================================================ */
+.leaderboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.leaderboard-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.leader-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+}
+
+.leader-row + .leader-row {
+  border-top: 1px solid var(--border);
+}
+
+.leader-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-soft);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.leader-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.leader-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.leader-meta {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+.leader-rank {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rank-arrow {
+  width: 12px;
+  height: 12px;
+  color: var(--green);
+}
+
+/* ============================================================
+   PLACEHOLDER — Empty-state card for unfinished tabs
+   ============================================================ */
+.placeholder-card {
+  background: var(--bg-card);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  padding: 80px 20px;
+  text-align: center;
+}
+
+.placeholder-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 16px;
+  background: var(--accent-bg);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+}
+
+.placeholder-icon .icon {
+  width: 28px;
+  height: 28px;
+}
+
+.placeholder-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.placeholder-text {
+  font-size: 13px;
+  color: var(--text-soft);
+}

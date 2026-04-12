@@ -1,0 +1,180 @@
+/* ============================================================
+   SIDEBAR — Logo, nav, submenu, subsubmenu, mobile drawer
+   Бүх nav-related загвар энд. index.html дээрх submenu бүтэцтэй таарна.
+   ============================================================ */
+
+.sidebar {
+  width: 240px;
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 24px 16px;
+  flex-shrink: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 100;
+  overflow-y: auto;
+  transition: transform 0.3s var(--ease);
+}
+
+.sidebar-logo {
+  padding: 0 12px 32px;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+}
+
+.sidebar-section {
+  padding: 28px 12px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ---------- Nav item (level 1) ---------- */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  color: var(--text-soft);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  user-select: none;
+  text-decoration: none;
+  transition: background 0.18s var(--ease), color 0.18s var(--ease);
+}
+
+.nav-item:hover {
+  background: var(--bg-card);
+  color: var(--text);
+}
+
+.nav-item.active {
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.nav-item .icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* ---------- Submenu (level 2) — Process Monitoring dropdown ---------- */
+.nav-item.has-submenu {
+  justify-content: flex-start;
+}
+
+.nav-item .submenu-chev {
+  width: 14px;
+  height: 14px;
+  margin-left: auto;
+  color: var(--text-dim);
+  transition: transform 0.2s var(--ease);
+}
+
+.nav-item.open .submenu-chev {
+  transform: rotate(180deg);
+}
+
+.submenu {
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 14px;
+  margin: 4px 0 4px 22px;
+  border-left: 1px solid var(--border-strong);
+}
+
+.submenu.open {
+  display: flex;
+  animation: submenu-in 0.2s var(--ease);
+}
+
+.submenu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  color: var(--text-soft);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  user-select: none;
+  transition: background 0.18s var(--ease), color 0.18s var(--ease);
+}
+
+.submenu-item:hover {
+  background: var(--bg-card);
+  color: var(--text);
+}
+
+.submenu-item.has-subsubmenu .submenu-chev {
+  width: 12px;
+  height: 12px;
+}
+
+.submenu-item.open .submenu-chev {
+  transform: rotate(180deg);
+}
+
+/* ---------- Sub-submenu (level 3) — Sub items under factory sections ---------- */
+.subsubmenu {
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 12px;
+  margin: 2px 0 4px 12px;
+  border-left: 1px solid var(--border);
+}
+
+.subsubmenu.open {
+  display: flex;
+  animation: submenu-in 0.2s var(--ease);
+}
+
+.subsubmenu-item {
+  padding: 7px 12px;
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  user-select: none;
+  transition: background 0.18s var(--ease), color 0.18s var(--ease);
+}
+
+.subsubmenu-item:hover {
+  background: var(--bg-card);
+  color: var(--text);
+}
+
+/* ---------- Mobile backdrop ---------- */
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 99;
+}
+
+.sidebar-backdrop.active {
+  display: block;
+}

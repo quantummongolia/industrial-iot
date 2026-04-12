@@ -1,991 +1,367 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="mn" data-theme="dark">
 
 <head>
-  <meta charset="UTF-8"> <!-- Set character encoding to UTF-8 for international characters -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Responsive viewport for mobile devices -->
-  <title>INDUSTRIAL IoT system</title> <!-- Browser tab title -->
-
-  <style>
-    /* ============================================================
-       RETRO INDUSTRIAL THEME — CSS Custom Properties (Variables)
-       Dark theme is the default, light theme overrides below.
-       ============================================================ */
-
-    /* Import Google Fonts: VT323 (retro display), Share Tech Mono (monospace), Orbitron (futuristic headings) */
-    @import url('https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
-
-    /* Root CSS variables — Dark theme defaults */
-    :root {
-      --bg: #0a0a0a;
-      /* Page background color (near black) */
-      --panel: #111111;
-      /* Card/panel background color */
-      --panel-edge: #1a1a1a;
-      /* Panel edge highlight color */
-      --border: #222;
-      /* Border color for elements */
-      --amber: #ffb000;
-      /* Primary amber/gold text color */
-      --amber-dim: #996a00;
-      /* Dimmed amber for secondary text */
-      --amber-glow: 0 0 8px #ffb00066, 0 0 20px #ffb00022;
-      /* Amber glow effect for text-shadow */
-      --green: #33ff33;
-      /* Bright green for active/online indicators */
-      --green-dim: #1a8c1a;
-      /* Dimmed green for subtle indicators */
-      --green-glow: 0 0 8px #33ff3366, 0 0 20px #33ff3322;
-      /* Green glow effect */
-      --red: #ff3333;
-      /* Red for errors and offline status */
-      --red-glow: 0 0 8px #ff333366;
-      /* Red glow effect */
-      --cyan: #00ffff;
-      /* Cyan accent color */
-      --cyan-dim: #007777;
-      /* Dimmed cyan */
-      --scanline: rgba(0, 0, 0, 0.12);
-      /* CRT scanline overlay opacity */
-      --text-dim: #555555;
-      /* Dimmed text color for labels */
-      --header-bg: linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%);
-      /* Header gradient background */
-      --footer-bg: #0d0d0d;
-      /* Footer background color */
-      --footer-border: #1a1a1a;
-      /* Footer top border color */
-      --chart-bg: #0a0f0a;
-      /* Chart area background */
-      --bar-track: #1a1a1a;
-      /* Progress bar track background */
-      --interrupt-bg: #1a0000;
-      /* Data interruption banner background (dark red) */
-      --mono: 'Share Tech Mono', 'Courier New', monospace;
-      /* Monospace font stack */
-      --display: 'VT323', monospace;
-      /* Retro display font */
-      --heading: 'Orbitron', sans-serif;
-      /* Futuristic heading font */
-    }
-
-    /* ============================================================
-       LIGHT THEME — Override CSS variables when data-theme="light"
-       ============================================================ */
-    [data-theme="light"] {
-      --bg: #f5f5f0;
-      /* Light beige background */
-      --panel: #ffffff;
-      /* White card backgrounds */
-      --panel-edge: #e0e0e0;
-      /* Light gray panel edges */
-      --border: #ccc;
-      /* Light gray borders */
-      --amber: #1a1a1a;
-      /* Dark text replaces amber in light mode */
-      --amber-dim: #444;
-      /* Medium gray for secondary text */
-      --amber-glow: none;
-      /* No glow effects in light mode */
-      --green: #1a8c1a;
-      /* Darker green for light backgrounds */
-      --green-dim: #2d7a2d;
-      /* Medium green */
-      --green-glow: none;
-      /* No glow in light mode */
-      --red: #cc0000;
-      /* Darker red for light mode */
-      --red-glow: none;
-      /* No glow in light mode */
-      --cyan: #006666;
-      /* Dark cyan for light backgrounds */
-      --cyan-dim: #338888;
-      /* Medium cyan */
-      --scanline: transparent;
-      /* No CRT scanlines in light mode */
-      --text-dim: #666;
-      /* Medium gray text */
-      --header-bg: linear-gradient(180deg, #e8e8e0 0%, #f0f0ea 100%);
-      /* Light header gradient */
-      --footer-bg: #e8e8e0;
-      /* Light footer background */
-      --footer-border: #ccc;
-      /* Light footer border */
-      --chart-bg: #fafaf5;
-      /* Light chart background */
-      --bar-track: #e0e0d8;
-      /* Light bar track */
-      --interrupt-bg: #fff0f0;
-      /* Light red for interruption banner */
-    }
-
-    /* Universal reset — remove default margins, padding, use border-box sizing */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    /* Body — base page styling */
-    body {
-      font-family: var(--mono);
-      /* Use monospace font as default */
-      background: var(--bg);
-      /* Apply background color from theme */
-      color: var(--amber);
-      /* Apply text color from theme */
-      min-height: 100vh;
-      /* Minimum full viewport height */
-      overflow-x: hidden;
-      /* Prevent horizontal scrollbar */
-      transition: background 0.3s, color 0.3s;
-      /* Smooth theme transition */
-    }
-
-    /* CRT scanline overlay — creates horizontal line effect over entire page */
-    body::after {
-      content: '';
-      /* Required for pseudo-element to render */
-      position: fixed;
-      /* Fixed position covers viewport */
-      inset: 0;
-      /* Stretch to all edges */
-      background: repeating-linear-gradient(0deg,
-          var(--scanline) 0px,
-          /* Dark line */
-          var(--scanline) 1px,
-          /* 1px thick dark line */
-          transparent 1px,
-          /* Transparent gap */
-          transparent 3px);
-      /* 2px gap between lines */
-      pointer-events: none;
-      /* Allow clicking through the overlay */
-      z-index: 9999;
-      /* Place on top of everything */
-    }
-
-    /* Subtle CRT flicker animation — brief opacity dip simulating old monitor */
-    @keyframes flicker {
-
-      0%,
-      100% {
-        opacity: 1;
-      }
-
-      /* Normal opacity at start and end */
-      92% {
-        opacity: 1;
-      }
-
-      /* Normal until 92% */
-      93% {
-        opacity: 0.8;
-      }
-
-      /* Brief flicker at 93% */
-      94% {
-        opacity: 1;
-      }
-
-      /* Back to normal at 94% */
-    }
-
-    /* ============================================================
-       HEADER — Top navigation bar with logo, status, and controls
-       ============================================================ */
-
-    /* Header container — flexbox layout with space between left and right groups */
-    .header {
-      background: var(--header-bg);
-      /* Gradient background */
-      border-bottom: 2px solid var(--border);
-      /* Bottom border line */
-      padding: 1rem 2rem;
-      /* Vertical and horizontal padding */
-      display: flex;
-      /* Flexbox layout */
-      justify-content: space-between;
-      /* Push left and right groups apart */
-      align-items: center;
-      /* Vertically center items */
-      transition: background 0.3s, border-color 0.3s;
-      /* Smooth theme switch */
-    }
-
-    /* Header left group — contains logo and status badge */
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      /* Space between logo and status badge */
-    }
-
-    /* Logo text styling — large, bold, futuristic font */
-    .logo {
-      font-family: var(--heading);
-      /* Orbitron futuristic font */
-      font-size: 1.4rem;
-      font-weight: 900;
-      /* Extra bold weight */
-      color: var(--amber);
-      text-shadow: var(--amber-glow);
-      /* Glowing text effect in dark mode */
-      letter-spacing: 0.15em;
-      /* Wide letter spacing */
-    }
-
-    /* Logo subtitle — smaller monospace text below logo */
-    .logo-sub {
-      font-family: var(--mono);
-      font-size: 0.7rem;
-      color: var(--text-dim);
-      /* Dimmed color for subtitle */
-      letter-spacing: 0.2em;
-    }
-
-    /* Header right group — contains theme toggle and clock */
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 1.2rem;
-      /* Space between toggle and clock */
-    }
-
-    /* Status badge — connection status indicator container */
-    .status-badge {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      /* Space between LED dot and text */
-      font-size: 0.8rem;
-      color: var(--text-dim);
-      border: 1px solid var(--border);
-      padding: 0.3rem 0.8rem;
-      border-radius: 2px;
-      background: var(--bg);
-    }
-
-    /* Status LED indicator — small colored circle showing connection state */
-    .status-led {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      /* Make it circular */
-      background: var(--red);
-      /* Red = offline (default state) */
-      box-shadow: var(--red-glow);
-      /* Red glow effect */
-      transition: all 0.3s;
-      /* Smooth color transition */
-    }
-
-    /* Status LED online state — green with pulsing animation */
-    .status-led.online {
-      background: var(--green);
-      /* Green = online */
-      box-shadow: var(--green-glow);
-      /* Green glow effect */
-      animation: pulse-led 2s ease-in-out infinite;
-      /* Continuous pulse animation */
-    }
-
-    /* LED pulse animation — fades in and out for "breathing" effect */
-    @keyframes pulse-led {
-
-      0%,
-      100% {
-        opacity: 1;
-      }
-
-      /* Full opacity at start and end */
-      50% {
-        opacity: 0.5;
-      }
-
-      /* Half opacity at midpoint */
-    }
-
-    /* Header clock display — shows current time in retro green digits */
-    .header-time {
-      font-family: var(--display);
-      /* VT323 retro font */
-      font-size: 1.3rem;
-      color: var(--green);
-      text-shadow: var(--green-glow);
-      /* Green glow for CRT effect */
-      letter-spacing: 0.1em;
-    }
-
-    /* ============================================================
-       THEME TOGGLE — Circular button with animated Sun/Moon icons
-       ============================================================ */
-
-    /* Theme toggle button — circular button in header */
-    .theme-toggle {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 50%;
-      /* Circular shape */
-      width: 36px;
-      height: 36px;
-      padding: 0;
-      cursor: pointer;
-      /* Hand cursor on hover */
-      position: relative;
-      overflow: hidden;
-      /* Hide icons when they animate out */
-      transition: all 0.3s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    /* Theme toggle hover effect — highlight border */
-    .theme-toggle:hover {
-      border-color: var(--amber);
-    }
-
-    /* Theme icon base styles — positioned absolutely for crossfade animation */
-    .theme-icon {
-      position: absolute;
-      transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-        /* Smooth rotation/scale */
-        opacity 0.3s ease;
-      /* Smooth fade */
-      font-size: 1.1rem;
-      line-height: 1;
-    }
-
-    /* Moon icon — visible in dark mode (default) */
-    .icon-moon {
-      transform: rotate(0deg) scale(1);
-      /* Normal position and size */
-      opacity: 1;
-      /* Fully visible */
-      color: var(--amber);
-      text-shadow: var(--amber-glow);
-    }
-
-    /* Sun icon — hidden in dark mode */
-    .icon-sun {
-      transform: rotate(-90deg) scale(0);
-      /* Rotated and scaled down (hidden) */
-      opacity: 0;
-      /* Invisible */
-      color: #8a7000;
-    }
-
-    /* Light theme: hide moon icon with rotation animation */
-    [data-theme="light"] .icon-moon {
-      transform: rotate(90deg) scale(0);
-      /* Rotate out and scale to zero */
-      opacity: 0;
-    }
-
-    /* Light theme: show sun icon with rotation animation */
-    [data-theme="light"] .icon-sun {
-      transform: rotate(0deg) scale(1);
-      /* Rotate to normal position */
-      opacity: 1;
-    }
-
-    /* ============================================================
-       MAIN LAYOUT — Content area with max width and centered
-       ============================================================ */
-
-    /* Main content container */
-    .main {
-      max-width: 1200px;
-      /* Maximum content width */
-      margin: 0 auto;
-      /* Center horizontally */
-      padding: 1.5rem;
-      /* Inner padding */
-      padding-bottom: 3.5rem;
-      /* Extra bottom padding for fixed footer */
-      animation: flicker 8s infinite;
-      /* Subtle CRT flicker effect */
-    }
-
-    /* Section label — uppercase text above content sections */
-    .section-label {
-      font-family: var(--mono);
-      font-size: 0.7rem;
-      color: var(--text-dim);
-      letter-spacing: 0.25em;
-      /* Wide letter spacing */
-      text-transform: uppercase;
-      /* Force uppercase text */
-      margin-bottom: 0.75rem;
-      padding-left: 0.25rem;
-    }
-
-    /* ============================================================
-       GAUGE CARDS — 2x2 grid layout for 4 flowmeter panels
-       ============================================================ */
-
-    /* Gauges grid container — 2 columns layout */
-    .gauges {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      /* Two equal-width columns */
-      gap: 1.5rem;
-      /* Space between cards */
-      margin-bottom: 1.5rem;
-    }
-
-    /* Individual gauge card — styled panel for each flowmeter */
-    .gauge-card {
-      background: var(--panel);
-      /* Card background color */
-      border: 1px solid var(--border);
-      /* Card border */
-      border-radius: 4px;
-      /* Slightly rounded corners */
-      padding: 1.5rem 2rem;
-      /* Inner padding */
-      position: relative;
-      /* For pseudo-element positioning */
-      overflow: hidden;
-      /* Clip top gradient line */
-      transition: background 0.3s, border-color 0.3s;
-      /* Smooth theme switch */
-    }
-
-    /* Gauge card top accent line — decorative gradient at top edge */
-    .gauge-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 3px;
-      /* 3px tall accent line */
-      background: linear-gradient(90deg, transparent, var(--amber-dim), transparent);
-      /* Fade in/out gradient */
-    }
-
-    /* Gauge label — flowmeter name/title text */
-    .gauge-label {
-      font-family: var(--mono);
-      font-size: 0.75rem;
-      color: var(--text-dim);
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      margin-bottom: 0.5rem;
-    }
-
-    /* Gauge value row — horizontal layout for number and unit */
-    .gauge-value-row {
-      display: flex;
-      align-items: baseline;
-      /* Align number and unit at text baseline */
-      gap: 0.5rem;
-    }
-
-    /* Gauge value — large flow reading number */
-    .gauge-value {
-      font-family: var(--display);
-      /* VT323 retro display font */
-      font-size: 4.5rem;
-      /* Large text size */
-      color: var(--amber);
-      text-shadow: var(--amber-glow);
-      /* Glowing text effect */
-      line-height: 1;
-      transition: color 0.3s;
-    }
-
-    /* Gauge unit label — measurement unit text (m³/h) */
-    .gauge-unit {
-      font-family: var(--mono);
-      font-size: 1rem;
-      color: var(--amber-dim);
-      /* Dimmed color for unit */
-    }
-
-    /* Data receive LED indicator — small dot that blinks green when data arrives */
-    .data-led {
-      display: inline-block;
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      /* Circular shape */
-      background: #888;
-      /* Gray color when inactive/no data */
-      vertical-align: middle;
-      /* Align with text */
-      margin-right: 0.3rem;
-      transition: background 0.1s, box-shadow 0.1s;
-      /* Fast transition for blink effect */
-    }
-
-    /* Data LED blink state — bright green when data is received */
-    .data-led.blink {
-      background: var(--green);
-      /* Bright green */
-      box-shadow: var(--green-glow);
-      /* Green glow effect */
-    }
-
-    /* Inactive card style — dimmed appearance for unconnected flowmeters */
-    .gauge-card.inactive {
-      opacity: 0.4;
-      /* 40% opacity to show as inactive */
-    }
-
-    /* Inactive card value text — gray without glow */
-    .gauge-card.inactive .gauge-value {
-      color: var(--text-dim);
-      text-shadow: none;
-      /* Remove glow effect */
-    }
-
-    /* ============================================================
-       FOOTER STATUS BAR — Fixed bottom bar with system info
-       ============================================================ */
-
-    /* Footer container — fixed at bottom of viewport */
-    .footer {
-      background: var(--footer-bg);
-      border-top: 1px solid var(--footer-border);
-      /* Top border line */
-      padding: 0.6rem 2rem;
-      display: flex;
-      justify-content: space-between;
-      /* Spread items across width */
-      font-size: 0.7rem;
-      color: var(--text-dim);
-      position: fixed;
-      /* Fixed at bottom */
-      bottom: 0;
-      left: 0;
-      right: 0;
-      /* Stretch full width */
-      transition: background 0.3s, border-color 0.3s;
-    }
-
-    /* Footer readings text — green colored reading counter */
-    .footer-readings {
-      color: var(--green-dim);
-    }
-
-    /* Footer note text — centered note in amber */
-    .footer-note {
-      text-align: center;
-      font-size: 0.7rem;
-      color: var(--amber-dim);
-      letter-spacing: 0.1em;
-    }
-
-    /* ============================================================
-       DATA INTERRUPTION BANNER — Warning shown when data stops
-       ============================================================ */
-
-    /* Interruption banner container — hidden by default, shown when data stops */
-    .interrupt-banner {
-      display: none;
-      /* Hidden by default */
-      align-items: center;
-      justify-content: center;
-      gap: 0.6rem;
-      background: var(--interrupt-bg);
-      /* Dark red background */
-      border: 1px solid #ff333355;
-      /* Semi-transparent red border */
-      border-radius: 4px;
-      padding: 0.75rem 1.5rem;
-      margin-bottom: 1.5rem;
-      animation: banner-pulse 2s ease-in-out infinite;
-      /* Pulsing border animation */
-    }
-
-    /* Interruption banner active state — show the banner */
-    .interrupt-banner.active {
-      display: flex;
-      /* Make visible with flexbox layout */
-    }
-
-    /* Banner pulse animation — border color fades between dim and bright red */
-    @keyframes banner-pulse {
-
-      0%,
-      100% {
-        border-color: #ff333355;
-      }
-
-      /* Semi-transparent red */
-      50% {
-        border-color: #ff3333;
-      }
-
-      /* Bright red at midpoint */
-    }
-
-    /* Warning icon in the banner */
-    .interrupt-icon {
-      font-size: 1.2rem;
-      color: var(--red);
-      text-shadow: var(--red-glow);
-    }
-
-    /* Main warning text in the banner */
-    .interrupt-text {
-      font-family: var(--mono);
-      font-size: 0.8rem;
-      color: var(--red);
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      text-shadow: var(--red-glow);
-    }
-
-    /* Subtitle text showing duration of interruption */
-    .interrupt-sub {
-      font-size: 0.65rem;
-      color: #663333;
-      /* Dark red text */
-      letter-spacing: 0.1em;
-    }
-
-    /* ============================================================
-       RESPONSIVE DESIGN — Adapt layout for small screens (<700px)
-       ============================================================ */
-
-    @media (max-width: 700px) {
-
-      /* Stack gauge cards in single column on mobile */
-      .gauges {
-        grid-template-columns: 1fr;
-      }
-
-      /* Reduce gauge value font size on mobile */
-      .gauge-value {
-        font-size: 3.2rem;
-      }
-
-      /* Stack header vertically on mobile */
-      .header {
-        flex-direction: column;
-        gap: 0.75rem;
-        text-align: center;
-      }
-
-      /* Wrap header right items on mobile */
-      .header-right {
-        flex-wrap: wrap;
-        justify-content: center;
-      }
-
-      /* Reduce main padding on mobile */
-      .main {
-        padding: 1rem;
-      }
-    }
-  </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0a0c">
+  <title>MRESOURCE — Industrial IoT</title>
+
+  <!-- ==========================================================
+       STYLES — modular CSS (load order matters!)
+       ========================================================== -->
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/animations.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/sidebar.css">
+  <link rel="stylesheet" href="css/header.css">
+  <link rel="stylesheet" href="css/login.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/scada.css">
+  <link rel="stylesheet" href="css/responsive.css">
 </head>
 
 <body>
 
-  <!-- ==================== HEADER — Top bar with logo, status, theme toggle, clock ==================== -->
-  <div class="header">
-    <!-- Left side: company logo and connection status -->
-    <div class="header-left">
-      <div>
-        <div class="logo">MRESOURCE</div> <!-- Company/project logo text -->
-        <div class="logo-sub">INDUSTRIAL MONITORING SYSTEM</div> <!-- Subtitle describing the system -->
+  <!-- ==========================================================
+       LOGIN MODAL — fullscreen backdrop, centered card
+       JS: js/auth.js + js/login-form.js
+       ========================================================== -->
+  <div class="login-modal hidden" id="loginOverlay" onclick="handleModalBackdrop(event)">
+    <div class="login-card" role="dialog" aria-modal="true" aria-label="Sign in">
+
+      <div class="login-logo">MRESOURCE</div>
+      <div class="login-sub">Sign in to your account</div>
+
+      <!-- ============ STEP 1 — CREDENTIALS ============ -->
+      <div class="login-step active" id="loginStep1">
+        <div class="login-field">
+          <label class="login-label" for="usernameInput">Username</label>
+          <input type="text" id="usernameInput" class="login-input"
+            placeholder="Enter your username" autocomplete="username" spellcheck="false">
+        </div>
+
+        <div class="login-field">
+          <div class="login-label-row">
+            <label class="login-label" for="passwordInput">Password</label>
+            <a href="#" class="login-forgot">Forgot password?</a>
+          </div>
+          <div class="password-wrap" id="passwordWrap">
+            <input type="password" id="passwordInput" class="login-input"
+              placeholder="••••••••" autocomplete="current-password">
+            <button type="button" class="password-toggle" onclick="togglePassword()" aria-label="Show / hide password">
+              <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+              <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                <line x1="1" y1="1" x2="23" y2="23"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <button class="login-btn" onclick="submitCredentials()">Sign In</button>
+        <div class="login-error" id="loginError1"></div>
       </div>
-      <!-- Firebase connection status indicator -->
-      <div class="status-badge">
-        <div class="status-led" id="statusLed"></div> <!-- LED dot: red=offline, green=online -->
-        <span id="statusText">OFFLINE</span> <!-- Status text updated by JavaScript -->
+
+      <!-- ============ STEP 2 — SMS VERIFICATION ============ -->
+      <div class="login-step" id="loginStep2">
+        <div class="login-sms-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.64 3.3 2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 5.5 5.5l.96-.96a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 15.44z"/>
+          </svg>
+        </div>
+        <p class="login-sms-hint">Таны утасны дугаарт 6 оронтой код илгээлээ</p>
+
+        <div class="login-field">
+          <label class="login-label" for="codeInput">Verification code</label>
+          <input type="text" id="codeInput" class="login-input code"
+            placeholder="000000" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
+        </div>
+
+        <button class="login-btn" onclick="submitSmsCode()">Verify</button>
+        <button class="login-btn secondary" onclick="goToStep(1)">← Back</button>
+
+        <div class="login-error" id="loginError2"></div>
+        <div class="login-hint">
+          MOCK mode: any 6-digit number works.<br>
+          Session saved for 7 days.
+        </div>
       </div>
-    </div>
-    <!-- Right side: theme toggle button and live clock -->
-    <div class="header-right">
-      <!-- Dark/Light theme toggle button with animated moon/sun icons -->
-      <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Toggle theme">
-        <span class="theme-icon icon-moon">&#9790;</span> <!-- Moon symbol (visible in dark mode) -->
-        <span class="theme-icon icon-sun">&#9728;</span> <!-- Sun symbol (visible in light mode) -->
-      </button>
-      <!-- Live clock display — updated every second by JavaScript -->
-      <div class="header-time" id="headerTime">--:--:--</div>
+
+      <!-- ============ STEP DOTS ============ -->
+      <div class="login-dots">
+        <span class="dot active" id="loginDot1"></span>
+        <span class="dot"        id="loginDot2"></span>
+      </div>
     </div>
   </div>
 
-  <!-- ==================== MAIN CONTENT — Flowmeter gauge cards ==================== -->
-  <div class="main">
+  <!-- ==========================================================
+       APP SHELL — Sidebar + main content.
+       #appShell нь эхэндээ нуугдана, verified бол hideLogin() нээнэ.
+       ========================================================== -->
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+  <div class="app" id="appShell" style="display:none;">
 
-    <!-- Data interruption warning banner — shown when no data received for 5+ seconds -->
-    <div class="interrupt-banner" id="interruptBanner">
-      <span class="interrupt-icon">&#9888;</span> <!-- Warning triangle symbol -->
-      <div>
-        <div class="interrupt-text">Data acquisition failed</div> <!-- Main warning message -->
-        <div class="interrupt-sub">No data received for <span id="interruptDuration">--</span> seconds</div>
-        <!-- Duration counter -->
-      </div>
-    </div>
+    <!-- ==========================================================
+         SIDEBAR
+         ========================================================== -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">MRESOURCE</div>
 
-    <!-- Section title above flowmeter cards -->
-    <div class="section-label">FLOWMETER LIVE READINGS</div>
+      <div class="sidebar-section">Industrial IoT Platform</div>
+      <nav class="sidebar-nav">
 
-    <!-- 2x2 grid of flowmeter gauge cards -->
-    <div class="gauges">
-      <!-- Flowmeter 1 — Active, displays current flow from Firebase -->
-      <div class="gauge-card" id="card-fm1">
-        <div class="gauge-label"><span class="data-led" id="dataLed1"></span> Суларсан уусмал 2</div>
-        <!-- Flowmeter name with data LED indicator -->
-        <div class="gauge-value-row">
-          <div class="gauge-value" id="fm1Flow">0.00</div> <!-- Current flow value (updated by JS) -->
-          <div class="gauge-unit">m&sup3;/h</div> <!-- Unit: cubic meters per hour -->
+        <!-- ============ Energy consumption ============ -->
+        <div class="nav-item active" data-tab="energy">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+          </svg>
+          Energy consumption
+        </div>
+
+        <!-- ============ Analytics ============ -->
+        <div class="nav-item" data-tab="analytics">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10" />
+            <line x1="12" y1="20" x2="12" y2="4" />
+            <line x1="6" y1="20" x2="6" y2="14" />
+          </svg>
+          Analytics
+        </div>
+
+        <!-- ============ Alerts ============ -->
+        <div class="nav-item" data-tab="alerts">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+            <line x1="12" y1="9" x2="12" y2="13" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>
+          Alerts
+        </div>
+
+        <!-- ============ Documents ============ -->
+        <div class="nav-item" data-tab="documents">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+            <polyline points="10 9 9 9 8 9" />
+          </svg>
+          Documents
+        </div>
+
+        <!-- ============ Process Monitoring (dropdown) ============ -->
+        <div class="nav-item has-submenu" data-submenu="process-monitoring">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7" />
+            <rect x="14" y="3" width="7" height="7" />
+            <rect x="14" y="14" width="7" height="7" />
+            <rect x="3" y="14" width="7" height="7" />
+          </svg>
+          Process Monitoring
+          <svg class="submenu-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </div>
+
+        <div class="submenu" id="submenu-process-monitoring">
+
+          <!-- ---- Бутлан ангилах ---- -->
+          <div class="submenu-item has-subsubmenu" data-subsubmenu="pm-sub-1">
+            Бутлан ангилах
+            <svg class="submenu-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </div>
+          <div class="subsubmenu" id="subsubmenu-pm-sub-1">
+            <div class="subsubmenu-item">Ялтсан тэжээгүүр</div>
+            <div class="subsubmenu-item">Хацарт бутлуур</div>
+            <div class="subsubmenu-item">Конус 1</div>
+            <div class="subsubmenu-item">Конус 2</div>
+            <div class="subsubmenu-item">Конвер 1</div>
+            <div class="subsubmenu-item">Конвер 2</div>
+            <div class="subsubmenu-item">Конвер 3</div>
+            <div class="subsubmenu-item">Конвер 4</div>
+            <div class="subsubmenu-item">Конвер 5</div>
+            <div class="subsubmenu-item">Конвер 6</div>
+          </div>
+
+          <!-- ---- Үйлдвэр ---- -->
+          <div class="submenu-item has-subsubmenu" data-subsubmenu="pm-sub-2">
+            Үйлдвэр
+            <svg class="submenu-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </div>
+          <div class="subsubmenu" id="subsubmenu-pm-sub-2">
+            <div class="subsubmenu-item">CV7</div>
+            <div class="subsubmenu-item">Нунтаглан баяжуулах</div>
+            <div class="subsubmenu-item">Өтгөрүүлэгч</div>
+            <div class="subsubmenu-item">УШГ</div>
+            <div class="subsubmenu-item">Шүүн шахах</div>
+            <div class="subsubmenu-item">Ядуу уусмал</div>
+            <div class="subsubmenu-item">Sub 2-7</div>
+          </div>
+
+          <!-- ---- Нуруулдан уусгалт ---- -->
+          <div class="submenu-item has-subsubmenu" data-subsubmenu="pm-sub-3">
+            Нуруулдан уусгалт
+            <svg class="submenu-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </div>
+          <div class="subsubmenu" id="subsubmenu-pm-sub-3">
+            <div class="subsubmenu-item">Sub 3-1</div>
+            <div class="subsubmenu-item">Sub 3-2</div>
+            <div class="subsubmenu-item">Sub 3-3</div>
+            <div class="subsubmenu-item">Sub 3-4</div>
+            <div class="subsubmenu-item">Sub 3-5</div>
+            <div class="subsubmenu-item">Sub 3-6</div>
+            <div class="subsubmenu-item">Sub 3-7</div>
+          </div>
+
+          <!-- ---- Баян уусмалын сан ---- -->
+          <div class="submenu-item has-subsubmenu" data-subsubmenu="pm-sub-4">
+            Баян уусмалын сан
+            <svg class="submenu-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </div>
+          <div class="subsubmenu" id="subsubmenu-pm-sub-4">
+            <div class="subsubmenu-item">Sub 4-1</div>
+            <div class="subsubmenu-item">Sub 4-2</div>
+            <div class="subsubmenu-item">Sub 4-3</div>
+            <div class="subsubmenu-item">Sub 4-4</div>
+            <div class="subsubmenu-item">Sub 4-5</div>
+            <div class="subsubmenu-item">Sub 4-6</div>
+            <div class="subsubmenu-item">Sub 4-7</div>
+          </div>
+        </div>
+      </nav>
+
+      <!-- ============ Quick Actions ============ -->
+      <div class="sidebar-section">Quick Actions</div>
+      <nav class="sidebar-nav">
+        <div class="nav-item" data-tab="upload-sop">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+          Upload SOP
+        </div>
+        <div class="nav-item" data-tab="reports">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+          </svg>
+          Reports
+        </div>
+        <div class="nav-item" data-tab="settings">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path
+              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+          Settings
+        </div>
+      </nav>
+    </aside>
+
+    <!-- ==========================================================
+         MAIN — Sticky header + tab panels
+         ========================================================== -->
+    <main class="main">
+
+      <!-- ============ GLOBAL TOP BAR ============ -->
+      <div class="page-header">
+        <div class="page-header-left">
+          <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+          <h1 class="page-title" id="pageTitle">Energy consumption</h1>
+        </div>
+        <div class="page-actions">
+          <div class="pill">
+            <div class="led" id="statusLed"></div>
+            <span id="statusText">OFFLINE</span>
+          </div>
+          <div class="pill" id="userBadge">— — —</div>
+          <div class="pill time" id="headerTime">--:--:--</div>
+          <button class="logout-btn" onclick="logout()">Гарах</button>
+          <button class="icon-btn theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+            <svg class="icon icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+            </svg>
+            <svg class="icon icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="5" />
+              <line x1="12" y1="1" x2="12" y2="3" />
+              <line x1="12" y1="21" x2="12" y2="23" />
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+              <line x1="1" y1="12" x2="3" y2="12" />
+              <line x1="21" y1="12" x2="23" y2="12" />
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+            </svg>
+          </button>
         </div>
       </div>
 
-      <!-- Flowmeter 2 — Active, displays current flow from Firebase -->
-      <div class="gauge-card" id="card-fm2">
-        <div class="gauge-label"><span class="data-led" id="dataLed2"></span> Баян уусмал </div>
-        <!-- Flowmeter name with data LED indicator -->
-        <div class="gauge-value-row">
-          <div class="gauge-value" id="fm2Flow">0.00</div> <!-- Current flow value (updated by JS) -->
-          <div class="gauge-unit">m&sup3;/h</div> <!-- Unit: cubic meters per hour -->
-        </div>
+      <!-- ============ TAB: ENERGY CONSUMPTION ============ -->
+      <div class="tab-panel active" id="tab-energy">
+        <!-- Контент хоосон — энд stat-card / chart / percentage / topics / leaderboard нэмэгдэнэ -->
       </div>
 
-      <!-- Flowmeter 3 — Inactive (reserved for future connection) -->
-      <div class="gauge-card inactive" id="card-fm3">
-        <div class="gauge-label"><span class="data-led" id="dataLed3"></span> Flowmeter 3 — Current Flow</div>
-        <!-- Placeholder name -->
-        <div class="gauge-value-row">
-          <div class="gauge-value" id="fm3Flow">--</div> <!-- Dashes indicate no data -->
-          <div class="gauge-unit">m&sup3;/h</div> <!-- Unit: cubic meters per hour -->
-        </div>
-      </div>
-
-      <!-- Flowmeter 4 — Inactive (reserved for future connection) -->
-      <div class="gauge-card inactive" id="card-fm4">
-        <div class="gauge-label"><span class="data-led" id="dataLed4"></span> Flowmeter 4 — Current Flow</div>
-        <!-- Placeholder name -->
-        <div class="gauge-value-row">
-          <div class="gauge-value" id="fm4Flow">--</div> <!-- Dashes indicate no data -->
-          <div class="gauge-unit">m&sup3;/h</div> <!-- Unit: cubic meters per hour -->
-        </div>
-      </div>
-    </div>
-
+    </main>
   </div>
 
-  <!-- ==================== FOOTER — Fixed bottom status bar ==================== -->
-  <div class="footer">
-    <span>ESP32 RS485 MODBUS RTU &mdash; FIREBASE RTDB</span> <!-- System architecture description -->
-    <span class="footer-note">4-CH INDUSTRIAL FLOW MONITORING</span> <!-- 4-channel monitoring label -->
-    <!-- Reading counter and last update timestamp -->
-    <span class="footer-readings">READINGS: <span id="readingCount">0</span> | LAST UPDATE: <span
-        id="lastUpdate">--</span></span>
-  </div>
-
-  <!-- ==================== EXTERNAL SCRIPTS — Firebase SDK ==================== -->
-  <!-- Firebase App SDK (compatibility version for simpler API) -->
+  <!-- ==========================================================
+       SCRIPTS — Firebase (optional) + modular app code
+       Ачаалах дараалал зайлшгүй:
+         1. Firebase compat SDK (optional) + config.js
+         2. theme.js (FOUC-оос зайлсхийхийн тулд эхэнд)
+         3. auth.js
+         4. sidebar.js / clock.js / ip-detect.js / realtime.js
+         5. app.js — DOMContentLoaded bootstrap
+       ========================================================== -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <!-- Firebase Realtime Database SDK (compatibility version) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-  <!-- Firebase configuration with API keys (loaded from separate file) -->
   <script src="config.js"></script>
 
-  <script>
-    // ============================================================
-    //  THEME TOGGLE — Switch between dark and light themes
-    // ============================================================
-
-    /*
-     * Toggle between dark and light themes.
-     * Sets the data-theme attribute on <html> element and saves preference to localStorage.
-     */
-    function toggleTheme() {
-      const html = document.documentElement;  // Reference to the <html> element
-      if (html.getAttribute("data-theme") === "light") {
-        html.removeAttribute("data-theme");   // Remove attribute to revert to dark (default)
-        localStorage.setItem("theme", "dark"); // Save preference to browser storage
-      } else {
-        html.setAttribute("data-theme", "light"); // Set light theme attribute
-        localStorage.setItem("theme", "light");   // Save preference to browser storage
-      }
-    }
-
-    // Immediately Invoked Function Expression (IIFE) — restore saved theme on page load
-    (function () {
-      const saved = localStorage.getItem("theme"); // Read saved theme preference
-      if (saved === "light") {
-        document.documentElement.setAttribute("data-theme", "light"); // Apply light theme if saved
-      }
-    })();
-
-    // ============================================================
-    //  FIREBASE INITIALIZATION — Connect to Realtime Database
-    // ============================================================
-    firebase.initializeApp(firebaseConfig);  // Initialize Firebase with config from config.js
-    const db = firebase.database();          // Get reference to the Realtime Database
-
-    // ============================================================
-    //  APPLICATION STATE — Global variables for tracking data
-    // ============================================================
-    let readingCount = 0;       // Total number of data readings received
-    let lastDataTime = 0;       // Timestamp (ms) of last data received from Firebase
-    const DATA_TIMEOUT = 5;     // Seconds without data before showing interruption warning
-
-    // DOM element references — cached for performance (avoids repeated getElementById calls)
-    const el = {
-      fm1Flow: document.getElementById("fm1Flow"),       // Flowmeter 1 value display element
-      dataLed1: document.getElementById("dataLed1"),     // Flowmeter 1 data receive LED indicator
-
-      fm2Flow: document.getElementById("fm2Flow"),       // Flowmeter 2 value display element
-      dataLed2: document.getElementById("dataLed2"),     // Flowmeter 2 data receive LED indicator
-
-      fm3Flow: document.getElementById("fm3Flow"),       // Flowmeter 3 value display element
-      dataLed3: document.getElementById("dataLed3"),     // Flowmeter 3 data receive LED indicator
-
-      fm4Flow: document.getElementById("fm4Flow"),       // Flowmeter 4 value display element
-      dataLed4: document.getElementById("dataLed4"),     // Flowmeter 4 data receive LED indicator
-
-      statusLed: document.getElementById("statusLed"),   // Firebase connection status LED
-      statusText: document.getElementById("statusText"), // Firebase connection status text
-      headerTime: document.getElementById("headerTime"), // Header clock display
-      readingCount: document.getElementById("readingCount"),       // Total readings counter in footer
-      lastUpdate: document.getElementById("lastUpdate"),           // Last update time in footer
-      interruptBanner: document.getElementById("interruptBanner"), // Data interruption warning banner
-      interruptDuration: document.getElementById("interruptDuration") // Interruption duration counter
-    };
-
-    /*
-     * Briefly blink a data LED element green to indicate data was received.
-     * Adds the "blink" CSS class for 300ms then removes it.
-     * @param ledEl - the LED DOM element to blink
-     */
-    function blinkLed(ledEl) {
-      ledEl.classList.add("blink");            // Add green blink CSS class
-      setTimeout(() => ledEl.classList.remove("blink"), 300); // Remove after 300ms
-    }
-
-    // ============================================================
-    //  HEADER CLOCK — Updates time display every second
-    // ============================================================
-
-    /*
-     * Update the header clock with current time in HH:MM:SS format.
-     * Called every 1000ms by setInterval.
-     */
-    function tickClock() {
-      const now = new Date();                                    // Get current date/time
-      const h = String(now.getHours()).padStart(2, "0");        // Hours with leading zero (00-23)
-      const m = String(now.getMinutes()).padStart(2, "0");      // Minutes with leading zero (00-59)
-      const s = String(now.getSeconds()).padStart(2, "0");      // Seconds with leading zero (00-59)
-      el.headerTime.textContent = `${h}:${m}:${s}`;            // Update clock display text
-    }
-    setInterval(tickClock, 1000);  // Run tickClock every 1 second
-    tickClock();                   // Run immediately on page load (don't wait 1 second)
-
-    // Data interruption checker — runs every 1 second to monitor data freshness
-    setInterval(() => {
-      if (lastDataTime === 0) {
-        // No data has ever been received
-        el.interruptBanner.classList.add("active");          // Show the warning banner
-        el.interruptDuration.textContent = "awaiting first data"; // Display waiting message
-        return;
-      }
-      const elapsed = Math.floor((Date.now() - lastDataTime) / 1000); // Seconds since last data
-      if (elapsed >= DATA_TIMEOUT) {
-        // Data timeout exceeded — show interruption warning
-        el.interruptBanner.classList.add("active");          // Show the warning banner
-        el.interruptDuration.textContent = elapsed;          // Display elapsed seconds
-      } else {
-        // Data is fresh — hide the warning banner
-        el.interruptBanner.classList.remove("active");
-      }
-    }, 1000);  // Check every 1 second
-
-    // ============================================================
-    //  FIREBASE CONNECTION STATUS — Monitor online/offline state
-    // ============================================================
-
-    // Listen to Firebase special path ".info/connected" for connection state changes
-    db.ref(".info/connected").on("value", (snap) => {
-      if (snap.val() === true) {
-        // Connected to Firebase
-        el.statusLed.classList.add("online");      // Turn LED green with pulse animation
-        el.statusText.textContent = "ONLINE";      // Update status text
-      } else {
-        // Disconnected from Firebase
-        el.statusLed.classList.remove("online");   // Turn LED red (default state)
-        el.statusText.textContent = "OFFLINE";     // Update status text
-      }
-    });
-
-    // ============================================================
-    //  GENERIC FLOWMETER UPDATE — Shared function for all 4 meters
-    // ============================================================
-
-    /*
-     * Update a flowmeter card with a new flow reading value.
-     * Updates the display value, blinks the data LED, increments the reading counter,
-     * and removes the "inactive" class from the card if it was previously inactive.
-     * @param key  - flowmeter key string (e.g., "fm1", "fm2", "fm3", "fm4")
-     * @param flow - numeric flow value in m³/h
-     */
-    function updateFlowmeter(key, flow) {
-      const flowEl = el[key + "Flow"];               // Get the flow value display element (e.g., el.fm1Flow)
-      const ledEl = el["dataLed" + key.charAt(2)];   // Get the data LED element (e.g., el.dataLed1)
-
-      lastDataTime = Date.now();                      // Update last data received timestamp
-      readingCount++;                                 // Increment total reading counter
-
-      flowEl.textContent = flow.toFixed(2);           // Display flow value with 2 decimal places
-      el.readingCount.textContent = readingCount;     // Update footer reading counter
-      el.lastUpdate.textContent = new Date().toLocaleTimeString(); // Update footer timestamp
-
-      blinkLed(ledEl);                                // Blink the data LED green briefly
-
-      // Remove "inactive" class to show this flowmeter is now active and receiving data
-      const card = document.getElementById("card-" + key); // Get the gauge card element
-      if (card) card.classList.remove("inactive");         // Remove dimmed/inactive styling
-    }
-
-    // ============================================================
-    //  FIREBASE REALTIME LISTENERS — Subscribe to data changes
-    // ============================================================
-
-    // Listen for changes to the last_updated timestamp (any flowmeter update resets the data timeout)
-    db.ref("/flow_system/last_updated").on("value", () => {
-      lastDataTime = Date.now();  // Reset data timeout whenever timestamp changes
-    });
-
-    // Flowmeter 1 listener — triggers when flowmeter1 current_flow value changes in Firebase
-    db.ref("/flow_system/flowmeter1/current_flow").on("value", (snap) => {
-      const val = snap.val();                  // Get the new value from Firebase snapshot
-      if (val === null) return;                // Skip if no data exists at this path
-      updateFlowmeter("fm1", parseFloat(val)); // Update FM1 card with parsed float value
-    });
-
-    // Flowmeter 2 listener — triggers when flowmeter2 current_flow value changes in Firebase
-    db.ref("/flow_system/flowmeter2/current_flow").on("value", (snap) => {
-      const val = snap.val();                  // Get the new value from Firebase snapshot
-      if (val === null) return;                // Skip if no data exists at this path
-      updateFlowmeter("fm2", parseFloat(val)); // Update FM2 card with parsed float value
-    });
-
-    // Flowmeter 3 listener — reserved for future hardware connection
-    db.ref("/flow_system/flowmeter3/current_flow").on("value", (snap) => {
-      const val = snap.val();                  // Get the new value from Firebase snapshot
-      if (val === null) return;                // Skip if no data exists at this path
-      updateFlowmeter("fm3", parseFloat(val)); // Update FM3 card with parsed float value
-    });
-
-    // Flowmeter 4 listener — reserved for future hardware connection
-    db.ref("/flow_system/flowmeter4/current_flow").on("value", (snap) => {
-      const val = snap.val();                  // Get the new value from Firebase snapshot
-      if (val === null) return;                // Skip if no data exists at this path
-      updateFlowmeter("fm4", parseFloat(val)); // Update FM4 card with parsed float value
-    });
-  </script>
-
+  <script src="js/theme.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/login-form.js"></script>
+  <script src="js/sidebar.js"></script>
+  <script src="js/clock.js"></script>
+  <script src="js/ip-detect.js"></script>
+  <script src="js/realtime.js"></script>
+  <script src="js/app.js"></script>
 </body>
 
 </html>

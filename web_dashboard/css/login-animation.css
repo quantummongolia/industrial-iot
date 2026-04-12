@@ -1,0 +1,190 @@
+/* ============================================================
+   LOGIN ANIMATION — Top-down pixel building + orbiting ball + worker
+   ============================================================ */
+
+/* ============================================================
+   SCENE — цэвэр хар дэвсгэр
+   ============================================================ */
+.scene {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-left: 7vw;
+}
+
+/* ============================================================
+   BUILDING WRAP — orbit ball нь wrap дотор absolute
+   ============================================================ */
+.building-wrap {
+  position: relative;
+  width: 360px;
+  height: 360px;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   BUILDING — дөрвөлжин pixel байшин
+   inset: 50px → байшин 260×260px, wrap дотор төвд
+   ============================================================ */
+.building {
+  position: absolute;
+  inset: 50px;
+  border: 2px solid #f5b800;
+  background: rgba(245, 184, 0, 0.03);
+  image-rendering: pixelated;
+}
+
+/* Булангийн pixel dot */
+.building::before,
+.building::after {
+  content: '';
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  background: #f5b800;
+}
+.building::before { top: -2px;    left: -2px; }
+.building::after  { bottom: -2px; right: -2px; }
+
+/* Дотоод pixel grid */
+.building-inner {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(245,184,0,0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(245,184,0,0.07) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* ============================================================
+   ORBIT BALL — JS top/left-ийг байшины ирмэгийн дагуу set хийнэ
+   transform: translate(-50%,-50%) → төвийг ирмэгт байрлуулна
+   ============================================================ */
+.orbit-ball {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%,
+    #fff8cc 0%,
+    #ffd84d 35%,
+    #f5b800 65%,
+    #c48f00 100%
+  );
+  box-shadow:
+    0 0 6px #f5b800,
+    0 0 14px rgba(245,184,0,0.6),
+    inset -1px -1px 2px rgba(0,0,0,0.35),
+    inset 1px 1px 2px rgba(255,255,200,0.5);
+  transform: translate(-50%, -50%);
+  z-index: 5;
+  pointer-events: none;
+}
+
+.orbit-ball::after {
+  content: '';
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 2px; height: 2px;
+  background: rgba(255,255,220,0.9);
+  border-radius: 50%;
+}
+
+/* ============================================================
+   WORKER — pixel ажилтан байшин дотор алхана
+   ============================================================ */
+.worker-wrap {
+  position: absolute;
+  bottom: 20px;
+  left: 16px;
+  width: 42px;
+  height: 56px;
+  image-rendering: pixelated;
+  animation: worker-patrol 5s linear infinite;
+}
+
+.worker-wrap svg {
+  width: 100%;
+  height: 100%;
+  animation: worker-bob 0.4s ease-in-out infinite;
+  overflow: visible;
+}
+
+/* Байшин дотор зүүн → баруун → эргэх → буцах */
+/* building 260px, worker 42px → left: 16 → 202 */
+@keyframes worker-patrol {
+  0%   { left: 16px;  transform: scaleX(1); }
+  45%  { left: 202px; transform: scaleX(1); }
+  50%  { left: 202px; transform: scaleX(-1); }
+  95%  { left: 16px;  transform: scaleX(-1); }
+  100% { left: 16px;  transform: scaleX(1); }
+}
+
+@keyframes worker-bob {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-2px); }
+}
+
+/* Хөл */
+.worker-leg-l {
+  transform-origin: 50% 0%;
+  animation: leg-l 0.4s ease-in-out infinite;
+}
+.worker-leg-r {
+  transform-origin: 50% 0%;
+  animation: leg-r 0.4s ease-in-out infinite;
+}
+@keyframes leg-l {
+  0%, 100% { transform: rotate(-13deg); }
+  50%       { transform: rotate(13deg); }
+}
+@keyframes leg-r {
+  0%, 100% { transform: rotate(13deg); }
+  50%       { transform: rotate(-13deg); }
+}
+
+/* Гар */
+.worker-arm-l {
+  transform-origin: 50% 0%;
+  animation: arm-l 0.4s ease-in-out infinite;
+}
+.worker-arm-r {
+  transform-origin: 50% 0%;
+  animation: arm-r 0.4s ease-in-out infinite;
+}
+@keyframes arm-l {
+  0%, 100% { transform: rotate(9deg); }
+  50%       { transform: rotate(-9deg); }
+}
+@keyframes arm-r {
+  0%, 100% { transform: rotate(-9deg); }
+  50%       { transform: rotate(9deg); }
+}
+
+/* ============================================================
+   ACCESSIBILITY
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  .orbit-ball,
+  .worker-wrap,
+  .worker-wrap svg { animation: none !important; }
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 900px) {
+  .scene { padding-left: 3vw; }
+  .building-wrap { width: 280px; height: 280px; }
+  .building { inset: 40px; }
+}
+
+@media (max-width: 700px) {
+  .building-wrap { display: none; }
+}

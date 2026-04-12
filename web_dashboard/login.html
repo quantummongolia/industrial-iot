@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="mn" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0a0c">
+  <title>MRESOURCE</title>
+
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/login.css">
+</head>
+
+<body>
+
+  <!-- ============================================================
+       NAVBAR
+       ============================================================ -->
+  <nav class="pf-nav">
+    <canvas id="lightningCanvas" class="lightning-canvas"></canvas>
+    <a class="pf-logo" href="#" id="decryptLogo">Developed by MR Electrical Team</a>
+    <button class="pf-signin-btn" id="openLogin" onclick="openLoginModal()">Login</button>
+  </nav>
+
+  <!-- ============================================================
+       HERO
+       ============================================================ -->
+  <main class="pf-hero">
+    <div class="pf-rings-wrap" id="magicRingsMount"></div>
+    <div class="pf-hero-text">
+      <p class="pf-hero-eyebrow">Industrial IoT Platform</p>
+      <h1 class="pf-hero-title">
+        <span class="gradient-text" id="gradientTitle">MRESOURCE</span>
+      </h1>
+      <p class="pf-hero-sub">Real-time monitoring system</p>
+
+      <!-- LOGO MARQUEE — subtitle-ийн доор -->
+      <div class="marquee-wrap" aria-label="Tech stack">
+        <div class="marquee-track">
+          <div class="marquee-inner" id="marqueeInner">
+            <div class="marquee-item" style="--c:#f7df1e"><svg class="m-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M0 0h24v24H0V0zm22.034 18.276c-.175-1.095-.888-2.015-3.003-2.873-.736-.345-1.554-.585-1.797-1.14-.091-.33-.105-.51-.046-.705.15-.646.915-.84 1.515-.66.39.12.75.42.976.9 1.034-.676 1.034-.676 1.755-1.125-.27-.42-.404-.601-.586-.78-.63-.705-1.469-1.065-2.834-1.034l-.705.089c-.676.165-1.32.525-1.71 1.005-1.14 1.291-.811 3.541.569 4.471 1.365 1.02 3.361 1.244 3.616 2.205.24 1.17-.87 1.545-1.966 1.41-.811-.18-1.26-.586-1.755-1.336l-1.83 1.051c.21.48.45.689.81 1.109 1.74 1.756 6.09 1.666 6.871-1.004.029-.09.24-.705.074-1.65l.046.067zm-8.983-7.245h-2.248c0 1.938-.009 3.864-.009 5.805 0 1.232.063 2.363-.138 2.711-.33.689-1.18.601-1.566.48-.396-.196-.597-.466-.83-.855-.063-.105-.11-.196-.127-.196l-1.825 1.125c.305.63.75 1.172 1.324 1.517.855.51 2.004.675 3.207.405.783-.226 1.458-.691 1.811-1.411.51-.93.402-2.07.397-3.346.012-2.054 0-4.109 0-6.179l.004-.056z" />
+              </svg><span>JavaScript</span></div>
+            <div class="marquee-item" style="--c:#f05032"><svg class="m-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M23.546 10.93L13.067.452a1.55 1.55 0 0 0-2.188 0L8.708 2.627l2.76 2.76a1.838 1.838 0 0 1 2.327 2.341l2.658 2.66a1.838 1.838 0 1 1-1.1 1.04l-2.48-2.48v6.532a1.838 1.838 0 1 1-1.514-.036V9.31a1.838 1.838 0 0 1-.997-2.416L7.617 4.227.45 11.394a1.55 1.55 0 0 0 0 2.188l10.48 10.478a1.55 1.55 0 0 0 2.186 0l10.43-10.43a1.55 1.55 0 0 0 0-2.187" />
+              </svg><span>Git</span></div>
+            <div class="marquee-item" style="--c:#e34f26"><svg class="m-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M1.5 0h21l-1.91 21.563L11.977 24l-8.564-2.438L1.5 0zm7.031 9.75l-.232-2.718 10.059.003.23-2.622L5.412 4.41l.698 8.01h9.126l-.326 3.426-2.91.804-2.955-.81-.188-2.11H6.248l.33 4.171L12 19.351l5.379-1.443.744-8.157H8.531z" />
+              </svg><span>HTML</span></div>
+            <div class="marquee-item" style="--c:#264de4"><svg class="m-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M1.5 0h21l-1.91 21.563L11.977 24l-8.565-2.438L1.5 0zm17.09 4.413L5.41 4.41l.213 2.622 10.125.002-.255 2.716h-6.64l.24 2.573h6.182l-.366 3.523-2.91.804-2.956-.81-.188-2.11h-2.61l.29 3.855L12 19.288l5.373-1.53L18.59 4.414z" />
+              </svg><span>CSS</span></div>
+            <div class="marquee-item" style="--c:#ffca28"><svg class="m-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M3.89 15.672L6.255.461A.542.542 0 0 1 7.27.288l2.543 4.771zm16.794 3.692l-2.25-14a.54.54 0 0 0-.919-.295L3.316 19.365l7.856 4.427a1.621 1.621 0 0 0 1.588 0zM14.3 7.147l-1.818-3.482a.542.542 0 0 0-.96 0L3.53 17.984z" />
+              </svg><span>Firebase</span></div>
+            <div class="marquee-item" style="--c:#5a0fc8"><svg class="m-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M15.896 9.026l-.014-.004L13.5 17.5l-2.5-5-2.5 5-2.396-8.478-.014.004L4.5 6h15l-3.604 3.026zM12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 18c-4.418 0-8-3.582-8-8s3.582-8 8-8 8 3.582 8 8-3.582 8-8 8z" />
+              </svg><span>PWA</span></div>
+            <div class="marquee-item" style="--c:#e7352c"><svg class="m-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M12.926 19.324a7.6 7.6 0 00-2.983-6.754 7.44 7.44 0 00-3.828-1.554.697.697 0 01-.606-.731.674.674 0 01.743-.617 8.97 8.97 0 018 9.805 7.828 7.828 0 01-.298 1.542l1.989.56a11.039 11.039 0 001.714-.651 12.159 12.159 0 00.217-2.343A12.57 12.57 0 007.212 6.171a5.53 5.53 0 00-2 0 4.354 4.354 0 00-2.16 1.337 4.274 4.274 0 001.909 6.856 9.896 9.896 0 001.074.195 4.011 4.011 0 013.337 3.954 3.965 3.965 0 01-.64 2.16l1.371.88a10.182 10.182 0 002.057.342 7.52 7.52 0 00.754-2.628m.16 4.73A13.073 13.073 0 01.001 10.983 12.982 12.982 0 013.83 1.737l.743.697a12.067 12.067 0 000 17.141 12.067 12.067 0 0017.141 0l.697.697a12.97 12.97 0 01-9.336 3.726M24 10.993A10.993 10.993 0 0012.949 0c-.389 0-.766 0-1.143.057l-.252.732a18.912 18.912 0 0111.588 11.576l.731-.263c0-.366.069-.732.069-1.143m-1.269 5.165A17.53 17.53 0 007.818 1.27a11.119 11.119 0 00-2.457 1.77v1.635A13.919 13.919 0 0119.268 18.57h1.634a11.713 11.713 0 001.771-2.446M7.92 17.884a1.691 1.691 0 11-1.69-1.691 1.691 1.691 0 011.69 1.691" />
+              </svg><span>Espressif</span></div>
+            <div class="marquee-item" style="--c:#2496ed"><svg class="m-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M13.983 11.078h2.119a.186.186 0 0 0 .186-.185V9.006a.186.186 0 0 0-.186-.186h-2.119a.185.185 0 0 0-.185.185v1.888c0 .102.083.185.185.185m-2.954-5.43h2.118a.186.186 0 0 0 .186-.186V3.574a.186.186 0 0 0-.186-.185h-2.118a.185.185 0 0 0-.185.185v1.888c0 .102.082.185.185.185m0 2.716h2.118a.187.187 0 0 0 .186-.186V6.29a.186.186 0 0 0-.186-.185h-2.118a.185.185 0 0 0-.185.185v1.887c0 .102.082.185.185.186m-2.93 0h2.12a.186.186 0 0 0 .184-.186V6.29a.185.185 0 0 0-.185-.185H8.1a.185.185 0 0 0-.185.185v1.887c0 .102.083.185.185.186m-2.964 0h2.119a.186.186 0 0 0 .185-.186V6.29a.185.185 0 0 0-.185-.185H5.136a.186.186 0 0 0-.186.185v1.887c0 .102.084.185.186.186m5.893 2.715h2.118a.186.186 0 0 0 .186-.185V9.006a.186.186 0 0 0-.186-.186h-2.118a.185.185 0 0 0-.185.185v1.888c0 .102.082.185.185.185m-2.93 0h2.12a.185.185 0 0 0 .184-.185V9.006a.185.185 0 0 0-.184-.186h-2.12a.185.185 0 0 0-.184.185v1.888c0 .102.083.185.185.185m-2.964 0h2.119a.185.185 0 0 0 .185-.185V9.006a.185.185 0 0 0-.184-.186h-2.12a.186.186 0 0 0-.186.186v1.887c0 .102.084.185.186.185m-2.92 0h2.12a.186.186 0 0 0 .184-.185V9.006a.185.185 0 0 0-.184-.186h-2.12a.185.185 0 0 0-.185.185v1.888c0 .102.083.185.185.185M23.763 9.89c-.065-.051-.672-.51-1.954-.51-.338.001-.676.03-1.01.087-.248-1.7-1.653-2.53-1.716-2.566l-.344-.199-.226.327c-.284.438-.49.922-.612 1.43-.23.97-.09 1.882.403 2.661-.595.332-1.55.413-1.744.42H.751a.751.751 0 0 0-.75.748 11.376 11.376 0 0 0 .692 4.062c.545 1.428 1.355 2.48 2.41 3.124 1.18.723 3.1 1.137 5.275 1.137.983.003 1.963-.086 2.93-.266a12.248 12.248 0 0 0 3.823-1.389c.98-.567 1.86-1.288 2.61-2.136 1.252-1.418 1.998-2.997 2.553-4.4h.221c1.372 0 2.215-.549 2.68-1.009.309-.293.55-.65.707-1.046l.098-.288z" />
+              </svg><span>Docker</span></div>
+            <div class="marquee-item" style="--c:#4eaa25"><svg class="m-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M2.848 1.438A1.55 1.55 0 0 0 1.5 2.947v18.106a1.55 1.55 0 0 0 1.55 1.55h18.1a1.55 1.55 0 0 0 1.55-1.55V2.947a1.55 1.55 0 0 0-1.55-1.55H2.848zm2.152 4.5 1.06 1.06L3.94 9.12l2.12 2.122L5 12.3 2.88 10.18a1.5 1.5 0 0 1 0-2.12L5 5.938zm4 5.562h6v1.5h-6z" />
+              </svg><span>Bash</span></div>
+            <div class="marquee-item" style="--c:#e6edf3"><svg class="m-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
+              </svg><span>GitHub</span></div>
+            <!-- C++ -->
+            <div class="marquee-item" style="--c:#00599c"><svg class="m-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M22.394 6c-.167-.29-.398-.543-.652-.69L12.926.22c-.509-.294-1.34-.294-1.848 0L2.26 5.31c-.508.293-.923 1.013-.923 1.6v10.18c0 .294.104.62.271.91.167.29.398.543.652.69l8.816 5.09c.508.293 1.34.293 1.848 0l8.816-5.09c.254-.147.485-.4.652-.69.167-.29.27-.616.27-.91V6.91c.003-.294-.1-.62-.268-.91zM12 19.109c-3.92 0-7.109-3.19-7.109-7.109S8.08 4.891 12 4.891c2.455 0 4.607 1.246 5.855 3.13l-2.84 1.65A3.545 3.545 0 0 0 12 8.436c-1.96 0-3.554 1.595-3.554 3.564S10.04 15.564 12 15.564a3.545 3.545 0 0 0 3.073-1.773l2.842 1.667C16.585 17.876 14.44 19.109 12 19.109zm7.109-6.714h-.79v.79h-.79v-.79h-.79v-.79h.79v-.79h.79v.79h.79v.79zm2.962 0h-.79v.79h-.79v-.79h-.79v-.79h.79v-.79h.79v.79h.79v.79z" />
+              </svg><span>C++</span></div>
+            <!-- Claude (Anthropic) -->
+            <div class="marquee-item" style="--c:#d97757"><svg class="m-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z" />
+              </svg><span>Claude</span></div>
+            <!-- VSCode -->
+            <div class="marquee-item" style="--c:#007acc">
+              <svg class="m-icon" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <mask id="vsc-mask" mask-type="alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
+                  <path fill-rule="evenodd" clip-rule="evenodd"
+                    d="M70.9119 99.3171C72.4869 99.9307 74.2828 99.8914 75.8725 99.1264L96.4608 89.2197C98.6242 88.1787 100 85.9892 100 83.5872V16.4133C100 14.0113 98.6243 11.8218 96.4609 10.7808L75.8725 0.873756C73.7862 -0.130129 71.3446 0.11576 69.5135 1.44695C69.252 1.63711 69.0028 1.84943 68.769 2.08341L29.3551 38.0415L12.1872 25.0096C10.589 23.7965 8.35363 23.8959 6.86933 25.2461L1.36303 30.2549C-0.452552 31.9064 -0.454633 34.7627 1.35853 36.417L16.2471 50.0001L1.35853 63.5832C-0.454633 65.2374 -0.452552 68.0938 1.36303 69.7453L6.86933 74.7541C8.35363 76.1043 10.589 76.2037 12.1872 74.9905L29.3551 61.9587L68.769 97.9167C69.3925 98.5406 70.1246 99.0104 70.9119 99.3171ZM75.0152 27.2989L45.1091 50.0001L75.0152 72.7012V27.2989Z"
+                    fill="white" />
+                </mask>
+                <g mask="url(#vsc-mask)">
+                  <path
+                    d="M96.4614 10.7962L75.8569 0.875542C73.4719 -0.272773 70.6217 0.211611 68.75 2.08333L1.29858 63.5832C-0.515693 65.2373 -0.513607 68.0937 1.30308 69.7452L6.81272 74.754C8.29793 76.1042 10.5347 76.2036 12.1338 74.9905L93.3609 13.3699C96.086 11.3026 100 13.2462 100 16.6667V16.4275C100 14.0265 98.6246 11.8378 96.4614 10.7962Z"
+                    fill="#0065A9" />
+                  <path
+                    d="M96.4614 89.2038L75.8569 99.1245C73.4719 100.273 70.6217 99.7884 68.75 97.9167L1.29858 36.4169C-0.515693 34.7627 -0.513607 31.9063 1.30308 30.2548L6.81272 25.246C8.29793 23.8958 10.5347 23.7964 12.1338 25.0095L93.3609 86.6301C96.086 88.6974 100 86.7538 100 83.3334V83.5726C100 85.9735 98.6246 88.1622 96.4614 89.2038Z"
+                    fill="#007ACC" />
+                  <path
+                    d="M75.8578 99.1263C73.4721 100.274 70.6219 99.7885 68.75 97.9166C71.0564 100.223 75 98.5895 75 95.3278V4.67213C75 1.41039 71.0564 -0.223106 68.75 2.08329C70.6219 0.211402 73.4721 -0.273666 75.8578 0.873633L96.4587 10.7807C98.6234 11.8217 100 14.0112 100 16.4132V83.5871C100 85.9891 98.6234 88.1786 96.4586 89.2196L75.8578 99.1263Z"
+                    fill="#1F9CF0" />
+                </g>
+              </svg>
+              <span>VSCode</span>
+            </div>
+            <!-- Gemini -->
+            <div class="marquee-item" style="--c:#8ab4f8"><svg class="m-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M12 24A14.304 14.304 0 0 0 0 12 14.304 14.304 0 0 0 12 0a14.304 14.304 0 0 0 12 12 14.304 14.304 0 0 0-12 12" />
+              </svg><span>Gemini</span></div>
+            <!-- Arduino IDE -->
+            <div class="marquee-item" style="--c:#00979d"><svg class="m-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M18.087 6.146c-.3 0-.607.017-.907.069-2.532.367-4.23 2.239-5.18 3.674-.95-1.435-2.648-3.307-5.18-3.674a6.49 6.49 0 0 0-.907-.069C2.648 6.146 0 8.77 0 12s2.656 5.854 5.913 5.854c.3 0 .607-.017.916-.069 2.531-.376 4.23-2.247 5.18-3.683.949 1.436 2.647 3.307 5.18 3.683.299.043.607.069.915.069C21.344 17.854 24 15.23 24 12s-2.656-5.854-5.913-5.854zM6.53 15.734a3.837 3.837 0 0 1-.625.043c-2.148 0-3.889-1.7-3.889-3.777 0-2.085 1.749-3.777 3.898-3.777.208 0 .416.017.624.043 2.39.35 3.847 2.768 4.347 3.734-.508.974-1.974 3.384-4.355 3.734zm11.558.043c-.208 0-.416-.017-.624-.043-2.39-.35-3.856-2.768-4.347-3.734.491-.966 1.957-3.384 4.347-3.734.208-.026.416-.043.624-.043 2.149 0 3.89 1.7 3.89 3.777 0 2.085-1.75 3.777-3.89 3.777zm1.65-4.404v1.134h-1.205v1.182h-1.156v-1.182H16.17v-1.134h1.206V10.19h1.156v1.183h1.206zM4.246 12.498H7.82v-1.125H4.245v1.125z" />
+              </svg><span>Arduino</span></div>
+            <!-- PlatformIO -->
+            <div class="marquee-item" style="--c:#f5822a"><svg class="m-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M12 23.992c1.25.211 7.051-3.743 9.113-8.217.253-.686.61-1.198.746-2.5.21-2.016-.41-3.912-1.59-5.419-.987-1.163-2.305-2.004-3.88-2.532l.683-2.583a1.371 1.371 0 1 0-.76-.189L15.64 5.1c-1.109-.288-2.328-.437-3.64-.444m5.978 11.667c-1.548 1.346-2.525 1.488-3.045 1.467-.274-.034-.75-.558-.919-1.104-.188-.612-.28-1.282-.273-2.2-.199-2.476 1.465-5.624 3.937-6.041 1.003-.186 2.39.493 2.889 2.088.506 1.422-.645 4.147-2.589 5.79zM12 4.656c-1.315.007-2.538.156-3.65.447l-.675-2.56A1.37 1.37 0 0 0 6.962 0a1.372 1.372 0 0 0-.044 2.742L7.6 5.328c-1.57.528-2.885 1.367-3.871 2.528-1.179 1.507-1.8 3.403-1.588 5.419.136 1.302.492 1.814.745 2.5 2.062 4.474 7.862 8.428 9.113 8.217m-1.507-9.507c.007.92-.086 1.589-.274 2.201-.167.546-.644 1.07-.918 1.104-.52.021-1.498-.121-3.045-1.467-1.944-1.643-3.095-4.368-2.589-5.79.5-1.595 1.886-2.274 2.889-2.088 2.471.417 4.136 3.565 3.937 6.04zm6.45-2.19a1.24 1.24 0 1 0 0 2.48 1.24 1.24 0 0 0 0-2.48zm.416 1.149a.325.325 0 1 1 0-.65.325.325 0 0 1 0 .65zM7.25 12.294a1.24 1.24 0 1 0 0 2.48 1.24 1.24 0 0 0 0-2.48zm-.418 1.15a.325.325 0 1 1 0-.65.325.325 0 0 1 0 .65z" />
+              </svg><span>PlatformIO</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ============================================================
+       CARD SWAP SECTION — Hero-ийн доор scroll хийхэд гарна
+       ============================================================ -->
+  <section class="cardswap-section">
+    <div class="cardswap-text">
+      <p class="cardswap-eyebrow">Интернэт хяналтын систем</p>
+      <h2 class="cardswap-title">Хиймэл оюунд суурилсан хөгжүүлэлтийн процесс<br>Agent first IDE</h2>
+      <p class="cardswap-sub">Google Antigravity integrated with Claude CLI</p>
+      <br>
+      <p class="cardswap-sub">• Багаар ажиллах боломжтой<br>• Өргөтгөх боломжтой<br>• Бодит цагийн шинэчлэл</p>
+    </div>
+    <div class="cardswap-stage" id="cardSwapStage">
+      <div class="cs-card" id="csCard0">
+        <img src="img/Antigravity-IDE.png" alt="Feature 1" class="cs-card-img" data-slot="0">
+        <div class="cs-card-label">Antigravity-IDE</div>
+      </div>
+      <div class="cs-card" id="csCard1">
+        <img src="img/github-repo.png" alt="Feature 2" class="cs-card-img" data-slot="1">
+        <div class="cs-card-label">GitHub</div>
+      </div>
+      <div class="cs-card" id="csCard2">
+        <img src="img/Claude-CLI.png" alt="Feature 3" class="cs-card-img" data-slot="2">
+        <div class="cs-card-label">Claude CLI</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       FIREBASE SECURITY SECTION
+       ============================================================ -->
+  <section class="firebase-section">
+    <div class="firebase-glitch" id="letterGlitchMount">
+      <canvas id="letterGlitchCanvas"></canvas>
+      <div class="glitch-vignette-center"></div>
+    </div>
+    <div class="firebase-text">
+      <p class="firebase-eyebrow">Аюулгүй байдал</p>
+      <h2 class="firebase-title">Firebase-д суурилсан<br>найдвартай хамгаалалт</h2>
+      <ul class="firebase-list">
+        <li>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <span>Firebase Authentication — хэрэглэгч баталгаажуулалт</span>
+        </li>
+        <li>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <span>SMS хоёр шатлалт баталгаажуулалт</span>
+        </li>
+        <li>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          <span>7 хоногийн session токен хадгалалт</span>
+        </li>
+        <li>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 6s4-2 11-2 11 2 11 2v6s-4 4-11 4S1 12 1 12V6z"/><path d="M1 6l11 7 11-7"/></svg>
+          <span>Firestore Security Rules — өгөгдлийн хамгаалалт</span>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       LOGIN MODAL
+       ============================================================ -->
+  <div class="login-modal hidden" id="loginModal" onclick="handleModalBackdrop(event)">
+    <div class="login-card" role="dialog" aria-modal="true" aria-label="Sign in">
+
+      <!-- Close button -->
+      <button class="login-close" onclick="closeLoginModal()" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+
+      <!-- Logo inside modal -->
+      <div class="login-logo">MRESOURCE</div>
+      <div class="login-sub">Sign in to your account</div>
+
+      <!-- ============ STEP 1 — CREDENTIALS ============ -->
+      <div class="login-step active" id="loginStep1">
+        <div class="login-field">
+          <label class="login-label" for="usernameInput">Username</label>
+          <input type="text" id="usernameInput" class="login-input" placeholder="Enter your username"
+            autocomplete="username" spellcheck="false">
+        </div>
+
+        <div class="login-field">
+          <div class="login-label-row">
+            <label class="login-label" for="passwordInput">Password</label>
+            <a href="#" class="login-forgot">Forgot password?</a>
+          </div>
+          <div class="password-wrap" id="passwordWrap">
+            <input type="password" id="passwordInput" class="login-input" placeholder="••••••••"
+              autocomplete="current-password">
+            <button type="button" class="password-toggle" onclick="togglePassword()" aria-label="Show / hide password">
+              <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+              <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path
+                  d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                <line x1="1" y1="1" x2="23" y2="23" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <button class="login-btn" onclick="submitCredentials()">Sign In</button>
+        <div class="login-error" id="loginError1"></div>
+      </div>
+
+      <!-- ============ STEP 2 — SMS VERIFICATION ============ -->
+      <div class="login-step" id="loginStep2">
+        <div class="login-sms-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+            stroke-linejoin="round">
+            <path
+              d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.64 3.3 2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 5.5 5.5l.96-.96a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 15.44z" />
+          </svg>
+        </div>
+        <p class="login-sms-hint">Таны утасны дугаарт 6 оронтой код илгээлээ</p>
+
+        <div class="login-field">
+          <label class="login-label" for="codeInput">Verification code</label>
+          <input type="text" id="codeInput" class="login-input code" placeholder="000000" maxlength="6"
+            inputmode="numeric" autocomplete="one-time-code">
+        </div>
+
+        <button class="login-btn" onclick="submitSmsCode()">Verify</button>
+        <button class="login-btn secondary" onclick="goToStep(1)">← Back</button>
+
+        <div class="login-error" id="loginError2"></div>
+        <div class="login-hint">
+          MOCK mode: any 6-digit number works.<br>
+          Session saved for 7 days.
+        </div>
+      </div>
+
+      <!-- Step dots -->
+      <div class="login-dots">
+        <span class="dot active" id="loginDot1"></span>
+        <span class="dot" id="loginDot2"></span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SCRIPTS
+       ============================================================ -->
+  <script>
+    // Marquee — JS RAF smooth infinite scroll
+    document.addEventListener('DOMContentLoaded', function () {
+      const inner = document.getElementById('marqueeInner');
+      if (!inner) return;
+
+      const track = inner.parentNode; // .marquee-track
+      const wrap = track.parentNode; // .marquee-wrap
+
+      // Clone нэмнэ — original-ийн хуулбар
+      const clone = inner.cloneNode(true);
+      clone.setAttribute('aria-hidden', 'true');
+      track.appendChild(clone);
+
+      // track-г flex болгож хоёр inner-г зэрэгцүүлнэ
+      track.style.display = 'flex';
+      track.style.flexWrap = 'nowrap';
+
+      const SPEED = 0.5;
+      let x = 0;
+      let paused = false;
+      let raf;
+
+      function step() {
+        if (!paused) {
+          x -= SPEED;
+          // original inner-ийн өргөн + gap (36px) — reset цэг
+          const itemW = inner.offsetWidth + 36;
+          if (Math.abs(x) >= itemW) x = 0;
+          track.style.transform = `translateX(${x}px)`;
+        }
+        raf = requestAnimationFrame(step);
+      }
+
+      wrap.addEventListener('mouseenter', () => { paused = true; });
+      wrap.addEventListener('mouseleave', () => { paused = false; });
+
+      raf = requestAnimationFrame(step);
+    });
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script>
+    // GradientText — yoyo animation (Framer Motion-оос хөрвүүлсэн)
+    (function () {
+      const SPEED = 2.5;   // animationSpeed
+      const DURATION = SPEED * 1000;
+
+      let elapsed = 0;
+      let lastTime = null;
+
+      function animate(time) {
+        if (lastTime === null) { lastTime = time; }
+        elapsed += time - lastTime;
+        lastTime = time;
+
+        // yoyo: 0→100→0 давталт
+        const fullCycle = DURATION * 2;
+        const cycleTime = elapsed % fullCycle;
+        const p = cycleTime < DURATION
+          ? (cycleTime / DURATION) * 100
+          : 100 - ((cycleTime - DURATION) / DURATION) * 100;
+
+        const el = document.getElementById('gradientTitle');
+        if (el) el.style.backgroundPosition = p + '% 50%';
+
+        requestAnimationFrame(animate);
+      }
+
+      requestAnimationFrame(animate);
+    })();
+  </script>
+  <script src="js/magic-rings.js" defer></script>
+  <script src="js/theme.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/login-form.js"></script>
+  <script>
+    function openLoginModal() {
+      document.getElementById("loginModal").classList.remove("hidden");
+      document.body.style.overflow = "hidden";
+      setTimeout(() => {
+        const u = document.getElementById("usernameInput");
+        if (u) u.focus();
+      }, 80);
+    }
+
+    function closeLoginModal() {
+      document.getElementById("loginModal").classList.add("hidden");
+      document.body.style.overflow = "";
+    }
+
+    function handleModalBackdrop(e) {
+      if (e.target === document.getElementById("loginModal")) closeLoginModal();
+    }
+
+    document.addEventListener("keydown", e => {
+      if (e.key === "Escape") closeLoginModal();
+    });
+
+    document.addEventListener("DOMContentLoaded", () => {
+      // Аль хэдийн verified бол dashboard руу шилжүүлнэ
+      if (typeof isVerified === "function" && isVerified()) {
+        location.replace("index.html");
+        return;
+      }
+      if (typeof setupLoginForm === "function") setupLoginForm();
+      initCardSwap();
+      initDecryptedText();
+    });
+
+    // ── Lightning WebGL navbar ─────────────────────────────────────
+    (function initLightning() {
+      const canvas = document.getElementById('lightningCanvas');
+      if (!canvas) return;
+
+      const resize = () => {
+        canvas.width = canvas.clientWidth;
+        canvas.height = 400;
+      };
+      resize();
+      window.addEventListener('resize', resize);
+
+      const gl = canvas.getContext('webgl');
+      if (!gl) return;
+
+      const vert = `
+        attribute vec2 aPosition;
+        void main() { gl_Position = vec4(aPosition, 0.0, 1.0); }
+      `;
+      const frag = `
+        precision mediump float;
+        uniform vec2  iResolution;
+        uniform float iTime;
+        uniform float uHue;
+        uniform float uXOffset;
+        uniform float uSpeed;
+        uniform float uIntensity;
+        uniform float uSize;
+        #define OCTAVE_COUNT 10
+        vec3 hsv2rgb(vec3 c){
+          vec3 rgb=clamp(abs(mod(c.x*6.0+vec3(0.0,4.0,2.0),6.0)-3.0)-1.0,0.0,1.0);
+          return c.z*mix(vec3(1.0),rgb,c.y);
+        }
+        float hash11(float p){p=fract(p*.1031);p*=p+33.33;p*=p+p;return fract(p);}
+        float hash12(vec2 p){
+          vec3 p3=fract(vec3(p.xyx)*.1031);
+          p3+=dot(p3,p3.yzx+33.33);
+          return fract((p3.x+p3.y)*p3.z);
+        }
+        mat2 rotate2d(float t){float c=cos(t),s=sin(t);return mat2(c,-s,s,c);}
+        float noise(vec2 p){
+          vec2 ip=floor(p),fp=fract(p);
+          float a=hash12(ip),b=hash12(ip+vec2(1,0)),c=hash12(ip+vec2(0,1)),d=hash12(ip+vec2(1,1));
+          vec2 t=smoothstep(0.0,1.0,fp);
+          return mix(mix(a,b,t.x),mix(c,d,t.x),t.y);
+        }
+        float fbm(vec2 p){
+          float v=0.0,a=0.5;
+          for(int i=0;i<OCTAVE_COUNT;++i){v+=a*noise(p);p*=rotate2d(0.45);p*=2.0;a*=0.5;}
+          return v;
+        }
+        void main(){
+          vec2 uv=gl_FragCoord.xy/iResolution.xy;
+          uv=2.0*uv-1.0;
+          uv.x*=iResolution.x/iResolution.y;
+          uv.x+=uXOffset;
+          uv+=2.0*fbm(uv*uSize+0.8*iTime*uSpeed)-1.0;
+          float dist=abs(uv.x);
+          vec3 base=hsv2rgb(vec3(uHue/360.0,0.7,0.8));
+          vec3 col=base*pow(mix(0.0,0.07,hash11(iTime*uSpeed))/dist,1.0)*uIntensity;
+          gl_FragColor=vec4(col,1.0);
+        }
+      `;
+
+      const compile = (src, type) => {
+        const s = gl.createShader(type);
+        gl.shaderSource(s, src);
+        gl.compileShader(s);
+        if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) { console.error(gl.getShaderInfoLog(s)); return null; }
+        return s;
+      };
+
+      const vs = compile(vert, gl.VERTEX_SHADER);
+      const fs = compile(frag, gl.FRAGMENT_SHADER);
+      const prog = gl.createProgram();
+      gl.attachShader(prog, vs); gl.attachShader(prog, fs);
+      gl.linkProgram(prog);
+      if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { console.error(gl.getProgramInfoLog(prog)); return; }
+      gl.useProgram(prog);
+
+      const buf = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]), gl.STATIC_DRAW);
+      const aPos = gl.getAttribLocation(prog, 'aPosition');
+      gl.enableVertexAttribArray(aPos);
+      gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+
+      const uRes = gl.getUniformLocation(prog, 'iResolution');
+      const uTime = gl.getUniformLocation(prog, 'iTime');
+      const uHue = gl.getUniformLocation(prog, 'uHue');
+      const uXOff = gl.getUniformLocation(prog, 'uXOffset');
+      const uSpd = gl.getUniformLocation(prog, 'uSpeed');
+      const uInt = gl.getUniformLocation(prog, 'uIntensity');
+      const uSz = gl.getUniformLocation(prog, 'uSize');
+
+      const t0 = performance.now();
+      const render = () => {
+        resize();
+        gl.viewport(0, 0, canvas.width, canvas.height);
+        gl.uniform2f(uRes, canvas.width, canvas.height);
+        gl.uniform1f(uTime, (performance.now() - t0) / 1000);
+        gl.uniform1f(uHue, 260);
+        gl.uniform1f(uXOff, 0.5);
+        gl.uniform1f(uSpd, 1.3);
+        gl.uniform1f(uInt, 1.0);
+        gl.uniform1f(uSz, 1.0);
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+        requestAnimationFrame(render);
+      };
+      requestAnimationFrame(render);
+    })();
+
+    // ── DecryptedText vanilla JS ───────────────────────────────────
+    function initDecryptedText() {
+      const el = document.getElementById('decryptLogo');
+      if (!el) return;
+
+      const text = el.textContent.trim();
+      const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()_+';
+      const SPEED = 90;  // ms per step
+      const SEQUENTIAL = true;
+
+      // Span бүр болгоно
+      el.innerHTML = text.split('').map((ch, i) =>
+        `<span data-ch="${ch}" class="dt-char">${ch}</span>`
+      ).join('');
+
+      const spans = Array.from(el.querySelectorAll('.dt-char'));
+      let intervalId = null;
+      let hasAnimated = false;
+
+      const rand = () => {
+        const ch = CHARS[Math.floor(Math.random() * CHARS.length)];
+        return ch;
+      };
+
+      const decrypt = () => {
+        if (intervalId) clearInterval(intervalId);
+        // Эхлээд бүгдийг scramble болго
+        spans.forEach(s => {
+          if (s.dataset.ch !== ' ') s.textContent = rand();
+        });
+
+        let pointer = 0;
+        intervalId = setInterval(() => {
+          if (pointer >= spans.length) {
+            clearInterval(intervalId);
+            intervalId = null;
+            return;
+          }
+          // Одоогийн pointer хүртэлх spans-ыг оригинал болго
+          spans[pointer].textContent = spans[pointer].dataset.ch;
+          spans[pointer].classList.add('dt-revealed');
+          pointer++;
+
+          // Нээгдэж байгаа хэсгийн дараах spans-ыг scramble хий
+          for (let i = pointer; i < spans.length; i++) {
+            if (spans[i].dataset.ch !== ' ') {
+              spans[i].textContent = rand();
+              spans[i].classList.remove('dt-revealed');
+            }
+          }
+        }, SPEED);
+      };
+
+      // inView — нэг удаа
+      const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting && !hasAnimated) {
+            hasAnimated = true;
+            decrypt();
+          }
+        });
+      }, { threshold: 0.1 });
+      observer.observe(el);
+
+      // hover — дахин дахин
+      el.addEventListener('mouseenter', decrypt);
+      el.addEventListener('mouseleave', () => {
+        if (intervalId) clearInterval(intervalId);
+        intervalId = null;
+        spans.forEach(s => {
+          s.textContent = s.dataset.ch;
+          s.classList.add('dt-revealed');
+        });
+      });
+    }
+
+    // ── LetterGlitch vanilla JS ────────────────────────────────────
+    (function initLetterGlitch() {
+      const canvas = document.getElementById('letterGlitchCanvas');
+      if (!canvas) return;
+
+      const COLORS      = ['#2b4539', '#61dca3', '#61b3dc'];
+      const CHARS       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$&*()-_+=/[]{};:<>.,0123456789';
+      const FONT_SIZE   = 16;
+      const CHAR_W      = 10;
+      const CHAR_H      = 20;
+      const GLITCH_SPEED = 50;
+      const SMOOTH      = true;
+
+      const ctx = canvas.getContext('2d');
+      let letters = [];
+      let cols = 0, rows = 0;
+      let lastGlitch = Date.now();
+      let rafId;
+
+      const randChar  = () => CHARS[Math.floor(Math.random() * CHARS.length)];
+      const randColor = () => COLORS[Math.floor(Math.random() * COLORS.length)];
+
+      const hexToRgb = hex => {
+        hex = hex.replace(/^#?([a-f\d])([a-f\d])([a-f\d])$/i, (_, r, g, b) => r+r+g+g+b+b);
+        const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return r ? { r: parseInt(r[1],16), g: parseInt(r[2],16), b: parseInt(r[3],16) } : null;
+      };
+
+      const lerpColor = (a, b, t) => {
+        const s = hexToRgb(typeof a === 'string' ? a : '#000000');
+        const e = hexToRgb(typeof b === 'string' ? b : '#000000');
+        if (!s || !e) return typeof b === 'string' ? b : '#61dca3';
+        return `rgb(${Math.round(s.r+(e.r-s.r)*t)},${Math.round(s.g+(e.g-s.g)*t)},${Math.round(s.b+(e.b-s.b)*t)})`;
+      };
+
+      const resize = () => {
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.parentElement.getBoundingClientRect();
+        canvas.width  = rect.width  * dpr;
+        canvas.height = rect.height * dpr;
+        canvas.style.width  = rect.width  + 'px';
+        canvas.style.height = rect.height + 'px';
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        cols = Math.ceil(rect.width  / CHAR_W);
+        rows = Math.ceil(rect.height / CHAR_H);
+        letters = Array.from({ length: cols * rows }, () => ({
+          char: randChar(), color: randColor(), targetColor: randColor(), progress: 1
+        }));
+      };
+
+      const draw = () => {
+        const w = canvas.width  / (window.devicePixelRatio || 1);
+        const h = canvas.height / (window.devicePixelRatio || 1);
+        ctx.clearRect(0, 0, w, h);
+        ctx.font = `${FONT_SIZE}px monospace`;
+        ctx.textBaseline = 'top';
+        letters.forEach((l, i) => {
+          ctx.fillStyle = l.color;
+          ctx.fillText(l.char, (i % cols) * CHAR_W, Math.floor(i / cols) * CHAR_H);
+        });
+      };
+
+      const update = () => {
+        const count = Math.max(1, Math.floor(letters.length * 0.05));
+        for (let i = 0; i < count; i++) {
+          const idx = Math.floor(Math.random() * letters.length);
+          letters[idx].char = randChar();
+          letters[idx].targetColor = randColor();
+          if (!SMOOTH) { letters[idx].color = letters[idx].targetColor; letters[idx].progress = 1; }
+          else { letters[idx].progress = 0; }
+        }
+      };
+
+      const smoothTick = () => {
+        letters.forEach(l => {
+          if (l.progress < 1) {
+            l.progress = Math.min(1, l.progress + 0.05);
+            l.color = lerpColor(l.color, l.targetColor, l.progress);
+          }
+        });
+      };
+
+      const animate = () => {
+        const now = Date.now();
+        if (now - lastGlitch >= GLITCH_SPEED) { update(); draw(); lastGlitch = now; }
+        if (SMOOTH) smoothTick();
+        rafId = requestAnimationFrame(animate);
+      };
+
+      resize();
+      animate();
+
+      let resizeTimer;
+      window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+          cancelAnimationFrame(rafId);
+          resize();
+          animate();
+        }, 100);
+      });
+    })();
+
+    // ── CardSwap vanilla GSAP ──────────────────────────────────────
+    function initCardSwap() {
+      if (typeof gsap === 'undefined') return;
+
+      const CARD_DISTANCE = 60;   // px — horizontal offset per slot
+      const VERT_DISTANCE = 70;   // px — vertical offset per slot
+      const DELAY = 3000; // ms between swaps
+      const SKEW = 6;    // degrees skewY for front card drop
+      const EASE = 'elastic.out(0.6,0.9)';
+      const DUR_DROP = 2;
+      const DUR_MOVE = 2;
+      const DUR_RETURN = 2;
+      const PROMOTE_OVERLAP = 0.9;
+      const RETURN_DELAY = 0.05;
+
+      const cards = Array.from(document.querySelectorAll('#cardSwapStage .cs-card'));
+      const total = cards.length;
+      if (total < 2) return;
+
+      const makeSlot = i => ({
+        x: i * CARD_DISTANCE,
+        y: -i * VERT_DISTANCE,
+        z: -i * CARD_DISTANCE * 1.5,
+        zIndex: total - i
+      });
+
+      const placeNow = (el, slot) => gsap.set(el, {
+        x: slot.x, y: slot.y, z: slot.z,
+        xPercent: -50, yPercent: -50,
+        skewY: 0,
+        transformOrigin: 'center center',
+        zIndex: slot.zIndex,
+        force3D: true
+      });
+
+      cards.forEach((c, i) => placeNow(c, makeSlot(i)));
+
+      let order = cards.map((_, i) => i);
+      let intervalId;
+
+      function swap() {
+        const [front, ...rest] = order;
+        const elFront = cards[front];
+        const tl = gsap.timeline();
+
+        tl.to(elFront, { y: '+=500', skewY: SKEW, duration: DUR_DROP, ease: EASE });
+
+        tl.addLabel('promote', `-=${DUR_DROP * PROMOTE_OVERLAP}`);
+        rest.forEach((idx, i) => {
+          const slot = makeSlot(i);
+          tl.set(cards[idx], { zIndex: slot.zIndex }, 'promote');
+          tl.to(cards[idx], { x: slot.x, y: slot.y, z: slot.z, duration: DUR_MOVE, ease: EASE },
+            `promote+=${i * 0.15}`);
+        });
+
+        const backSlot = makeSlot(total - 1);
+        tl.addLabel('return', `promote+=${DUR_MOVE * RETURN_DELAY}`);
+        tl.call(() => gsap.set(elFront, { zIndex: backSlot.zIndex }), undefined, 'return');
+        tl.to(elFront, { x: backSlot.x, y: backSlot.y, z: backSlot.z, skewY: 0, duration: DUR_RETURN, ease: EASE }, 'return');
+        tl.call(() => { order = [...rest, front]; });
+      }
+
+      swap();
+      intervalId = setInterval(swap, DELAY);
+    }
+  </script>
+
+</body>
+
+</html>
