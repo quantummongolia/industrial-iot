@@ -1,4 +1,4 @@
-# Flowmeter IoT
+# Industrial IoT monitoring system
 
 ESP32 + RS485 flowmeter → Firebase Realtime Database → Вэб Dashboard
 
