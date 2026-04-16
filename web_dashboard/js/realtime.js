@@ -23,8 +23,8 @@ let _el  = {};
 // ---------- Helpers ----------
 function _blinkLed(ledEl) {
   if (!ledEl) return;
-  ledEl.classList.add("blink");
-  setTimeout(() => ledEl.classList.remove("blink"), 400);
+  ledEl.classList.add("percentage-led-blink");
+  setTimeout(function() { ledEl.classList.remove("percentage-led-blink"); }, 400);
 }
 
 function _updateFlowmeter(key, flow) {
@@ -81,10 +81,10 @@ function initRealtime() {
   db.ref(".info/connected").on("value", (snap) => {
     if (!_el.statusLed || !_el.statusText) return;
     if (snap.val() === true) {
-      _el.statusLed.classList.add("online");
+      _el.statusLed.classList.add("led-online");
       _el.statusText.textContent = "ONLINE";
     } else {
-      _el.statusLed.classList.remove("online");
+      _el.statusLed.classList.remove("led-online");
       _el.statusText.textContent = "OFFLINE";
     }
   });

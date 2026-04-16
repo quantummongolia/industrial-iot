@@ -5,57 +5,57 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#0a0a0c">
+  <meta name="description" content="MRESOURCE Industrial IoT Platform - Real-time monitoring system">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MRESOURCE">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="img/industrial-iot-icon.png">
+  <link rel="apple-touch-icon" href="img/industrial-iot-icon.png">
   <title>MRESOURCE — Industrial IoT</title>
 
-  <!-- ==========================================================
-       STYLES — modular CSS (load order matters!)
-       ========================================================== -->
-  <link rel="stylesheet" href="css/tokens.css">
-  <link rel="stylesheet" href="css/base.css">
-  <link rel="stylesheet" href="css/animations.css">
-  <link rel="stylesheet" href="css/layout.css">
-  <link rel="stylesheet" href="css/sidebar.css">
-  <link rel="stylesheet" href="css/header.css">
-  <link rel="stylesheet" href="css/login.css">
-  <link rel="stylesheet" href="css/components.css">
-  <link rel="stylesheet" href="css/scada.css">
-  <link rel="stylesheet" href="css/responsive.css">
+  <!-- Tailwind CSS (compiled) -->
+  <link rel="stylesheet" href="css/app.css">
 </head>
 
 <body>
 
   <!-- ==========================================================
        LOGIN MODAL — fullscreen backdrop, centered card
-       JS: js/auth.js + js/login-form.js
        ========================================================== -->
-  <div class="login-modal hidden" id="loginOverlay" onclick="handleModalBackdrop(event)">
-    <div class="login-card" role="dialog" aria-modal="true" aria-label="Sign in">
+  <div class="fixed inset-0 z-[9000] hidden flex items-center justify-center p-6 bg-black/60 backdrop-blur-lg animate-modal-in"
+       id="loginOverlay" onclick="handleModalBackdrop(event)">
+    <div class="relative w-full max-w-[400px] px-8 py-9 login-card-bg border border-border-strong rounded-lg backdrop-blur-3xl shadow-[0_32px_64px_rgba(0,0,0,0.6),0_0_0_1px_rgba(255,255,255,0.04)_inset] animate-card-in"
+         role="dialog" aria-modal="true" aria-label="Sign in">
 
-      <div class="login-logo">MRESOURCE</div>
-      <div class="login-sub">Sign in to your account</div>
+      <div class="text-sm font-bold tracking-[0.1em] uppercase text-text-primary text-center mb-1.5">MRESOURCE</div>
+      <div class="text-[13px] text-text-soft text-center mb-6">Sign in to your account</div>
 
-      <!-- ============ STEP 1 — CREDENTIALS ============ -->
+      <!-- STEP 1 — CREDENTIALS -->
       <div class="login-step active" id="loginStep1">
-        <div class="login-field">
-          <label class="login-label" for="usernameInput">Username</label>
-          <input type="text" id="usernameInput" class="login-input"
+        <div class="mb-3.5">
+          <label class="block text-xs font-medium text-text-soft mb-1.5 tracking-[0.01em]" for="usernameInput">Username</label>
+          <input type="text" id="usernameInput"
+            class="w-full bg-bg-elevated border border-border-strong text-text-primary font-sans text-sm font-normal py-[11px] px-3.5 rounded-sm outline-none transition-[border-color,box-shadow] duration-200 focus:border-accent focus:shadow-[0_0_0_3px_var(--color-accent-bg)] placeholder:text-text-faint"
             placeholder="Enter your username" autocomplete="username" spellcheck="false">
         </div>
 
-        <div class="login-field">
-          <div class="login-label-row">
-            <label class="login-label" for="passwordInput">Password</label>
-            <a href="#" class="login-forgot">Forgot password?</a>
+        <div class="mb-3.5">
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="text-xs font-medium text-text-soft tracking-[0.01em]" for="passwordInput">Password</label>
+            <a href="#" class="text-xs text-accent font-medium no-underline hover:underline">Forgot password?</a>
           </div>
-          <div class="password-wrap" id="passwordWrap">
-            <input type="password" id="passwordInput" class="login-input"
+          <div class="relative" id="passwordWrap">
+            <input type="password" id="passwordInput"
+              class="w-full bg-bg-elevated border border-border-strong text-text-primary font-sans text-sm font-normal py-[11px] px-3.5 pr-11 rounded-sm outline-none transition-[border-color,box-shadow] duration-200 focus:border-accent focus:shadow-[0_0_0_3px_var(--color-accent-bg)] placeholder:text-text-faint"
               placeholder="••••••••" autocomplete="current-password">
-            <button type="button" class="password-toggle" onclick="togglePassword()" aria-label="Show / hide password">
-              <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <button type="button" class="absolute right-2 top-1/2 -translate-y-1/2 w-[30px] h-[30px] border-none bg-transparent text-text-dim flex items-center justify-center rounded-md cursor-pointer transition-[color,background] duration-150 hover:text-text-primary hover:bg-border-strong password-toggle"
+              onclick="togglePassword()" aria-label="Show / hide password">
+              <svg class="eye-on w-[15px] h-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                 <circle cx="12" cy="12" r="3"/>
               </svg>
-              <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg class="eye-off w-[15px] h-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
                 <line x1="1" y1="1" x2="23" y2="23"/>
               </svg>
@@ -63,292 +63,372 @@
           </div>
         </div>
 
-        <button class="login-btn" onclick="submitCredentials()">Sign In</button>
-        <div class="login-error" id="loginError1"></div>
+        <button class="w-full bg-accent border-none text-white font-sans text-sm font-semibold py-3 rounded-sm cursor-pointer transition-[opacity,transform,box-shadow] duration-200 shadow-[0_4px_16px_-6px_var(--color-accent)] hover:opacity-[0.88] hover:shadow-[0_8px_20px_-6px_var(--color-accent)] active:scale-[0.99] disabled:opacity-45 disabled:cursor-not-allowed disabled:shadow-none mt-1"
+          onclick="submitCredentials()">Sign In</button>
+        <div class="text-danger text-xs text-center mt-2 min-h-[14px]" id="loginError1"></div>
       </div>
 
-      <!-- ============ STEP 2 — SMS VERIFICATION ============ -->
+      <!-- STEP 2 — SMS VERIFICATION -->
       <div class="login-step" id="loginStep2">
-        <div class="login-sms-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <div class="flex justify-center mb-2.5">
+          <svg class="w-9 h-9 text-accent opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.64 3.3 2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 5.5 5.5l.96-.96a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 15.44z"/>
           </svg>
         </div>
-        <p class="login-sms-hint">Таны утасны дугаарт 6 оронтой код илгээлээ</p>
+        <p class="text-[13px] text-text-soft text-center mb-[18px] leading-relaxed">Таны утасны дугаарт 6 оронтой код илгээлээ</p>
 
-        <div class="login-field">
-          <label class="login-label" for="codeInput">Verification code</label>
-          <input type="text" id="codeInput" class="login-input code"
+        <div class="mb-3.5">
+          <label class="block text-xs font-medium text-text-soft mb-1.5 tracking-[0.01em]" for="codeInput">Verification code</label>
+          <input type="text" id="codeInput"
+            class="w-full bg-bg-elevated border border-border-strong text-text-primary font-sans text-[22px] font-normal py-3.5 px-3.5 rounded-sm outline-none text-center tracking-[0.4em] tabular-nums transition-[border-color,box-shadow] duration-200 focus:border-accent focus:shadow-[0_0_0_3px_var(--color-accent-bg)] placeholder:text-text-faint"
             placeholder="000000" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
         </div>
 
-        <button class="login-btn" onclick="submitSmsCode()">Verify</button>
-        <button class="login-btn secondary" onclick="goToStep(1)">← Back</button>
+        <button class="w-full bg-accent border-none text-white font-sans text-sm font-semibold py-3 rounded-sm cursor-pointer transition-[opacity,transform,box-shadow] duration-200 shadow-[0_4px_16px_-6px_var(--color-accent)] hover:opacity-[0.88] hover:shadow-[0_8px_20px_-6px_var(--color-accent)] active:scale-[0.99] mt-1"
+          onclick="submitSmsCode()">Verify</button>
+        <button class="w-full bg-transparent text-text-soft border border-border-strong font-sans text-sm font-semibold py-3 rounded-sm cursor-pointer transition-[color,background] duration-200 shadow-none mt-2 hover:text-text-primary hover:bg-bg-elevated"
+          onclick="goToStep(1)">← Back</button>
 
-        <div class="login-error" id="loginError2"></div>
-        <div class="login-hint">
+        <div class="text-danger text-xs text-center mt-2 min-h-[14px]" id="loginError2"></div>
+        <div class="text-[11px] text-text-dim text-center mt-3.5 leading-relaxed">
           MOCK mode: any 6-digit number works.<br>
           Session saved for 7 days.
         </div>
       </div>
 
-      <!-- ============ STEP DOTS ============ -->
-      <div class="login-dots">
-        <span class="dot active" id="loginDot1"></span>
-        <span class="dot"        id="loginDot2"></span>
+      <!-- STEP DOTS -->
+      <div class="flex justify-center gap-1.5 mt-5">
+        <span class="w-[5px] h-[5px] rounded-full bg-accent scale-[1.4] transition-[background,transform] duration-200" id="loginDot1"></span>
+        <span class="w-[5px] h-[5px] rounded-full bg-border-strong transition-[background,transform] duration-200" id="loginDot2"></span>
       </div>
     </div>
   </div>
 
   <!-- ==========================================================
-       APP SHELL — Sidebar + main content.
-       #appShell нь эхэндээ нуугдана, verified бол hideLogin() нээнэ.
+       APP SHELL — Sidebar + main content
        ========================================================== -->
-  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
-  <div class="app" id="appShell" style="display:none;">
+  <div class="fixed inset-0 bg-black/50 z-[99] hidden" id="sidebarBackdrop"></div>
+  <div class="flex min-h-screen hidden" id="appShell">
 
-    <!-- ==========================================================
-         SIDEBAR
-         ========================================================== -->
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar-logo">MRESOURCE</div>
+    <!-- SIDEBAR -->
+    <aside class="w-60 bg-bg-sidebar border-r border-border-base flex flex-col p-6 px-4 shrink-0 fixed top-0 left-0 bottom-0 z-[100] overflow-y-auto transition-transform duration-300" id="sidebar">
+      <div class="px-3 pb-8 text-lg font-extrabold tracking-[0.08em] text-accent">MRESOURCE</div>
 
-      <div class="sidebar-section">Industrial IoT Platform</div>
-      <nav class="sidebar-nav">
-
-        <!-- ============ Energy consumption ============ -->
-        <div class="nav-item active" data-tab="energy">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+      <div class="px-3 pt-7 pb-2 text-[11px] font-semibold text-text-dim uppercase tracking-[0.08em]">Industrial IoT Platform</div>
+      <nav class="flex flex-col gap-1">
+        <!-- Energy consumption -->
+        <div class="nav-item active flex items-center gap-3 py-2.5 px-3 rounded-sm text-text-soft cursor-pointer text-sm font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary" data-tab="energy">
+          <svg class="w-[18px] h-[18px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
           </svg>
           Energy consumption
         </div>
 
-        <!-- ============ Analytics ============ -->
-        <div class="nav-item" data-tab="analytics">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="20" x2="18" y2="10" />
-            <line x1="12" y1="20" x2="12" y2="4" />
-            <line x1="6" y1="20" x2="6" y2="14" />
+        <!-- Analytics -->
+        <div class="nav-item flex items-center gap-3 py-2.5 px-3 rounded-sm text-text-soft cursor-pointer text-sm font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary" data-tab="analytics">
+          <svg class="w-[18px] h-[18px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10"/>
+            <line x1="12" y1="20" x2="12" y2="4"/>
+            <line x1="6" y1="20" x2="6" y2="14"/>
           </svg>
           Analytics
         </div>
 
-        <!-- ============ Alerts ============ -->
-        <div class="nav-item" data-tab="alerts">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-            <line x1="12" y1="9" x2="12" y2="13" />
-            <line x1="12" y1="17" x2="12.01" y2="17" />
+        <!-- Alerts -->
+        <div class="nav-item flex items-center gap-3 py-2.5 px-3 rounded-sm text-text-soft cursor-pointer text-sm font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary" data-tab="alerts">
+          <svg class="w-[18px] h-[18px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
           </svg>
           Alerts
         </div>
 
-        <!-- ============ Documents ============ -->
-        <div class="nav-item" data-tab="documents">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-            <polyline points="14 2 14 8 20 8" />
-            <line x1="16" y1="13" x2="8" y2="13" />
-            <line x1="16" y1="17" x2="8" y2="17" />
-            <polyline points="10 9 9 9 8 9" />
+        <!-- Documents -->
+        <div class="nav-item flex items-center gap-3 py-2.5 px-3 rounded-sm text-text-soft cursor-pointer text-sm font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary" data-tab="documents">
+          <svg class="w-[18px] h-[18px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10 9 9 9 8 9"/>
           </svg>
           Documents
         </div>
 
-        <!-- ============ Process Monitoring (dropdown) ============ -->
-        <div class="nav-item has-submenu" data-submenu="process-monitoring">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="7" height="7" />
-            <rect x="14" y="3" width="7" height="7" />
-            <rect x="14" y="14" width="7" height="7" />
-            <rect x="3" y="14" width="7" height="7" />
+        <!-- Process Monitoring (dropdown) -->
+        <div class="nav-item has-submenu flex items-center gap-3 py-2.5 px-3 rounded-sm text-text-soft cursor-pointer text-sm font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary" data-submenu="process-monitoring">
+          <svg class="w-[18px] h-[18px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7"/>
+            <rect x="14" y="3" width="7" height="7"/>
+            <rect x="14" y="14" width="7" height="7"/>
+            <rect x="3" y="14" width="7" height="7"/>
           </svg>
           Process Monitoring
-          <svg class="submenu-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="6 9 12 15 18 9" />
+          <svg class="submenu-chev w-3.5 h-3.5 ml-auto text-text-dim transition-transform duration-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"/>
           </svg>
         </div>
 
-        <div class="submenu" id="submenu-process-monitoring">
-
-          <!-- ---- Бутлан ангилах ---- -->
-          <div class="submenu-item has-subsubmenu" data-subsubmenu="pm-sub-1">
+        <div class="submenu hidden flex-col gap-0.5 pl-3.5 my-1 ml-[22px] border-l border-border-strong" id="submenu-process-monitoring">
+          <!-- Бутлан ангилах -->
+          <div class="submenu-item has-subsubmenu flex items-center gap-2.5 py-[9px] px-3 rounded-sm text-text-soft cursor-pointer text-[13px] font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary" data-subsubmenu="pm-sub-1">
             Бутлан ангилах
-            <svg class="submenu-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="6 9 12 15 18 9" />
+            <svg class="submenu-chev w-3 h-3 ml-auto text-text-dim transition-transform duration-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
             </svg>
           </div>
-          <div class="subsubmenu" id="subsubmenu-pm-sub-1">
-            <div class="subsubmenu-item">Ялтсан тэжээгүүр</div>
-            <div class="subsubmenu-item">Хацарт бутлуур</div>
-            <div class="subsubmenu-item">Конус 1</div>
-            <div class="subsubmenu-item">Конус 2</div>
-            <div class="subsubmenu-item">Конвер 1</div>
-            <div class="subsubmenu-item">Конвер 2</div>
-            <div class="subsubmenu-item">Конвер 3</div>
-            <div class="subsubmenu-item">Конвер 4</div>
-            <div class="subsubmenu-item">Конвер 5</div>
-            <div class="subsubmenu-item">Конвер 6</div>
+          <div class="subsubmenu hidden flex-col gap-0.5 pl-3 my-0.5 ml-3 border-l border-border-base" id="subsubmenu-pm-sub-1">
+            <div class="subsubmenu-item py-[7px] px-3 rounded-sm text-text-dim cursor-pointer text-xs font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary">Ялтсан тэжээгүүр</div>
+            <div class="subsubmenu-item py-[7px] px-3 rounded-sm text-text-dim cursor-pointer text-xs font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary">Хацарт бутлуур</div>
+            <div class="subsubmenu-item py-[7px] px-3 rounded-sm text-text-dim cursor-pointer text-xs font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary">Конус 1</div>
+            <div class="subsubmenu-item py-[7px] px-3 rounded-sm text-text-dim cursor-pointer text-xs font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary">Конус 2</div>
+            <div class="subsubmenu-item py-[7px] px-3 rounded-sm text-text-dim cursor-pointer text-xs font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary">Конвер 1</div>
+            <div class="subsubmenu-item py-[7px] px-3 rounded-sm text-text-dim cursor-pointer text-xs font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary">Конвер 2</div>
+            <div class="subsubmenu-item py-[7px] px-3 rounded-sm text-text-dim cursor-pointer text-xs font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary">Конвер 3</div>
+            <div class="subsubmenu-item py-[7px] px-3 rounded-sm text-text-dim cursor-pointer text-xs font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary">Конвер 4</div>
+            <div class="subsubmenu-item py-[7px] px-3 rounded-sm text-text-dim cursor-pointer text-xs font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary">Конвер 5</div>
+            <div class="subsubmenu-item py-[7px] px-3 rounded-sm text-text-dim cursor-pointer text-xs font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary">Конвер 6</div>
           </div>
 
-          <!-- ---- Үйлдвэр ---- -->
-          <div class="submenu-item has-subsubmenu" data-subsubmenu="pm-sub-2">
+          <!-- Үйлдвэр -->
+          <div class="submenu-item has-subsubmenu flex items-center gap-2.5 py-[9px] px-3 rounded-sm text-text-soft cursor-pointer text-[13px] font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary" data-subsubmenu="pm-sub-2">
             Үйлдвэр
-            <svg class="submenu-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="6 9 12 15 18 9" />
+            <svg class="submenu-chev w-3 h-3 ml-auto text-text-dim transition-transform duration-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
             </svg>
           </div>
-          <div class="subsubmenu" id="subsubmenu-pm-sub-2">
-            <div class="subsubmenu-item">CV7</div>
-            <div class="subsubmenu-item">Нунтаглан баяжуулах</div>
-            <div class="subsubmenu-item">Өтгөрүүлэгч</div>
-            <div class="subsubmenu-item">УШГ</div>
-            <div class="subsubmenu-item">Шүүн шахах</div>
-            <div class="subsubmenu-item">Ядуу уусмал</div>
-            <div class="subsubmenu-item">Sub 2-7</div>
+          <div class="subsubmenu hidden flex-col gap-0.5 pl-3 my-0.5 ml-3 border-l border-border-base" id="subsubmenu-pm-sub-2">
+            <div class="subsubmenu-item py-[7px] px-3 rounded-sm text-text-dim cursor-pointer text-xs font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary">CV7</div>
+            <div class="subsubmenu-item py-[7px] px-3 rounded-sm text-text-dim cursor-pointer text-xs font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary">Нунтаглан баяжуулах</div>
+            <div class="subsubmenu-item py-[7px] px-3 rounded-sm text-text-dim cursor-pointer text-xs font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary">Өтгөрүүлэгч</div>
+            <div class="subsubmenu-item py-[7px] px-3 rounded-sm text-text-dim cursor-pointer text-xs font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary">УШГ</div>
+            <div class="subsubmenu-item py-[7px] px-3 rounded-sm text-text-dim cursor-pointer text-xs font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary">Шүүн шахах</div>
+            <div class="subsubmenu-item py-[7px] px-3 rounded-sm text-text-dim cursor-pointer text-xs font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary">Ядуу уусмал</div>
+            <div class="subsubmenu-item py-[7px] px-3 rounded-sm text-text-dim cursor-pointer text-xs font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary">Sub 2-7</div>
           </div>
 
-          <!-- ---- Нуруулдан уусгалт ---- -->
-          <div class="submenu-item has-subsubmenu" data-subsubmenu="pm-sub-3">
+          <!-- Нуруулдан уусгалт -->
+          <div class="submenu-item has-subsubmenu flex items-center gap-2.5 py-[9px] px-3 rounded-sm text-text-soft cursor-pointer text-[13px] font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary" data-subsubmenu="pm-sub-3">
             Нуруулдан уусгалт
-            <svg class="submenu-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="6 9 12 15 18 9" />
+            <svg class="submenu-chev w-3 h-3 ml-auto text-text-dim transition-transform duration-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
             </svg>
           </div>
-          <div class="subsubmenu" id="subsubmenu-pm-sub-3">
-            <div class="subsubmenu-item">Sub 3-1</div>
-            <div class="subsubmenu-item">Sub 3-2</div>
-            <div class="subsubmenu-item">Sub 3-3</div>
-            <div class="subsubmenu-item">Sub 3-4</div>
-            <div class="subsubmenu-item">Sub 3-5</div>
-            <div class="subsubmenu-item">Sub 3-6</div>
-            <div class="subsubmenu-item">Sub 3-7</div>
+          <div class="subsubmenu hidden flex-col gap-0.5 pl-3 my-0.5 ml-3 border-l border-border-base" id="subsubmenu-pm-sub-3">
+            <div class="subsubmenu-item py-[7px] px-3 rounded-sm text-text-dim cursor-pointer text-xs font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary">Sub 3-1</div>
+            <div class="subsubmenu-item py-[7px] px-3 rounded-sm text-text-dim cursor-pointer text-xs font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary">Sub 3-2</div>
+            <div class="subsubmenu-item py-[7px] px-3 rounded-sm text-text-dim cursor-pointer text-xs font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary">Sub 3-3</div>
+            <div class="subsubmenu-item py-[7px] px-3 rounded-sm text-text-dim cursor-pointer text-xs font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary">Sub 3-4</div>
+            <div class="subsubmenu-item py-[7px] px-3 rounded-sm text-text-dim cursor-pointer text-xs font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary">Sub 3-5</div>
+            <div class="subsubmenu-item py-[7px] px-3 rounded-sm text-text-dim cursor-pointer text-xs font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary">Sub 3-6</div>
+            <div class="subsubmenu-item py-[7px] px-3 rounded-sm text-text-dim cursor-pointer text-xs font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary">Sub 3-7</div>
           </div>
 
-          <!-- ---- Баян уусмалын сан ---- -->
-          <div class="submenu-item has-subsubmenu" data-subsubmenu="pm-sub-4">
+          <!-- Баян уусмалын сан -->
+          <div class="submenu-item has-subsubmenu flex items-center gap-2.5 py-[9px] px-3 rounded-sm text-text-soft cursor-pointer text-[13px] font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary" data-subsubmenu="pm-sub-4">
             Баян уусмалын сан
-            <svg class="submenu-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="6 9 12 15 18 9" />
+            <svg class="submenu-chev w-3 h-3 ml-auto text-text-dim transition-transform duration-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
             </svg>
           </div>
-          <div class="subsubmenu" id="subsubmenu-pm-sub-4">
-            <div class="subsubmenu-item">Sub 4-1</div>
-            <div class="subsubmenu-item">Sub 4-2</div>
-            <div class="subsubmenu-item">Sub 4-3</div>
-            <div class="subsubmenu-item">Sub 4-4</div>
-            <div class="subsubmenu-item">Sub 4-5</div>
-            <div class="subsubmenu-item">Sub 4-6</div>
-            <div class="subsubmenu-item">Sub 4-7</div>
+          <div class="subsubmenu hidden flex-col gap-0.5 pl-3 my-0.5 ml-3 border-l border-border-base" id="subsubmenu-pm-sub-4">
+            <div class="subsubmenu-item py-[7px] px-3 rounded-sm text-text-dim cursor-pointer text-xs font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary">Sub 4-1</div>
+            <div class="subsubmenu-item py-[7px] px-3 rounded-sm text-text-dim cursor-pointer text-xs font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary">Sub 4-2</div>
+            <div class="subsubmenu-item py-[7px] px-3 rounded-sm text-text-dim cursor-pointer text-xs font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary">Sub 4-3</div>
+            <div class="subsubmenu-item py-[7px] px-3 rounded-sm text-text-dim cursor-pointer text-xs font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary">Sub 4-4</div>
+            <div class="subsubmenu-item py-[7px] px-3 rounded-sm text-text-dim cursor-pointer text-xs font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary">Sub 4-5</div>
+            <div class="subsubmenu-item py-[7px] px-3 rounded-sm text-text-dim cursor-pointer text-xs font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary">Sub 4-6</div>
+            <div class="subsubmenu-item py-[7px] px-3 rounded-sm text-text-dim cursor-pointer text-xs font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary">Sub 4-7</div>
           </div>
         </div>
       </nav>
 
-      <!-- ============ Quick Actions ============ -->
-      <div class="sidebar-section">Quick Actions</div>
-      <nav class="sidebar-nav">
-        <div class="nav-item" data-tab="upload-sop">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="17 8 12 3 7 8" />
-            <line x1="12" y1="3" x2="12" y2="15" />
+      <!-- Quick Actions -->
+      <div class="px-3 pt-7 pb-2 text-[11px] font-semibold text-text-dim uppercase tracking-[0.08em]">Quick Actions</div>
+      <nav class="flex flex-col gap-1">
+        <div class="nav-item flex items-center gap-3 py-2.5 px-3 rounded-sm text-text-soft cursor-pointer text-sm font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary" data-tab="upload-sop">
+          <svg class="w-[18px] h-[18px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
           </svg>
           Upload SOP
         </div>
-        <div class="nav-item" data-tab="reports">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+        <div class="nav-item flex items-center gap-3 py-2.5 px-3 rounded-sm text-text-soft cursor-pointer text-sm font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary" data-tab="reports">
+          <svg class="w-[18px] h-[18px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
           </svg>
           Reports
         </div>
-        <div class="nav-item" data-tab="settings">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="3" />
-            <path
-              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+        <div class="nav-item flex items-center gap-3 py-2.5 px-3 rounded-sm text-text-soft cursor-pointer text-sm font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary" data-tab="settings">
+          <svg class="w-[18px] h-[18px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
           </svg>
           Settings
         </div>
       </nav>
     </aside>
 
-    <!-- ==========================================================
-         MAIN — Sticky header + tab panels
-         ========================================================== -->
-    <main class="main">
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 ml-60 py-8 px-10 max-w-[1600px] min-w-0 max-md:ml-0 max-md:px-4 max-md:py-5">
 
-      <!-- ============ GLOBAL TOP BAR ============ -->
-      <div class="page-header">
-        <div class="page-header-left">
-          <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <line x1="3" y1="12" x2="21" y2="12" />
-              <line x1="3" y1="6" x2="21" y2="6" />
-              <line x1="3" y1="18" x2="21" y2="18" />
+      <!-- GLOBAL TOP BAR -->
+      <div class="flex items-center justify-between gap-4 mb-8 py-3 sticky top-0 z-50 header-bg-dark backdrop-blur-xl">
+        <div class="flex items-center gap-4">
+          <button class="hidden max-md:flex w-[42px] h-[42px] bg-bg-card border border-border-strong text-text-primary rounded-sm items-center justify-center transition-all duration-200 hover:bg-bg-card-hover hover:scale-105"
+            id="sidebarToggle" aria-label="Toggle menu">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="3" y1="12" x2="21" y2="12"/>
+              <line x1="3" y1="6" x2="21" y2="6"/>
+              <line x1="3" y1="18" x2="21" y2="18"/>
             </svg>
           </button>
-          <h1 class="page-title" id="pageTitle">Energy consumption</h1>
+          <h1 class="text-2xl font-extrabold tracking-[-0.03em] bg-gradient-to-br from-text-primary to-text-soft bg-clip-text text-transparent" id="pageTitle">Energy consumption</h1>
         </div>
-        <div class="page-actions">
-          <div class="pill">
-            <div class="led" id="statusLed"></div>
+        <div class="flex items-center gap-2.5 flex-wrap justify-end">
+          <!-- Status pill -->
+          <div class="inline-flex items-center gap-2 py-[7px] px-3 bg-bg-card border border-border-base rounded-full text-xs font-medium text-text-soft">
+            <div class="relative w-2 h-2 rounded-full bg-text-faint" id="statusLed"></div>
             <span id="statusText">OFFLINE</span>
           </div>
-          <div class="pill" id="userBadge">— — —</div>
-          <div class="pill time" id="headerTime">--:--:--</div>
-          <button class="logout-btn" onclick="logout()">Гарах</button>
-          <button class="icon-btn theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
-            <svg class="icon icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+          <!-- User badge (IP) with skeleton -->
+          <div class="inline-flex items-center gap-2 py-[7px] px-3 bg-bg-card border border-border-base rounded-full text-xs font-medium text-text-soft" id="userBadge">
+            <div class="w-16 h-3 bg-bg-elevated rounded animate-pulse"></div>
+          </div>
+          <!-- Clock -->
+          <div class="inline-flex items-center gap-2 py-[7px] px-3 bg-bg-card border border-border-base rounded-full text-xs font-medium text-text-primary tabular-nums" id="headerTime">--:--:--</div>
+          <!-- Logout -->
+          <button class="py-[7px] px-3.5 bg-bg-card border border-border-base text-text-soft text-xs font-medium rounded-full transition-all duration-[180ms] hover:text-danger hover:border-danger/30"
+            onclick="logout()">Гарах</button>
+          <!-- Theme toggle -->
+          <button class="theme-toggle relative overflow-hidden w-9 h-9 bg-bg-card border border-border-base text-text-soft rounded-full flex items-center justify-center transition-all duration-[180ms] hover:text-text-primary hover:bg-bg-card-hover hover:border-border-strong"
+            onclick="toggleTheme()" aria-label="Toggle theme">
+            <svg class="icon-moon w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
             </svg>
-            <svg class="icon icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="5" />
-              <line x1="12" y1="1" x2="12" y2="3" />
-              <line x1="12" y1="21" x2="12" y2="23" />
-              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-              <line x1="1" y1="12" x2="3" y2="12" />
-              <line x1="21" y1="12" x2="23" y2="12" />
-              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+            <svg class="icon-sun w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="5"/>
+              <line x1="12" y1="1" x2="12" y2="3"/>
+              <line x1="12" y1="21" x2="12" y2="23"/>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+              <line x1="1" y1="12" x2="3" y2="12"/>
+              <line x1="21" y1="12" x2="23" y2="12"/>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
             </svg>
           </button>
         </div>
       </div>
 
-      <!-- ============ TAB: ENERGY CONSUMPTION ============ -->
-      <div class="tab-panel active" id="tab-energy">
-        <!-- Контент хоосон — энд stat-card / chart / percentage / topics / leaderboard нэмэгдэнэ -->
+      <!-- TAB: ENERGY CONSUMPTION -->
+      <div class="tab-panel active animate-tab-in" id="tab-energy">
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-[repeat(3,1fr)_1.5fr] gap-4 mb-4 max-lg:grid-cols-3 max-md:grid-cols-2 max-sm:grid-cols-1">
+          <!-- Flowmeter 1 -->
+          <div class="group relative bg-bg-card border border-border-base rounded-DEFAULT p-6 overflow-hidden backdrop-blur-xl transition-all duration-300 hover:bg-bg-card-hover hover:border-border-strong hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.2)]">
+            <div class="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-accent to-transparent opacity-0 group-hover:opacity-50 transition-opacity duration-300"></div>
+            <div class="flex items-center gap-2 text-[13px] text-text-soft mb-2 font-medium">
+              <div class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300" id="dataLed1"></div>
+              Flowmeter 1
+            </div>
+            <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
+              <span id="fm1Flow">0.00</span>
+              <span class="text-base text-text-dim font-medium"> m³/h</span>
+            </div>
+          </div>
+          <!-- Flowmeter 2 -->
+          <div class="group relative bg-bg-card border border-border-base rounded-DEFAULT p-6 overflow-hidden backdrop-blur-xl transition-all duration-300 hover:bg-bg-card-hover hover:border-border-strong hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.2)]">
+            <div class="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-accent to-transparent opacity-0 group-hover:opacity-50 transition-opacity duration-300"></div>
+            <div class="flex items-center gap-2 text-[13px] text-text-soft mb-2 font-medium">
+              <div class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300" id="dataLed2"></div>
+              Flowmeter 2
+            </div>
+            <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
+              <span id="fm2Flow">0.00</span>
+              <span class="text-base text-text-dim font-medium"> m³/h</span>
+            </div>
+          </div>
+          <!-- Total -->
+          <div class="group relative bg-bg-card border border-border-base rounded-DEFAULT p-6 overflow-hidden backdrop-blur-xl transition-all duration-300 hover:bg-bg-card-hover hover:border-border-strong hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.2)] max-md:col-span-full max-sm:col-auto">
+            <div class="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-accent to-transparent opacity-0 group-hover:opacity-50 transition-opacity duration-300"></div>
+            <div class="text-[13px] text-text-soft mb-2 font-medium">Total Flow</div>
+            <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
+              <span id="fmTotal">0.00</span>
+              <span class="text-base text-text-dim font-medium"> m³/h</span>
+            </div>
+          </div>
+          <!-- Chart card -->
+          <div class="max-lg:col-span-full lg:col-start-4 lg:row-span-2 bg-bg-card border border-border-base rounded-DEFAULT p-[18px_20px] flex flex-col min-h-[240px]">
+            <div class="flex justify-between items-center mb-1">
+              <span class="text-sm font-semibold text-text-primary">Flow History</span>
+              <span class="text-xs text-text-soft inline-flex items-center gap-1">Last 7 days</span>
+            </div>
+            <div class="flex-1 flex items-end justify-between gap-1.5 pt-6 min-h-[160px] relative">
+              <div class="flex-1 flex flex-col items-center gap-2 min-w-0" id="chartBars">
+                <div class="text-[10px] text-text-dim text-center">No data</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- System Info -->
+        <div class="grid grid-cols-2 gap-4 mb-4 max-md:grid-cols-1">
+          <div class="bg-bg-card border border-border-base rounded-DEFAULT p-[18px_20px]">
+            <div class="text-sm font-semibold text-text-primary mb-4">System Status</div>
+            <div class="flex items-center gap-3 py-2.5 border-b border-border-base">
+              <div class="w-10 h-10 rounded-lg bg-bg-elevated flex items-center justify-center text-accent shrink-0">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-[13px] font-semibold text-text-primary mb-1">Readings Count</div>
+                <div class="text-xs text-text-soft tabular-nums"><span id="readingCount">0</span> readings</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-3 py-2.5">
+              <div class="w-10 h-10 rounded-lg bg-bg-elevated flex items-center justify-center text-accent shrink-0">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-[13px] font-semibold text-text-primary mb-1">Last Update</div>
+                <div class="text-xs text-text-soft tabular-nums" id="lastUpdate">--</div>
+              </div>
+            </div>
+          </div>
+          <div class="bg-bg-card border border-border-base rounded-DEFAULT p-[18px_20px]">
+            <div class="text-sm font-semibold text-text-primary mb-4">Connection Info</div>
+            <div class="flex items-center gap-3 py-2.5 border-b border-border-base">
+              <div class="w-10 h-10 rounded-lg bg-bg-elevated flex items-center justify-center text-success shrink-0">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 6s4-2 11-2 11 2 11 2v6s-4 4-11 4S1 12 1 12V6z"/><path d="M1 6l11 7 11-7"/></svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-[13px] font-semibold text-text-primary mb-1">Firebase RTDB</div>
+                <div class="text-xs text-text-soft">Real-time database connection</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-3 py-2.5">
+              <div class="w-10 h-10 rounded-lg bg-bg-elevated flex items-center justify-center text-warning shrink-0">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-[13px] font-semibold text-text-primary mb-1">ESP32 Devices</div>
+                <div class="text-xs text-text-soft">RS485/Modbus sensors</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
     </main>
   </div>
 
+  <!-- Toast container for notifications -->
+  <div class="fixed bottom-6 right-6 z-[10000] flex flex-col gap-2" id="toastContainer"></div>
+
   <!-- ==========================================================
-       SCRIPTS — Firebase (optional) + modular app code
-       Ачаалах дараалал зайлшгүй:
-         1. Firebase compat SDK (optional) + config.js
-         2. theme.js (FOUC-оос зайлсхийхийн тулд эхэнд)
-         3. auth.js
-         4. sidebar.js / clock.js / ip-detect.js / realtime.js
-         5. app.js — DOMContentLoaded bootstrap
+       SCRIPTS
        ========================================================== -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -361,7 +441,17 @@
   <script src="js/clock.js"></script>
   <script src="js/ip-detect.js"></script>
   <script src="js/realtime.js"></script>
+  <script src="js/toast.js"></script>
   <script src="js/app.js"></script>
+
+  <!-- PWA Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      });
+    }
+  </script>
 </body>
 
 </html>

@@ -1,0 +1,29 @@
+{
+  "name": "MRESOURCE Industrial IoT",
+  "short_name": "MRESOURCE",
+  "description": "Real-time industrial IoT monitoring platform",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0a0a0c",
+  "theme_color": "#0a0a0c",
+  "icons": [
+    {
+      "src": "img/industrial-iot-icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "img/industrial-iot-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "utilities"],
+  "lang": "mn",
+  "dir": "ltr",
+  "scope": "/",
+  "prefer_related_applications": false
+}

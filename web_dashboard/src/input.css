@@ -1,0 +1,289 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+/* ============================================================
+   THEME — Design system tokens mapped to Tailwind v4
+   ============================================================ */
+@theme {
+  /* Colors - Dark (default) */
+  --color-bg: #0a0a0c;
+  --color-bg-sidebar: #0e0e11;
+  --color-bg-card: rgba(21, 21, 26, 0.7);
+  --color-bg-card-hover: rgba(28, 28, 34, 0.9);
+  --color-bg-elevated: #1f1f25;
+
+  --color-border-base: rgba(255, 255, 255, 0.05);
+  --color-border-strong: rgba(255, 255, 255, 0.08);
+
+  --color-text-primary: #f5f5f7;
+  --color-text-soft: #a1a1aa;
+  --color-text-dim: #71717a;
+  --color-text-faint: #3f3f46;
+
+  --color-accent: #6195ff;
+  --color-accent-glow: rgba(97, 149, 255, 0.15);
+  --color-accent-bg: rgba(97, 149, 255, 0.08);
+  --color-accent-border: rgba(97, 149, 255, 0.2);
+
+  --color-success: #4ade80;
+  --color-success-glow: rgba(74, 222, 128, 0.2);
+  --color-warning: #fb923c;
+  --color-danger: #f87171;
+
+  /* Radius */
+  --radius-sm: 12px;
+  --radius-DEFAULT: 16px;
+  --radius-lg: 20px;
+
+  /* Font */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+
+  /* Easing */
+  --ease-smooth: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* Animation */
+  --animate-tab-in: tab-in 0.25s var(--ease-smooth);
+  --animate-submenu-in: submenu-in 0.2s var(--ease-smooth);
+  --animate-modal-in: modal-in 0.2s var(--ease-smooth);
+  --animate-card-in: card-in 0.25s var(--ease-smooth);
+  --animate-step-in: step-in 0.3s var(--ease-smooth);
+  --animate-pulse-ring: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-pulse-dot: pulse-dot 2s infinite;
+}
+
+/* ============================================================
+   LIGHT THEME OVERRIDES
+   ============================================================ */
+[data-theme="light"] {
+  --color-bg: #f8f8fa;
+  --color-bg-sidebar: #ffffff;
+  --color-bg-card: rgba(255, 255, 255, 0.8);
+  --color-bg-card-hover: rgba(255, 255, 255, 1);
+  --color-bg-elevated: #f0f0f4;
+
+  --color-border-base: rgba(0, 0, 0, 0.04);
+  --color-border-strong: rgba(0, 0, 0, 0.08);
+
+  --color-text-primary: #18181b;
+  --color-text-soft: #52525b;
+  --color-text-dim: #71717a;
+  --color-text-faint: #a1a1aa;
+
+  --color-accent: #2563eb;
+  --color-accent-glow: rgba(37, 99, 235, 0.1);
+  --color-accent-bg: rgba(37, 99, 235, 0.06);
+  --color-accent-border: rgba(37, 99, 235, 0.2);
+}
+
+/* ============================================================
+   BASE — Reset & global styles
+   ============================================================ */
+@layer base {
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--color-bg);
+    color: var(--color-text-primary);
+    min-height: 100vh;
+    font-size: 14px;
+    letter-spacing: -0.01em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: background 0.3s var(--ease-smooth), color 0.3s var(--ease-smooth);
+  }
+
+  button { font-family: inherit; cursor: pointer; }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--color-text-faint); border-radius: 10px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--color-text-dim); }
+}
+
+/* ============================================================
+   KEYFRAMES
+   ============================================================ */
+@keyframes tab-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes submenu-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.33); opacity: 1; }
+  80%, 100% { transform: scale(3); opacity: 0; }
+}
+
+@keyframes pulse-dot {
+  0% { transform: scale(0.8); box-shadow: 0 0 0 0 var(--color-success-glow); }
+  70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(74, 222, 128, 0); }
+  100% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
+}
+
+@keyframes modal-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes step-in {
+  from { opacity: 0; transform: translateX(6px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* ============================================================
+   COMPONENT UTILITIES — Complex components via @layer
+   ============================================================ */
+@layer components {
+  /* Login step visibility */
+  .login-step { display: none; }
+  .login-step.active {
+    display: block;
+    animation: step-in 0.3s var(--ease-smooth);
+  }
+
+  /* Tab panel visibility */
+  .tab-panel { display: none; }
+  .tab-panel.active {
+    display: block;
+    animation: tab-in 0.25s var(--ease-smooth);
+  }
+
+  /* LED pulse indicator */
+  .led-online {
+    background: var(--color-success);
+    box-shadow: 0 0 12px var(--color-success-glow);
+  }
+  .led-online::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border: 2px solid var(--color-success);
+    border-radius: 50%;
+    animation: var(--animate-pulse-ring);
+  }
+
+  /* Percentage LED blink */
+  .percentage-led-blink {
+    background: var(--color-success);
+    box-shadow: 0 0 8px var(--color-success);
+  }
+
+  /* Gradient text animation */
+  .gradient-text {
+    display: inline-block;
+    background-image: linear-gradient(to right, #f35353, #fdf73f, #66f568, #d074f1, #f35353);
+    background-size: 300% 100%;
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    background-position: 0% 50%;
+  }
+
+  /* Sparkline SVG */
+  .sparkline path.line {
+    fill: none;
+    stroke: var(--color-accent);
+    stroke-width: 1.5;
+  }
+  .sparkline path.fill {
+    fill: url(#sparkGrad);
+    opacity: 0.3;
+  }
+
+  /* Progress bar */
+  .progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--color-warning), var(--color-success));
+    transition: width 0.5s var(--ease-smooth);
+  }
+  .progress-fill-green {
+    background: var(--color-success);
+  }
+
+  /* Theme toggle crossfade */
+  .theme-toggle .icon-moon,
+  .theme-toggle .icon-sun {
+    position: absolute;
+    transition: transform 0.4s var(--ease-smooth), opacity 0.3s var(--ease-smooth);
+  }
+  .theme-toggle .icon-moon { transform: rotate(0deg) scale(1); opacity: 1; }
+  .theme-toggle .icon-sun { transform: rotate(-90deg) scale(0); opacity: 0; }
+  [data-theme="light"] .theme-toggle .icon-moon { transform: rotate(90deg) scale(0); opacity: 0; }
+  [data-theme="light"] .theme-toggle .icon-sun { transform: rotate(0deg) scale(1); opacity: 1; }
+
+  /* Password toggle eye icons */
+  .password-toggle .eye-off { display: none; }
+  .password-wrap-revealed .password-toggle .eye-on { display: none; }
+  .password-wrap-revealed .password-toggle .eye-off { display: block; }
+
+  /* Marquee */
+  .marquee-wrap {
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%);
+  }
+
+  /* Bar chart glow */
+  .bar-glow::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent 0%, rgba(97, 149, 255, 0.15) 100%);
+    border-radius: inherit;
+    filter: blur(8px);
+    z-index: -1;
+  }
+
+  /* Glitch vignette */
+  .glitch-vignette-center {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(circle, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 60%);
+  }
+
+  /* MagicRings canvas — JS appends <canvas> inside #magicRingsMount */
+  #magicRingsMount canvas {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  /* Lightning canvas — removed, no longer used */
+
+  /* Card swap - stage perspective */
+  .cardswap-stage { perspective: 900px; }
+  .cs-card { will-change: transform; }
+  .cs-card-img[src=""] {
+    background: linear-gradient(135deg,
+      rgba(167,139,250,0.15) 0%,
+      rgba(139,92,246,0.08) 50%,
+      rgba(30,30,40,0.6) 100%);
+  }
+}
+
+/* ============================================================
+   RESPONSIVE UTILITIES
+   ============================================================ */
+@layer utilities {
+  /* Header background per theme */
+  .header-bg-dark { background: rgba(10, 10, 12, 0.85); }
+  [data-theme="light"] .header-bg-dark { background: rgba(248, 248, 250, 0.85); }
+
+  /* Login card background per theme */
+  .login-card-bg { background: rgba(14, 14, 17, 0.95); }
+  [data-theme="light"] .login-card-bg { background: rgba(255, 255, 255, 0.97); }
+}

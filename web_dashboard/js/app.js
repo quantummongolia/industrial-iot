@@ -1,16 +1,9 @@
 // ============================================================
 //  APP — Bootstrap entry point for index.html
-//  ------------------------------------------------------------
-//  Ачаалах дараалал:
-//    1. DOMContentLoaded
-//    2. setupLoginForm() — Enter key, step switching, validation
-//    3. isVerified() → true  → hideLogin() → bootApp()
-//                    → false → showLogin()
-//    4. bootApp() нь зөвхөн нэг удаа ажиллаж:
-//       setupSidebar() → startClock() → detectUserRole() → initRealtime()
+//  Tailwind CSS compatible
 // ============================================================
 
-let _appBooted = false;
+var _appBooted = false;
 
 function bootApp() {
   if (_appBooted) return;
@@ -22,29 +15,40 @@ function bootApp() {
   initRealtime();
 }
 
-// showLogin / hideLogin — modal toggle (index.html дотор)
 function showLogin() {
-  const modal = document.getElementById("loginOverlay");
-  const shell  = document.getElementById("appShell");
-  if (modal) modal.classList.remove("hidden");
-  if (shell) shell.style.display = "none";
+  var modal = document.getElementById("loginOverlay");
+  var shell = document.getElementById("appShell");
+  if (modal) {
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+  }
+  if (shell) {
+    shell.classList.add("hidden");
+    shell.classList.remove("flex");
+  }
   document.body.style.overflow = "hidden";
 }
 
 function hideLogin() {
-  const modal = document.getElementById("loginOverlay");
-  const shell  = document.getElementById("appShell");
-  if (modal) modal.classList.add("hidden");
-  if (shell) shell.style.display = "flex";
+  var modal = document.getElementById("loginOverlay");
+  var shell = document.getElementById("appShell");
+  if (modal) {
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+  }
+  if (shell) {
+    shell.classList.remove("hidden");
+    shell.classList.add("flex");
+  }
   document.body.style.overflow = "";
   bootApp();
 }
 
 function handleModalBackdrop(e) {
-  // index.html-д backdrop дарахад login хаахгүй (аюулгүйн үүднээс)
+  // Dashboard login modal does not close on backdrop click (security)
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", function() {
   if (typeof setupLoginForm === "function") {
     setupLoginForm();
   }
@@ -53,8 +57,8 @@ document.addEventListener("DOMContentLoaded", () => {
     hideLogin();
   } else {
     showLogin();
-    setTimeout(() => {
-      const firstInput = document.getElementById("usernameInput");
+    setTimeout(function() {
+      var firstInput = document.getElementById("usernameInput");
       if (firstInput) firstInput.focus();
     }, 80);
   }

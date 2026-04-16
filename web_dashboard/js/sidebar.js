@@ -1,83 +1,119 @@
 // ============================================================
 //  SIDEBAR — Tab switching + nested submenu + mobile drawer
-//  ------------------------------------------------------------
-//  index.html-ийн sidebar бүтэцтэй нийцтэй:
-//    .nav-item[data-tab]            — хэвийн tab шилжүүлэгч
-//    .nav-item.has-submenu          — Process Monitoring dropdown (level 2)
-//    .submenu-item.has-subsubmenu   — Дэд цэс (level 3)
-//
-//  Public API:
-//    setupSidebar() — бүх click listener-ийг бүртгэнэ
+//  Tailwind CSS compatible version
 // ============================================================
 
 function setupSidebar() {
-  const sidebar  = document.getElementById("sidebar");
-  const backdrop = document.getElementById("sidebarBackdrop");
-  const toggle   = document.getElementById("sidebarToggle");
-  const titleEl  = document.getElementById("pageTitle");
+  var sidebar  = document.getElementById("sidebar");
+  var backdrop = document.getElementById("sidebarBackdrop");
+  var toggle   = document.getElementById("sidebarToggle");
+  var titleEl  = document.getElementById("pageTitle");
 
-  // ---------- Mobile drawer open/close ----------
   function closeSidebar() {
-    sidebar.classList.remove("expanded");
-    backdrop.classList.remove("active");
+    sidebar.classList.add("-translate-x-full");
+    sidebar.classList.remove("translate-x-0");
+    backdrop.classList.add("hidden");
+    backdrop.classList.remove("block");
   }
+
   function openSidebar() {
-    sidebar.classList.add("expanded");
-    backdrop.classList.add("active");
+    sidebar.classList.remove("-translate-x-full");
+    sidebar.classList.add("translate-x-0");
+    backdrop.classList.remove("hidden");
+    backdrop.classList.add("block");
   }
+
   if (toggle) {
-    toggle.addEventListener("click", () => {
-      if (sidebar.classList.contains("expanded")) closeSidebar();
+    toggle.addEventListener("click", function() {
+      if (!sidebar.classList.contains("-translate-x-full")) closeSidebar();
       else openSidebar();
     });
   }
   if (backdrop) backdrop.addEventListener("click", closeSidebar);
 
-  // ---------- Tab switching (leaf nav items only) ----------
-  const tabItems = document.querySelectorAll(".nav-item:not(.has-submenu)");
-  tabItems.forEach(item => {
-    item.addEventListener("click", () => {
-      const tab = item.dataset.tab;
+  // Tab switching (leaf nav items only)
+  var tabItems = document.querySelectorAll(".nav-item:not(.has-submenu)");
+  tabItems.forEach(function(item) {
+    item.addEventListener("click", function() {
+      var tab = item.dataset.tab;
       if (!tab) return;
 
-      // active class-ыг бүх nav-item-аас ав
-      document.querySelectorAll(".nav-item").forEach(i => i.classList.remove("active"));
-      item.classList.add("active");
+      // Remove active from all nav-items
+      document.querySelectorAll(".nav-item").forEach(function(i) {
+        i.classList.remove("bg-accent-bg", "text-accent", "font-semibold");
+        i.classList.add("text-text-soft");
+      });
+      // Add active to clicked
+      item.classList.add("bg-accent-bg", "text-accent", "font-semibold");
+      item.classList.remove("text-text-soft");
 
-      // харгалзах tab-panel-ийг идэвхжүүл
-      document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
-      const panel = document.getElementById("tab-" + tab);
-      if (panel) panel.classList.add("active");
+      // Toggle tab panels
+      document.querySelectorAll(".tab-panel").forEach(function(p) {
+        p.classList.remove("active");
+        p.style.display = "none";
+      });
+      var panel = document.getElementById("tab-" + tab);
+      if (panel) {
+        panel.classList.add("active");
+        panel.style.display = "block";
+      }
 
-      // page title-ийг шинэчил
       if (titleEl) titleEl.textContent = item.textContent.trim();
 
-      // мобайл дээр drawer-ийг хаа
-      if (window.matchMedia("(max-width: 700px)").matches) closeSidebar();
+      if (window.matchMedia("(max-width: 768px)").matches) closeSidebar();
     });
   });
 
-  // ---------- Level-2 submenu toggle (Process Monitoring) ----------
-  document.querySelectorAll(".nav-item.has-submenu").forEach(item => {
-    item.addEventListener("click", (e) => {
+  // Level-2 submenu toggle
+  document.querySelectorAll(".nav-item.has-submenu").forEach(function(item) {
+    item.addEventListener("click", function(e) {
       e.stopPropagation();
-      const id = item.dataset.submenu;
-      const submenu = document.getElementById("submenu-" + id);
+      var id = item.dataset.submenu;
+      var submenu = document.getElementById("submenu-" + id);
       if (!submenu) return;
-      submenu.classList.toggle("open");
-      item.classList.toggle("open");
+
+      var isOpen = !submenu.classList.contains("hidden");
+      if (isOpen) {
+        submenu.classList.add("hidden");
+        submenu.classList.remove("flex");
+        item.querySelector(".submenu-chev").style.transform = "";
+      } else {
+        submenu.classList.remove("hidden");
+        submenu.classList.add("flex");
+        submenu.style.animation = "submenu-in 0.2s var(--ease-smooth)";
+        item.querySelector(".submenu-chev").style.transform = "rotate(180deg)";
+      }
     });
   });
 
-  // ---------- Level-3 subsubmenu toggle ----------
-  document.querySelectorAll(".submenu-item.has-subsubmenu").forEach(item => {
-    item.addEventListener("click", (e) => {
+  // Level-3 subsubmenu toggle
+  document.querySelectorAll(".submenu-item.has-subsubmenu").forEach(function(item) {
+    item.addEventListener("click", function(e) {
       e.stopPropagation();
-      const id = item.dataset.subsubmenu;
-      const subsubmenu = document.getElementById("subsubmenu-" + id);
-      if (!subsubmenu) return;
-      subsubmenu.classList.toggle("open");
-      item.classList.toggle("open");
+      var id = item.dataset.subsubmenu;
+      var sub = document.getElementById("subsubmenu-" + id);
+      if (!sub) return;
+
+      var isOpen = !sub.classList.contains("hidden");
+      if (isOpen) {
+        sub.classList.add("hidden");
+        sub.classList.remove("flex");
+        var chev = item.querySelector(".submenu-chev");
+        if (chev) chev.style.transform = "";
+      } else {
+        sub.classList.remove("hidden");
+        sub.classList.add("flex");
+        sub.style.animation = "submenu-in 0.2s var(--ease-smooth)";
+        var chev = item.querySelector(".submenu-chev");
+        if (chev) chev.style.transform = "rotate(180deg)";
+      }
     });
   });
+
+  // Set initial active state
+  var firstNav = document.querySelector('.nav-item[data-tab="energy"]');
+  if (firstNav) {
+    firstNav.classList.add("bg-accent-bg", "text-accent", "font-semibold");
+    firstNav.classList.remove("text-text-soft");
+  }
 }

@@ -1,26 +1,24 @@
 // ============================================================
 //  IP DETECTION — Public IP fetch + role badge
-//  ------------------------------------------------------------
-//  config.js дотор ALLOWED_IPS массив байвал түүнтэй харьцуулна.
-//  Үр дүнд #userBadge pill-ийг INTERNAL эсвэл EXTERNAL гэж тэмдэглэнэ.
+//  Shows loading skeleton while fetching
 // ============================================================
 
 async function detectUserRole() {
-  const badge = document.getElementById("userBadge");
+  var badge = document.getElementById("userBadge");
   if (!badge) return;
 
   try {
-    const res  = await fetch("https://api.ipify.org?format=json");
-    const data = await res.json();
-    const ip   = data.ip;
-    const allowed = (typeof ALLOWED_IPS !== "undefined" ? ALLOWED_IPS : []);
+    var res  = await fetch("https://api.ipify.org?format=json");
+    var data = await res.json();
+    var ip   = data.ip;
+    var allowed = (typeof ALLOWED_IPS !== "undefined" ? ALLOWED_IPS : []);
 
     if (allowed.includes(ip)) {
-      badge.textContent = "INTERNAL · " + ip;
-      badge.classList.add("internal");
+      badge.textContent = "INTERNAL \u00b7 " + ip;
+      badge.classList.add("text-success", "border-success/30");
     } else {
-      badge.textContent = "EXTERNAL · " + ip;
-      badge.classList.add("external");
+      badge.textContent = "EXTERNAL \u00b7 " + ip;
+      badge.classList.add("text-accent", "border-accent-border");
     }
   } catch (e) {
     badge.textContent = "IP UNKNOWN";

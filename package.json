@@ -1,0 +1,28 @@
+{
+  "name": "industrial-iot",
+  "version": "1.0.0",
+  "description": "ESP32 + RS485 → Firebase Realtime Database → Вэб Dashboard",
+  "main": "index.js",
+  "scripts": {
+    "css:build": "npx @tailwindcss/cli -i web_dashboard/src/input.css -o web_dashboard/css/app.css --minify",
+    "css:watch": "npx @tailwindcss/cli -i web_dashboard/src/input.css -o web_dashboard/css/app.css --watch",
+    "build": "npm run css:build",
+    "dev": "npm run css:watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/quantummongolia/industrial-iot.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/quantummongolia/industrial-iot/issues"
+  },
+  "homepage": "https://github.com/quantummongolia/industrial-iot#readme",
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.2.2",
+    "tailwindcss": "^4.2.2"
+  }
+}
