@@ -16,99 +16,25 @@
 
   <!-- Tailwind CSS (compiled) -->
   <link rel="stylesheet" href="css/app.css">
+
+  <!-- Auth guard — redirect to login before any render -->
+  <script>
+    (function() {
+      var until = parseInt(localStorage.getItem('phone_verified_until') || '0', 10);
+      if (until <= Date.now()) {
+        location.replace('login.html');
+      }
+    })();
+  </script>
 </head>
 
 <body>
 
   <!-- ==========================================================
-       LOGIN MODAL — fullscreen backdrop, centered card
-       ========================================================== -->
-  <div class="fixed inset-0 z-[9000] hidden flex items-center justify-center p-6 bg-black/60 backdrop-blur-lg animate-modal-in"
-       id="loginOverlay" onclick="handleModalBackdrop(event)">
-    <div class="relative w-full max-w-[400px] px-8 py-9 login-card-bg border border-border-strong rounded-lg backdrop-blur-3xl shadow-[0_32px_64px_rgba(0,0,0,0.6),0_0_0_1px_rgba(255,255,255,0.04)_inset] animate-card-in"
-         role="dialog" aria-modal="true" aria-label="Sign in">
-
-      <div class="text-sm font-bold tracking-[0.1em] uppercase text-text-primary text-center mb-1.5">MRESOURCE</div>
-      <div class="text-[13px] text-text-soft text-center mb-6">Sign in to your account</div>
-
-      <!-- STEP 1 — CREDENTIALS -->
-      <div class="login-step active" id="loginStep1">
-        <div class="mb-3.5">
-          <label class="block text-xs font-medium text-text-soft mb-1.5 tracking-[0.01em]" for="usernameInput">Username</label>
-          <input type="text" id="usernameInput"
-            class="w-full bg-bg-elevated border border-border-strong text-text-primary font-sans text-sm font-normal py-[11px] px-3.5 rounded-sm outline-none transition-[border-color,box-shadow] duration-200 focus:border-accent focus:shadow-[0_0_0_3px_var(--color-accent-bg)] placeholder:text-text-faint"
-            placeholder="Enter your username" autocomplete="username" spellcheck="false">
-        </div>
-
-        <div class="mb-3.5">
-          <div class="flex items-center justify-between mb-1.5">
-            <label class="text-xs font-medium text-text-soft tracking-[0.01em]" for="passwordInput">Password</label>
-            <a href="#" class="text-xs text-accent font-medium no-underline hover:underline">Forgot password?</a>
-          </div>
-          <div class="relative" id="passwordWrap">
-            <input type="password" id="passwordInput"
-              class="w-full bg-bg-elevated border border-border-strong text-text-primary font-sans text-sm font-normal py-[11px] px-3.5 pr-11 rounded-sm outline-none transition-[border-color,box-shadow] duration-200 focus:border-accent focus:shadow-[0_0_0_3px_var(--color-accent-bg)] placeholder:text-text-faint"
-              placeholder="••••••••" autocomplete="current-password">
-            <button type="button" class="absolute right-2 top-1/2 -translate-y-1/2 w-[30px] h-[30px] border-none bg-transparent text-text-dim flex items-center justify-center rounded-md cursor-pointer transition-[color,background] duration-150 hover:text-text-primary hover:bg-border-strong password-toggle"
-              onclick="togglePassword()" aria-label="Show / hide password">
-              <svg class="eye-on w-[15px] h-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                <circle cx="12" cy="12" r="3"/>
-              </svg>
-              <svg class="eye-off w-[15px] h-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-                <line x1="1" y1="1" x2="23" y2="23"/>
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <button class="w-full bg-accent border-none text-white font-sans text-sm font-semibold py-3 rounded-sm cursor-pointer transition-[opacity,transform,box-shadow] duration-200 shadow-[0_4px_16px_-6px_var(--color-accent)] hover:opacity-[0.88] hover:shadow-[0_8px_20px_-6px_var(--color-accent)] active:scale-[0.99] disabled:opacity-45 disabled:cursor-not-allowed disabled:shadow-none mt-1"
-          onclick="submitCredentials()">Sign In</button>
-        <div class="text-danger text-xs text-center mt-2 min-h-[14px]" id="loginError1"></div>
-      </div>
-
-      <!-- STEP 2 — SMS VERIFICATION -->
-      <div class="login-step" id="loginStep2">
-        <div class="flex justify-center mb-2.5">
-          <svg class="w-9 h-9 text-accent opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.64 3.3 2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 5.5 5.5l.96-.96a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 15.44z"/>
-          </svg>
-        </div>
-        <p class="text-[13px] text-text-soft text-center mb-[18px] leading-relaxed">Таны утасны дугаарт 6 оронтой код илгээлээ</p>
-
-        <div class="mb-3.5">
-          <label class="block text-xs font-medium text-text-soft mb-1.5 tracking-[0.01em]" for="codeInput">Verification code</label>
-          <input type="text" id="codeInput"
-            class="w-full bg-bg-elevated border border-border-strong text-text-primary font-sans text-[22px] font-normal py-3.5 px-3.5 rounded-sm outline-none text-center tracking-[0.4em] tabular-nums transition-[border-color,box-shadow] duration-200 focus:border-accent focus:shadow-[0_0_0_3px_var(--color-accent-bg)] placeholder:text-text-faint"
-            placeholder="000000" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
-        </div>
-
-        <button class="w-full bg-accent border-none text-white font-sans text-sm font-semibold py-3 rounded-sm cursor-pointer transition-[opacity,transform,box-shadow] duration-200 shadow-[0_4px_16px_-6px_var(--color-accent)] hover:opacity-[0.88] hover:shadow-[0_8px_20px_-6px_var(--color-accent)] active:scale-[0.99] mt-1"
-          onclick="submitSmsCode()">Verify</button>
-        <button class="w-full bg-transparent text-text-soft border border-border-strong font-sans text-sm font-semibold py-3 rounded-sm cursor-pointer transition-[color,background] duration-200 shadow-none mt-2 hover:text-text-primary hover:bg-bg-elevated"
-          onclick="goToStep(1)">← Back</button>
-
-        <div class="text-danger text-xs text-center mt-2 min-h-[14px]" id="loginError2"></div>
-        <div class="text-[11px] text-text-dim text-center mt-3.5 leading-relaxed">
-          MOCK mode: any 6-digit number works.<br>
-          Session saved for 7 days.
-        </div>
-      </div>
-
-      <!-- STEP DOTS -->
-      <div class="flex justify-center gap-1.5 mt-5">
-        <span class="w-[5px] h-[5px] rounded-full bg-accent scale-[1.4] transition-[background,transform] duration-200" id="loginDot1"></span>
-        <span class="w-[5px] h-[5px] rounded-full bg-border-strong transition-[background,transform] duration-200" id="loginDot2"></span>
-      </div>
-    </div>
-  </div>
-
-  <!-- ==========================================================
        APP SHELL — Sidebar + main content
        ========================================================== -->
   <div class="fixed inset-0 bg-black/50 z-[99] hidden" id="sidebarBackdrop"></div>
-  <div class="flex min-h-screen hidden" id="appShell">
+  <div class="flex min-h-screen" id="appShell">
 
     <!-- SIDEBAR -->
     <aside class="w-60 bg-bg-sidebar border-r border-border-base flex flex-col p-6 px-4 shrink-0 fixed top-0 left-0 bottom-0 z-[100] overflow-y-auto transition-transform duration-300" id="sidebar">
@@ -436,7 +362,6 @@
 
   <script src="js/theme.js"></script>
   <script src="js/auth.js"></script>
-  <script src="js/login-form.js"></script>
   <script src="js/sidebar.js"></script>
   <script src="js/clock.js"></script>
   <script src="js/ip-detect.js"></script>
