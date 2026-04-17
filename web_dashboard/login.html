@@ -22,9 +22,12 @@
   <!-- ============================================================
        NAVBAR
        ============================================================ -->
-  <nav class="fixed top-0 left-0 right-0 z-[100] flex items-center justify-between px-[clamp(20px,5vw,48px)] h-14 bg-black border-b border-white/15">
-    <a class="text-[15px] font-bold tracking-[0.08em] text-text-primary no-underline" href="#" id="decryptLogo">Developed by MR Electrical Team</a>
-    <button class="h-[34px] px-[18px] bg-bg-elevated border border-border-strong rounded-sm text-text-primary font-sans text-[13px] font-medium cursor-pointer transition-[background,border-color] duration-150 hover:bg-bg-card-hover hover:border-accent-border"
+  <nav
+    class="fixed top-0 left-0 right-0 z-[100] flex items-center justify-between px-[clamp(20px,5vw,48px)] h-14 bg-black border-b border-white/15">
+    <a class="text-[15px] font-bold tracking-[0.08em] text-text-primary no-underline" href="#"
+      id="decryptLogo">Developed by MR Electrical Team</a>
+    <button
+      class="h-[34px] px-[18px] bg-bg-elevated border border-border-strong rounded-sm text-text-primary font-sans text-[13px] font-medium cursor-pointer transition-[background,border-color] duration-150 hover:bg-bg-card-hover hover:border-accent-border"
       id="openLogin" onclick="openLoginModal()">Login</button>
   </nav>
 
@@ -185,14 +188,6 @@
         <li class="flex items-start gap-3 text-text-soft text-[0.95rem] leading-relaxed">
           <svg class="w-[18px] h-[18px] shrink-0 mt-0.5 text-accent" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2" stroke-linecap="round">
-            <rect x="3" y="11" width="18" height="11" rx="2" />
-            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-          </svg>
-          <span>SMS хоёр шатлалт баталгаажуулалт</span>
-        </li>
-        <li class="flex items-start gap-3 text-text-soft text-[0.95rem] leading-relaxed">
-          <svg class="w-[18px] h-[18px] shrink-0 mt-0.5 text-accent" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2" stroke-linecap="round">
             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
             <polyline points="22 4 12 14.01 9 11.01" />
           </svg>
@@ -234,20 +229,17 @@
       <div class="text-sm font-bold tracking-[0.1em] uppercase text-text-primary text-center mb-1.5">MRESOURCE</div>
       <div class="text-[13px] text-text-soft text-center mb-6">Sign in to your account</div>
 
-      <!-- STEP 1 — CREDENTIALS -->
+      <!-- CREDENTIALS -->
       <div class="login-step active" id="loginStep1">
         <div class="mb-3.5">
           <label class="block text-xs font-medium text-text-soft mb-1.5 tracking-[0.01em]"
-            for="usernameInput">Username</label>
-          <input type="text" id="usernameInput"
+            for="emailInput">Email</label>
+          <input type="email" id="emailInput"
             class="w-full bg-bg-elevated border border-border-strong text-text-primary font-sans text-sm py-[11px] px-3.5 rounded-sm outline-none transition-[border-color,box-shadow] duration-200 focus:border-accent focus:shadow-[0_0_0_3px_var(--color-accent-bg)] placeholder:text-text-faint"
-            placeholder="Enter your username" autocomplete="username" spellcheck="false">
+            placeholder="email@example.com" autocomplete="email" spellcheck="false" inputmode="email">
         </div>
         <div class="mb-3.5">
-          <div class="flex items-center justify-between mb-1.5">
-            <label class="text-xs font-medium text-text-soft tracking-[0.01em]" for="passwordInput">Password</label>
-            <a href="#" class="text-xs text-accent font-medium no-underline hover:underline">Forgot password?</a>
-          </div>
+          <label class="text-xs font-medium text-text-soft tracking-[0.01em] block mb-1.5" for="passwordInput">Password</label>
           <div class="relative" id="passwordWrap">
             <input type="password" id="passwordInput"
               class="w-full bg-bg-elevated border border-border-strong text-text-primary font-sans text-sm py-[11px] px-3.5 pr-11 rounded-sm outline-none transition-[border-color,box-shadow] duration-200 focus:border-accent focus:shadow-[0_0_0_3px_var(--color-accent-bg)] placeholder:text-text-faint"
@@ -269,49 +261,12 @@
             </button>
           </div>
         </div>
-        <button
-          class="w-full bg-accent border-none text-white font-sans text-sm font-semibold py-3 rounded-sm cursor-pointer transition-[opacity,transform,box-shadow] duration-200 shadow-[0_4px_16px_-6px_var(--color-accent)] hover:opacity-[0.88] active:scale-[0.99] mt-1"
+        <button id="signInBtn"
+          class="w-full bg-accent border-none text-white font-sans text-sm font-semibold py-3 rounded-sm cursor-pointer transition-[opacity,transform,box-shadow] duration-200 shadow-[0_4px_16px_-6px_var(--color-accent)] hover:opacity-[0.88] active:scale-[0.99] mt-1 disabled:opacity-50 disabled:cursor-not-allowed"
           onclick="submitCredentials()">Sign In</button>
         <div class="text-danger text-xs text-center mt-2 min-h-[14px]" id="loginError1"></div>
       </div>
 
-      <!-- STEP 2 — SMS -->
-      <div class="login-step" id="loginStep2">
-        <div class="flex justify-center mb-2.5">
-          <svg class="w-9 h-9 text-accent opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path
-              d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.64 3.3 2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 5.5 5.5l.96-.96a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 15.44z" />
-          </svg>
-        </div>
-        <p class="text-[13px] text-text-soft text-center mb-[18px] leading-relaxed">Таны утасны дугаарт 6 оронтой код
-          илгээлээ</p>
-        <div class="mb-3.5">
-          <label class="block text-xs font-medium text-text-soft mb-1.5 tracking-[0.01em]" for="codeInput">Verification
-            code</label>
-          <input type="text" id="codeInput"
-            class="w-full bg-bg-elevated border border-border-strong text-text-primary font-sans text-[22px] py-3.5 px-3.5 rounded-sm outline-none text-center tracking-[0.4em] tabular-nums transition-[border-color,box-shadow] duration-200 focus:border-accent focus:shadow-[0_0_0_3px_var(--color-accent-bg)] placeholder:text-text-faint"
-            placeholder="000000" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
-        </div>
-        <button
-          class="w-full bg-accent border-none text-white font-sans text-sm font-semibold py-3 rounded-sm cursor-pointer transition-[opacity,transform,box-shadow] duration-200 shadow-[0_4px_16px_-6px_var(--color-accent)] hover:opacity-[0.88] active:scale-[0.99] mt-1"
-          onclick="submitSmsCode()">Verify</button>
-        <button
-          class="w-full bg-transparent text-text-soft border border-border-strong font-sans text-sm font-semibold py-3 rounded-sm cursor-pointer transition-[color,background] duration-200 shadow-none mt-2 hover:text-text-primary hover:bg-bg-elevated"
-          onclick="goToStep(1)">← Back</button>
-        <div class="text-danger text-xs text-center mt-2 min-h-[14px]" id="loginError2"></div>
-        <div class="text-[11px] text-text-dim text-center mt-3.5 leading-relaxed">
-          MOCK mode: any 6-digit number works.<br>Session saved for 7 days.
-        </div>
-      </div>
-
-      <!-- Step dots -->
-      <div class="flex justify-center gap-1.5 mt-5">
-        <span class="w-[5px] h-[5px] rounded-full bg-accent scale-[1.4] transition-[background,transform] duration-200"
-          id="loginDot1"></span>
-        <span class="w-[5px] h-[5px] rounded-full bg-border-strong transition-[background,transform] duration-200"
-          id="loginDot2"></span>
-      </div>
     </div>
   </div>
 
@@ -345,6 +300,9 @@
       requestAnimationFrame(step);
     });
   </script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="config.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
   <script>

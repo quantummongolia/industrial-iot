@@ -63,15 +63,8 @@ function initRealtime() {
   };
 
   // Firebase optional — SDK эсвэл config байхгүй бол чимээгүй гарна
-  if (typeof firebase === "undefined" || typeof firebaseConfig === "undefined") {
-    console.info("[realtime] Firebase skipped (SDK or config missing)");
-    return;
-  }
-
-  try {
-    firebase.initializeApp(firebaseConfig);
-  } catch (e) {
-    console.warn("[realtime] firebase.initializeApp failed:", e);
+  if (typeof firebase === "undefined" || !firebase.apps || !firebase.apps.length) {
+    console.info("[realtime] Firebase skipped (SDK or app not initialized)");
     return;
   }
 
