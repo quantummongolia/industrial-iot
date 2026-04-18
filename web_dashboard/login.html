@@ -13,279 +13,326 @@
   <link rel="icon" type="image/png" href="img/industrial-iot-icon.png">
   <link rel="apple-touch-icon" href="img/industrial-iot-icon.png">
   <title>MRESOURCE</title>
-
   <link rel="stylesheet" href="css/app.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      background: #0a0a0c;
+      color: #f5f5f7;
+      font-family: -apple-system, "SF Pro Display", "Helvetica Neue", sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
+    }
+
+
+    .top-label {
+      width: 100%;
+      text-align: center;
+      padding: 36px 24px 0;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #2997ff;
+    }
+
+
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      padding: 0 24px;
+      gap: 0;
+    }
+
+    @keyframes gradientFlow {
+      0%   { background-position: 0% 50%; }
+      100% { background-position: 200% 50%; }
+    }
+    .hero-title {
+      font-size: clamp(52px, 12vw, 88px);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.0;
+      text-align: center;
+      margin-bottom: 10px;
+      background-image: linear-gradient(110deg, #5bb8f5, #a855c8, #d4417e, #e8602a, #5bb8f5) !important;
+      background-size: 200% 100% !important;
+      -webkit-background-clip: text !important;
+      background-clip: text !important;
+      -webkit-text-fill-color: transparent !important;
+      color: transparent !important;
+      animation: gradientFlow 4s linear infinite !important;
+    }
+
+    .hero-sub {
+      font-size: clamp(13px, 2vw, 15px);
+      font-weight: 400;
+      color: #2997ff;
+      text-align: center;
+      letter-spacing: 0.01em;
+      margin-bottom: 48px;
+    }
+
+
+    .login-form {
+      width: 100%;
+      max-width: 320px;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .field-group {
+      border-bottom: 1px solid rgba(255,255,255,0.12);
+      position: relative;
+    }
+    .field-group:first-child {
+      border-top: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .field-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.4);
+      letter-spacing: 0.03em;
+      padding: 14px 0 0;
+    }
+
+    .field-input {
+      display: block;
+      width: 100%;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #f5f5f7;
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 400;
+      padding: 6px 0 14px;
+      caret-color: #f5f5f7;
+    }
+    .field-input::placeholder { color: rgba(255,255,255,0.2); }
+
+    .pw-wrap { position: relative; }
+    .pw-wrap .field-input { padding-right: 36px; }
+    .pw-toggle {
+      position: absolute;
+      right: 0;
+      bottom: 14px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: rgba(255,255,255,0.3);
+      padding: 0;
+      display: flex;
+      align-items: center;
+      transition: color 0.15s;
+    }
+    .pw-toggle:hover { color: rgba(255,255,255,0.7); }
+    .pw-toggle .eye-off { display: none; }
+    .pw-revealed .eye-off { display: block; }
+    .pw-revealed .eye-on { display: none; }
+
+    .forgot-link {
+      font-size: 12px;
+      color: rgba(255,255,255,0.25);
+      text-decoration: none;
+      padding: 10px 0 0;
+      display: inline-block;
+      transition: color 0.15s;
+      cursor: pointer;
+      background: none;
+      border: none;
+      font-family: inherit;
+    }
+    .forgot-link:hover { color: rgba(255,255,255,0.5); }
+
+    .login-error {
+      font-size: 12px;
+      color: #ff453a;
+      min-height: 16px;
+      padding-top: 4px;
+    }
+
+    .btn-signin {
+      width: 100%;
+      margin-top: 32px;
+      background: #f5f5f7;
+      color: #0a0a0c;
+      border: none;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 16px;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .btn-signin:hover { opacity: 0.88; }
+    .btn-signin:active { transform: scale(0.99); }
+    .btn-signin:disabled { opacity: 0.3; cursor: not-allowed; }
+
+
+    .marquee-section {
+      width: 100%;
+      margin-top: 28px;
+      padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px));
+    }
+    .marquee-wrap {
+      position: relative;
+      overflow: hidden;
+      -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 12% 88%, transparent 100%);
+      mask-image: linear-gradient(90deg, transparent 0%, #000 12% 88%, transparent 100%);
+    }
+    .marquee-track {
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 36px;
+      width: max-content;
+    }
+    .marquee-inner {
+      display: flex;
+      align-items: center;
+      gap: 36px;
+      width: max-content;
+      flex-shrink: 0;
+    }
+    .tech-badge {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      white-space: nowrap;
+      opacity: 0.5;
+      cursor: default;
+      user-select: none;
+      transition: opacity 0.2s;
+    }
+    .tech-badge:hover { opacity: 0.85; }
+    .tech-badge svg { width: 16px; height: 16px; flex-shrink: 0; }
+    .tech-badge span { font-size: 12px; font-weight: 500; color: #f5f5f7; }
+  </style>
 </head>
 
 <body>
 
-  <!-- ============================================================
-       NAVBAR
-       ============================================================ -->
-  <nav
-    class="fixed top-0 left-0 right-0 z-[100] flex items-center justify-between px-[clamp(20px,5vw,48px)] h-14 bg-black border-b border-white/15">
-    <a class="text-[15px] font-bold tracking-[0.08em] text-text-primary no-underline" href="#"
-      id="decryptLogo">Developed by MR Electrical Team</a>
-    <button
-      class="h-[34px] px-[18px] bg-bg-elevated border border-border-strong rounded-sm text-text-primary font-sans text-[13px] font-medium cursor-pointer transition-[background,border-color] duration-150 hover:bg-bg-card-hover hover:border-accent-border"
-      id="openLogin" onclick="openLoginModal()">Login</button>
-  </nav>
+  <div class="top-label" id="decryptLogo">Developed by Electrical Team</div>
 
-  <!-- ============================================================
-       HERO
-       ============================================================ -->
-  <main
-    class="min-h-[60vh] flex flex-col items-center justify-center text-center py-20 px-6 pt-20 relative overflow-hidden">
-    <div class="absolute inset-0 w-full h-full pointer-events-none" id="magicRingsMount">
-    </div>
-    <div class="relative z-[1] flex flex-col items-center gap-3">
-      <p class="text-xs font-medium tracking-[0.12em] uppercase text-accent m-0">Industrial IoT Platform</p>
-      <h1 class="text-[clamp(40px,8vw,80px)] font-extrabold tracking-[-0.03em] text-text-primary m-0 leading-[1.05]">
-        <span class="gradient-text" id="gradientTitle">MRESOURCE</span>
-      </h1>
-      <p class="text-[clamp(15px,2.5vw,18px)] text-text-soft m-0 max-w-[480px]">Real-time monitoring system</p>
+  <div class="main-content">
+    <h1 class="hero-title gradient-text" id="gradientTitle">MRESOURCE</h1>
+    <p class="hero-sub">Real-time monitoring system</p>
 
-      <!-- LOGO MARQUEE -->
-      <div class="marquee-wrap relative w-[min(700px,90vw)] overflow-hidden mt-8" aria-label="Tech stack">
-        <div class="marquee-track flex flex-nowrap gap-9 w-max will-change-transform">
-          <div class="marquee-inner flex items-center gap-9 w-max will-change-transform shrink-0" id="marqueeInner">
-            <div
-              class="flex items-center gap-2 whitespace-nowrap cursor-default select-none opacity-85 shrink-0 hover:opacity-100 transition-opacity duration-200"
-              style="--c:#f7df1e"><svg class="w-5 h-5 shrink-0" style="color:var(--c)" viewBox="0 0 24 24"
-                fill="currentColor">
-                <path
-                  d="M0 0h24v24H0V0zm22.034 18.276c-.175-1.095-.888-2.015-3.003-2.873-.736-.345-1.554-.585-1.797-1.14-.091-.33-.105-.51-.046-.705.15-.646.915-.84 1.515-.66.39.12.75.42.976.9 1.034-.676 1.034-.676 1.755-1.125-.27-.42-.404-.601-.586-.78-.63-.705-1.469-1.065-2.834-1.034l-.705.089c-.676.165-1.32.525-1.71 1.005-1.14 1.291-.811 3.541.569 4.471 1.365 1.02 3.361 1.244 3.616 2.205.24 1.17-.87 1.545-1.966 1.41-.811-.18-1.26-.586-1.755-1.336l-1.83 1.051c.21.48.45.689.81 1.109 1.74 1.756 6.09 1.666 6.871-1.004.029-.09.24-.705.074-1.65l.046.067zm-8.983-7.245h-2.248c0 1.938-.009 3.864-.009 5.805 0 1.232.063 2.363-.138 2.711-.33.689-1.18.601-1.566.48-.396-.196-.597-.466-.83-.855-.063-.105-.11-.196-.127-.196l-1.825 1.125c.305.63.75 1.172 1.324 1.517.855.51 2.004.675 3.207.405.783-.226 1.458-.691 1.811-1.411.51-.93.402-2.07.397-3.346.012-2.054 0-4.109 0-6.179l.004-.056z" />
-              </svg><span class="text-[13px] font-medium tracking-[0.01em] text-text-primary">JavaScript</span></div>
-            <div
-              class="flex items-center gap-2 whitespace-nowrap cursor-default select-none opacity-85 shrink-0 hover:opacity-100 transition-opacity duration-200"
-              style="--c:#f05032"><svg class="w-5 h-5 shrink-0" style="color:var(--c)" viewBox="0 0 24 24"
-                fill="currentColor">
-                <path
-                  d="M23.546 10.93L13.067.452a1.55 1.55 0 0 0-2.188 0L8.708 2.627l2.76 2.76a1.838 1.838 0 0 1 2.327 2.341l2.658 2.66a1.838 1.838 0 1 1-1.1 1.04l-2.48-2.48v6.532a1.838 1.838 0 1 1-1.514-.036V9.31a1.838 1.838 0 0 1-.997-2.416L7.617 4.227.45 11.394a1.55 1.55 0 0 0 0 2.188l10.48 10.478a1.55 1.55 0 0 0 2.186 0l10.43-10.43a1.55 1.55 0 0 0 0-2.187" />
-              </svg><span class="text-[13px] font-medium tracking-[0.01em] text-text-primary">Git</span></div>
-            <div
-              class="flex items-center gap-2 whitespace-nowrap cursor-default select-none opacity-85 shrink-0 hover:opacity-100 transition-opacity duration-200"
-              style="--c:#e34f26"><svg class="w-5 h-5 shrink-0" style="color:var(--c)" viewBox="0 0 24 24"
-                fill="currentColor">
-                <path
-                  d="M1.5 0h21l-1.91 21.563L11.977 24l-8.564-2.438L1.5 0zm7.031 9.75l-.232-2.718 10.059.003.23-2.622L5.412 4.41l.698 8.01h9.126l-.326 3.426-2.91.804-2.955-.81-.188-2.11H6.248l.33 4.171L12 19.351l5.379-1.443.744-8.157H8.531z" />
-              </svg><span class="text-[13px] font-medium tracking-[0.01em] text-text-primary">HTML</span></div>
-            <div
-              class="flex items-center gap-2 whitespace-nowrap cursor-default select-none opacity-85 shrink-0 hover:opacity-100 transition-opacity duration-200"
-              style="--c:#264de4"><svg class="w-5 h-5 shrink-0" style="color:var(--c)" viewBox="0 0 24 24"
-                fill="currentColor">
-                <path
-                  d="M1.5 0h21l-1.91 21.563L11.977 24l-8.565-2.438L1.5 0zm17.09 4.413L5.41 4.41l.213 2.622 10.125.002-.255 2.716h-6.64l.24 2.573h6.182l-.366 3.523-2.91.804-2.956-.81-.188-2.11h-2.61l.29 3.855L12 19.288l5.373-1.53L18.59 4.414z" />
-              </svg><span class="text-[13px] font-medium tracking-[0.01em] text-text-primary">CSS</span></div>
-            <div
-              class="flex items-center gap-2 whitespace-nowrap cursor-default select-none opacity-85 shrink-0 hover:opacity-100 transition-opacity duration-200"
-              style="--c:#ffca28"><svg class="w-5 h-5 shrink-0" style="color:var(--c)" viewBox="0 0 24 24"
-                fill="currentColor">
-                <path
-                  d="M3.89 15.672L6.255.461A.542.542 0 0 1 7.27.288l2.543 4.771zm16.794 3.692l-2.25-14a.54.54 0 0 0-.919-.295L3.316 19.365l7.856 4.427a1.621 1.621 0 0 0 1.588 0zM14.3 7.147l-1.818-3.482a.542.542 0 0 0-.96 0L3.53 17.984z" />
-              </svg><span class="text-[13px] font-medium tracking-[0.01em] text-text-primary">Firebase</span></div>
-            <div
-              class="flex items-center gap-2 whitespace-nowrap cursor-default select-none opacity-85 shrink-0 hover:opacity-100 transition-opacity duration-200"
-              style="--c:#5a0fc8"><svg class="w-5 h-5 shrink-0" style="color:var(--c)" viewBox="0 0 24 24"
-                fill="currentColor">
-                <path
-                  d="M15.896 9.026l-.014-.004L13.5 17.5l-2.5-5-2.5 5-2.396-8.478-.014.004L4.5 6h15l-3.604 3.026zM12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 18c-4.418 0-8-3.582-8-8s3.582-8 8-8 8 3.582 8 8-3.582 8-8 8z" />
-              </svg><span class="text-[13px] font-medium tracking-[0.01em] text-text-primary">PWA</span></div>
-            <div
-              class="flex items-center gap-2 whitespace-nowrap cursor-default select-none opacity-85 shrink-0 hover:opacity-100 transition-opacity duration-200"
-              style="--c:#e7352c"><svg class="w-5 h-5 shrink-0" style="color:var(--c)" viewBox="0 0 24 24"
-                fill="currentColor">
-                <path
-                  d="M12.926 19.324a7.6 7.6 0 00-2.983-6.754 7.44 7.44 0 00-3.828-1.554.697.697 0 01-.606-.731.674.674 0 01.743-.617 8.97 8.97 0 018 9.805 7.828 7.828 0 01-.298 1.542l1.989.56a11.039 11.039 0 001.714-.651 12.159 12.159 0 00.217-2.343A12.57 12.57 0 007.212 6.171a5.53 5.53 0 00-2 0 4.354 4.354 0 00-2.16 1.337 4.274 4.274 0 001.909 6.856 9.896 9.896 0 001.074.195 4.011 4.011 0 013.337 3.954 3.965 3.965 0 01-.64 2.16l1.371.88a10.182 10.182 0 002.057.342 7.52 7.52 0 00.754-2.628m.16 4.73A13.073 13.073 0 01.001 10.983 12.982 12.982 0 013.83 1.737l.743.697a12.067 12.067 0 000 17.141 12.067 12.067 0 0017.141 0l.697.697a12.97 12.97 0 01-9.336 3.726M24 10.993A10.993 10.993 0 0012.949 0c-.389 0-.766 0-1.143.057l-.252.732a18.912 18.912 0 0111.588 11.576l.731-.263c0-.366.069-.732.069-1.143m-1.269 5.165A17.53 17.53 0 007.818 1.27a11.119 11.119 0 00-2.457 1.77v1.635A13.919 13.919 0 0119.268 18.57h1.634a11.713 11.713 0 001.771-2.446M7.92 17.884a1.691 1.691 0 11-1.69-1.691 1.691 1.691 0 011.69 1.691" />
-              </svg><span class="text-[13px] font-medium tracking-[0.01em] text-text-primary">Espressif</span></div>
-            <div
-              class="flex items-center gap-2 whitespace-nowrap cursor-default select-none opacity-85 shrink-0 hover:opacity-100 transition-opacity duration-200"
-              style="--c:#00979d"><svg class="w-5 h-5 shrink-0" style="color:var(--c)" viewBox="0 0 24 24"
-                fill="currentColor">
-                <path
-                  d="M18.087 6.146c-.3 0-.607.017-.907.069-2.532.367-4.23 2.239-5.18 3.674-.95-1.435-2.648-3.307-5.18-3.674a6.49 6.49 0 0 0-.907-.069C2.648 6.146 0 8.77 0 12s2.656 5.854 5.913 5.854c.3 0 .607-.017.916-.069 2.531-.376 4.23-2.247 5.18-3.683.949 1.436 2.647 3.307 5.18 3.683.299.043.607.069.915.069C21.344 17.854 24 15.23 24 12s-2.656-5.854-5.913-5.854z" />
-              </svg><span class="text-[13px] font-medium tracking-[0.01em] text-text-primary">Arduino</span></div>
-            <div
-              class="flex items-center gap-2 whitespace-nowrap cursor-default select-none opacity-85 shrink-0 hover:opacity-100 transition-opacity duration-200"
-              style="--c:#d97757"><svg class="w-5 h-5 shrink-0" style="color:var(--c)" viewBox="0 0 24 24"
-                fill="currentColor">
-                <path
-                  d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z" />
-              </svg><span class="text-[13px] font-medium tracking-[0.01em] text-text-primary">Claude</span></div>
+    <form class="login-form" onsubmit="return false;">
+      <!-- Email -->
+      <div class="field-group">
+        <label class="field-label" for="emailInput">Email</label>
+        <input type="email" id="emailInput" class="field-input"
+          placeholder="you@example.com"
+          autocomplete="email" spellcheck="false" inputmode="email">
+      </div>
+
+      <!-- Password -->
+      <div class="field-group">
+        <label class="field-label" for="passwordInput">Password</label>
+        <div class="pw-wrap" id="passwordWrap">
+          <input type="password" id="passwordInput" class="field-input"
+            placeholder="••••••••"
+            autocomplete="current-password">
+          <button type="button" class="pw-toggle" onclick="togglePassword()" aria-label="Show/hide password">
+            <svg class="eye-on" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+            </svg>
+            <svg class="eye-off" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+              <line x1="1" y1="1" x2="23" y2="23"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <button type="button" class="forgot-link">Forgot Password?</button>
+      <div class="login-error" id="loginError1"></div>
+
+      <button type="submit" id="signInBtn" class="btn-signin" onclick="submitCredentials()">Sign In</button>
+
+      <div class="marquee-section">
+    <div class="marquee-wrap" aria-label="Tech stack">
+      <div class="marquee-track">
+        <div class="marquee-inner" id="marqueeInner">
+          <div class="tech-badge" style="--c:#f7df1e">
+            <svg style="color:var(--c)" viewBox="0 0 24 24" fill="currentColor"><path d="M0 0h24v24H0V0zm22.034 18.276c-.175-1.095-.888-2.015-3.003-2.873-.736-.345-1.554-.585-1.797-1.14-.091-.33-.105-.51-.046-.705.15-.646.915-.84 1.515-.66.39.12.75.42.976.9 1.034-.676 1.034-.676 1.755-1.125-.27-.42-.404-.601-.586-.78-.63-.705-1.469-1.065-2.834-1.034l-.705.089c-.676.165-1.32.525-1.71 1.005-1.14 1.291-.811 3.541.569 4.471 1.365 1.02 3.361 1.244 3.616 2.205.24 1.17-.87 1.545-1.966 1.41-.811-.18-1.26-.586-1.755-1.336l-1.83 1.051c.21.48.45.689.81 1.109 1.74 1.756 6.09 1.666 6.871-1.004.029-.09.24-.705.074-1.65l.046.067zm-8.983-7.245h-2.248c0 1.938-.009 3.864-.009 5.805 0 1.232.063 2.363-.138 2.711-.33.689-1.18.601-1.566.48-.396-.196-.597-.466-.83-.855-.063-.105-.11-.196-.127-.196l-1.825 1.125c.305.63.75 1.172 1.324 1.517.855.51 2.004.675 3.207.405.783-.226 1.458-.691 1.811-1.411.51-.93.402-2.07.397-3.346.012-2.054 0-4.109 0-6.179l.004-.056z"/></svg>
+            <span>JavaScript</span>
+          </div>
+          <div class="tech-badge" style="--c:#f05032">
+            <svg style="color:var(--c)" viewBox="0 0 24 24" fill="currentColor"><path d="M23.546 10.93L13.067.452a1.55 1.55 0 0 0-2.188 0L8.708 2.627l2.76 2.76a1.838 1.838 0 0 1 2.327 2.341l2.658 2.66a1.838 1.838 0 1 1-1.1 1.04l-2.48-2.48v6.532a1.838 1.838 0 1 1-1.514-.036V9.31a1.838 1.838 0 0 1-.997-2.416L7.617 4.227.45 11.394a1.55 1.55 0 0 0 0 2.188l10.48 10.478a1.55 1.55 0 0 0 2.186 0l10.43-10.43a1.55 1.55 0 0 0 0-2.187"/></svg>
+            <span>Git</span>
+          </div>
+          <div class="tech-badge" style="--c:#e34f26">
+            <svg style="color:var(--c)" viewBox="0 0 24 24" fill="currentColor"><path d="M1.5 0h21l-1.91 21.563L11.977 24l-8.564-2.438L1.5 0zm7.031 9.75l-.232-2.718 10.059.003.23-2.622L5.412 4.41l.698 8.01h9.126l-.326 3.426-2.91.804-2.955-.81-.188-2.11H6.248l.33 4.171L12 19.351l5.379-1.443.744-8.157H8.531z"/></svg>
+            <span>HTML</span>
+          </div>
+          <div class="tech-badge" style="--c:#264de4">
+            <svg style="color:var(--c)" viewBox="0 0 24 24" fill="currentColor"><path d="M1.5 0h21l-1.91 21.563L11.977 24l-8.565-2.438L1.5 0zm17.09 4.413L5.41 4.41l.213 2.622 10.125.002-.255 2.716h-6.64l.24 2.573h6.182l-.366 3.523-2.91.804-2.956-.81-.188-2.11h-2.61l.29 3.855L12 19.288l5.373-1.53L18.59 4.414z"/></svg>
+            <span>CSS</span>
+          </div>
+          <div class="tech-badge" style="--c:#ffca28">
+            <svg style="color:var(--c)" viewBox="0 0 24 24" fill="currentColor"><path d="M3.89 15.672L6.255.461A.542.542 0 0 1 7.27.288l2.543 4.771zm16.794 3.692l-2.25-14a.54.54 0 0 0-.919-.295L3.316 19.365l7.856 4.427a1.621 1.621 0 0 0 1.588 0zM14.3 7.147l-1.818-3.482a.542.542 0 0 0-.96 0L3.53 17.984z"/></svg>
+            <span>Firebase</span>
+          </div>
+          <div class="tech-badge" style="--c:#5a0fc8">
+            <svg style="color:var(--c)" viewBox="0 0 24 24" fill="currentColor"><path d="M15.896 9.026l-.014-.004L13.5 17.5l-2.5-5-2.5 5-2.396-8.478-.014.004L4.5 6h15l-3.604 3.026zM12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 18c-4.418 0-8-3.582-8-8s3.582-8 8-8 8 3.582 8 8-3.582 8-8 8z"/></svg>
+            <span>PWA</span>
+          </div>
+          <div class="tech-badge" style="--c:#e7352c">
+            <svg style="color:var(--c)" viewBox="0 0 24 24" fill="currentColor"><path d="M12.926 19.324a7.6 7.6 0 00-2.983-6.754 7.44 7.44 0 00-3.828-1.554.697.697 0 01-.606-.731.674.674 0 01.743-.617 8.97 8.97 0 018 9.805 7.828 7.828 0 01-.298 1.542l1.989.56a11.039 11.039 0 001.714-.651 12.159 12.159 0 00.217-2.343A12.57 12.57 0 007.212 6.171a5.53 5.53 0 00-2 0 4.354 4.354 0 00-2.16 1.337 4.274 4.274 0 001.909 6.856 9.896 9.896 0 001.074.195 4.011 4.011 0 013.337 3.954 3.965 3.965 0 01-.64 2.16l1.371.88a10.182 10.182 0 002.057.342 7.52 7.52 0 00.754-2.628m.16 4.73A13.073 13.073 0 01.001 10.983 12.982 12.982 0 013.83 1.737l.743.697a12.067 12.067 0 000 17.141 12.067 12.067 0 0017.141 0l.697.697a12.97 12.97 0 01-9.336 3.726M24 10.993A10.993 10.993 0 0012.949 0c-.389 0-.766 0-1.143.057l-.252.732a18.912 18.912 0 0111.588 11.576l.731-.263c0-.366.069-.732.069-1.143m-1.269 5.165A17.53 17.53 0 007.818 1.27a11.119 11.119 0 00-2.457 1.77v1.635A13.919 13.919 0 0119.268 18.57h1.634a11.713 11.713 0 001.771-2.446M7.92 17.884a1.691 1.691 0 11-1.69-1.691 1.691 1.691 0 011.69 1.691"/></svg>
+            <span>Espressif</span>
+          </div>
+          <div class="tech-badge" style="--c:#00878F">
+            <svg style="color:var(--c)" viewBox="0 0 24 24" fill="currentColor"><path d="M18.087 6.146c-.3 0-.607.017-.907.069-2.532.367-4.23 2.239-5.18 3.674-.95-1.435-2.648-3.307-5.18-3.674a6.49 6.49 0 0 0-.907-.069C2.648 6.146 0 8.77 0 12s2.656 5.854 5.913 5.854c.3 0 .607-.017.916-.069 2.531-.376 4.23-2.247 5.18-3.683.949 1.436 2.647 3.307 5.18 3.683.299.043.607.069.915.069C21.344 17.854 24 15.23 24 12s-2.656-5.854-5.913-5.854zM6.53 15.734a3.837 3.837 0 0 1-.625.043c-2.148 0-3.889-1.7-3.889-3.777 0-2.085 1.749-3.777 3.898-3.777.208 0 .416.017.624.043 2.39.35 3.847 2.768 4.347 3.734-.508.974-1.974 3.384-4.355 3.734zm11.558.043c-.208 0-.416-.017-.624-.043-2.39-.35-3.856-2.768-4.347-3.734.491-.966 1.957-3.384 4.347-3.734.208-.026.416-.043.624-.043 2.149 0 3.89 1.7 3.89 3.777 0 2.085-1.75 3.777-3.89 3.777zm1.65-4.404v1.134h-1.205v1.182h-1.156v-1.182H16.17v-1.134h1.206V10.19h1.156v1.183h1.206zM4.246 12.498H7.82v-1.125H4.245v1.125z"/></svg>
+            <span>Arduino</span>
+          </div>
+          <div class="tech-badge" style="--c:#181717">
+            <svg style="color:#fff" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+            <span>GitHub</span>
+          </div>
+          <div class="tech-badge" style="--c:#F5822A">
+            <svg style="color:var(--c)" viewBox="0 0 24 24" fill="currentColor"><path d="M12 23.992c1.25.211 7.051-3.743 9.113-8.217.253-.686.61-1.198.746-2.5.21-2.016-.41-3.912-1.59-5.419-.987-1.163-2.305-2.004-3.88-2.532l.683-2.583a1.371 1.371 0 1 0-.76-.189L15.64 5.1c-1.109-.288-2.328-.437-3.64-.444m5.978 11.667c-1.548 1.346-2.525 1.488-3.045 1.467-.274-.034-.75-.558-.919-1.104-.188-.612-.28-1.282-.273-2.2-.199-2.476 1.465-5.624 3.937-6.041 1.003-.186 2.39.493 2.889 2.088.506 1.422-.645 4.147-2.589 5.79zM12 4.656c-1.315.007-2.538.156-3.65.447l-.675-2.56A1.37 1.37 0 0 0 6.962 0a1.372 1.372 0 0 0-.044 2.742L7.6 5.328c-1.57.528-2.885 1.367-3.871 2.528-1.179 1.507-1.8 3.403-1.588 5.419.136 1.302.492 1.814.745 2.5 2.062 4.474 7.862 8.428 9.113 8.217m-1.507-9.507c.007.92-.086 1.589-.274 2.201-.167.546-.644 1.07-.918 1.104-.52.021-1.498-.121-3.045-1.467-1.944-1.643-3.095-4.368-2.589-5.79.5-1.595 1.886-2.274 2.889-2.088 2.471.417 4.136 3.565 3.937 6.04zm6.45-2.19a1.24 1.24 0 1 0 0 2.48 1.24 1.24 0 0 0 0-2.48zm.416 1.149a.325.325 0 1 1 0-.65.325.325 0 0 1 0 .65zM7.25 12.294a1.24 1.24 0 1 0 0 2.48 1.24 1.24 0 0 0 0-2.48zm-.418 1.15a.325.325 0 1 1 0-.65.325.325 0 0 1 0 .65z"/></svg>
+            <span>PlatformIO</span>
+          </div>
+          <div class="tech-badge" style="--c:#d97757">
+            <svg style="color:var(--c)" viewBox="0 0 24 24" fill="currentColor"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg>
+            <span>Claude</span>
           </div>
         </div>
       </div>
-    </div>
-  </main>
-
-  <!-- ============================================================
-       CARD SWAP SECTION
-       ============================================================ -->
-  <section
-    class="flex items-center justify-between gap-[clamp(40px,6vw,100px)] px-[clamp(24px,8vw,120px)] py-20 bg-bg relative overflow-hidden max-[860px]:flex-col max-[860px]:items-start max-[860px]:px-6 max-[860px]:py-[60px]">
-    <div>
-      <p class="text-xs tracking-[0.15em] uppercase text-accent mb-3.5">Интернэт хяналтын систем</p>
-      <h2 class="text-[clamp(1.8rem,3.5vw,3rem)] font-bold leading-[1.15] text-text-primary mb-4">Хиймэл оюунд суурилсан
-        хөгжүүлэлтийн процесс<br>Agent first IDE</h2>
-      <p class="text-base text-text-soft mb-0">Google Antigravity integrated with Claude CLI</p>
-      <br>
-      <p class="text-base text-text-soft">&#8226; Багаар ажиллах боломжтой<br>&#8226; Өргөтгөх боломжтой<br>&#8226;
-        Бодит цагийн шинэчлэл</p>
-    </div>
-    <div
-      class="cardswap-stage relative w-[500px] h-[340px] shrink-0 max-[860px]:w-[340px] max-[860px]:h-[240px] max-[860px]:self-center"
-      id="cardSwapStage">
-      <div
-        class="cs-card absolute top-1/2 left-1/2 w-[420px] h-[280px] rounded-2xl bg-bg-elevated border border-border-strong overflow-hidden cursor-pointer shadow-[0_8px_32px_rgba(0,0,0,0.45)] max-[860px]:w-[300px] max-[860px]:h-[200px]"
-        id="csCard0">
-        <img src="img/Antigravity-IDE.png" alt="Antigravity IDE" class="w-full h-full object-cover block" data-slot="0">
-        <div
-          class="absolute top-3.5 left-3.5 px-3 py-1 bg-black/75 backdrop-blur-lg border border-border-strong rounded-full text-[0.78rem] font-medium text-text-primary pointer-events-none">
-          Antigravity-IDE</div>
       </div>
-      <div
-        class="cs-card absolute top-1/2 left-1/2 w-[420px] h-[280px] rounded-2xl bg-bg-elevated border border-border-strong overflow-hidden cursor-pointer shadow-[0_8px_32px_rgba(0,0,0,0.45)] max-[860px]:w-[300px] max-[860px]:h-[200px]"
-        id="csCard1">
-        <img src="img/github-repo.png" alt="GitHub" class="w-full h-full object-cover block" data-slot="1">
-        <div
-          class="absolute top-3.5 left-3.5 px-3 py-1 bg-black/75 backdrop-blur-lg border border-border-strong rounded-full text-[0.78rem] font-medium text-text-primary pointer-events-none">
-          GitHub</div>
-      </div>
-      <div
-        class="cs-card absolute top-1/2 left-1/2 w-[420px] h-[280px] rounded-2xl bg-bg-elevated border border-border-strong overflow-hidden cursor-pointer shadow-[0_8px_32px_rgba(0,0,0,0.45)] max-[860px]:w-[300px] max-[860px]:h-[200px]"
-        id="csCard2">
-        <img src="img/Claude-CLI.png" alt="Claude CLI" class="w-full h-full object-cover block" data-slot="2">
-        <div
-          class="absolute top-3.5 left-3.5 px-3 py-1 bg-black/75 backdrop-blur-lg border border-border-strong rounded-full text-[0.78rem] font-medium text-text-primary pointer-events-none">
-          Claude CLI</div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============================================================
-       FIREBASE SECURITY SECTION
-       ============================================================ -->
-  <section
-    class="flex items-center gap-[clamp(40px,6vw,100px)] px-[clamp(24px,8vw,120px)] py-20 bg-bg relative max-[860px]:flex-col max-[860px]:px-6 max-[860px]:py-[60px]">
-    <div
-      class="relative shrink-0 w-[420px] h-[320px] rounded-2xl overflow-hidden bg-black max-[860px]:w-full max-[860px]:h-60"
-      id="letterGlitchMount">
-      <canvas id="letterGlitchCanvas" class="block w-full h-full"></canvas>
-      <div class="glitch-vignette-center"></div>
-    </div>
-    <div>
-      <p class="text-xs tracking-[0.15em] uppercase text-accent mb-3.5">Аюулгүй байдал</p>
-      <h2 class="text-[clamp(1.6rem,3vw,2.6rem)] font-bold leading-[1.2] text-text-primary mb-7">Firebase-д
-        суурилсан<br>найдвартай хамгаалалт</h2>
-      <ul class="list-none p-0 m-0 flex flex-col gap-4">
-        <li class="flex items-start gap-3 text-text-soft text-[0.95rem] leading-relaxed">
-          <svg class="w-[18px] h-[18px] shrink-0 mt-0.5 text-accent" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2" stroke-linecap="round">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-          </svg>
-          <span>Firebase Authentication — хэрэглэгч баталгаажуулалт</span>
-        </li>
-        <li class="flex items-start gap-3 text-text-soft text-[0.95rem] leading-relaxed">
-          <svg class="w-[18px] h-[18px] shrink-0 mt-0.5 text-accent" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2" stroke-linecap="round">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-            <polyline points="22 4 12 14.01 9 11.01" />
-          </svg>
-          <span>7 хоногийн session токен хадгалалт</span>
-        </li>
-        <li class="flex items-start gap-3 text-text-soft text-[0.95rem] leading-relaxed">
-          <svg class="w-[18px] h-[18px] shrink-0 mt-0.5 text-accent" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2" stroke-linecap="round">
-            <path d="M1 6s4-2 11-2 11 2 11 2v6s-4 4-11 4S1 12 1 12V6z" />
-            <path d="M1 6l11 7 11-7" />
-          </svg>
-          <span>Firestore Security Rules — өгөгдлийн хамгаалалт</span>
-        </li>
-      </ul>
-    </div>
-  </section>
-
-  <!-- ============================================================
-       LOGIN MODAL
-       ============================================================ -->
-  <div
-    class="fixed inset-0 z-[9000] hidden items-center justify-center p-6 bg-black/60 backdrop-blur-lg animate-modal-in"
-    id="loginModal" onclick="handleModalBackdrop(event)">
-    <div
-      class="relative w-full max-w-[400px] px-8 py-9 login-card-bg border border-border-strong rounded-lg backdrop-blur-3xl shadow-[0_32px_64px_rgba(0,0,0,0.6),0_0_0_1px_rgba(255,255,255,0.04)_inset] animate-card-in"
-      role="dialog" aria-modal="true" aria-label="Sign in">
-
-      <!-- Close button -->
-      <button
-        class="absolute top-3.5 right-3.5 w-[30px] h-[30px] flex items-center justify-center border-none bg-transparent text-text-dim rounded-lg cursor-pointer transition-[color,background] duration-150 hover:text-text-primary hover:bg-border-strong"
-        onclick="closeLoginModal()" aria-label="Close">
-        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-          stroke-linecap="round">
-          <line x1="18" y1="6" x2="6" y2="18" />
-          <line x1="6" y1="6" x2="18" y2="18" />
-        </svg>
-      </button>
-
-      <div class="text-sm font-bold tracking-[0.1em] uppercase text-text-primary text-center mb-1.5">MRESOURCE</div>
-      <div class="text-[13px] text-text-soft text-center mb-6">Sign in to your account</div>
-
-      <!-- CREDENTIALS -->
-      <div class="login-step active" id="loginStep1">
-        <div class="mb-3.5">
-          <label class="block text-xs font-medium text-text-soft mb-1.5 tracking-[0.01em]"
-            for="emailInput">Email</label>
-          <input type="email" id="emailInput"
-            class="w-full bg-bg-elevated border border-border-strong text-text-primary font-sans text-sm py-[11px] px-3.5 rounded-sm outline-none transition-[border-color,box-shadow] duration-200 focus:border-accent focus:shadow-[0_0_0_3px_var(--color-accent-bg)] placeholder:text-text-faint"
-            placeholder="email@example.com" autocomplete="email" spellcheck="false" inputmode="email">
-        </div>
-        <div class="mb-3.5">
-          <label class="text-xs font-medium text-text-soft tracking-[0.01em] block mb-1.5" for="passwordInput">Password</label>
-          <div class="relative" id="passwordWrap">
-            <input type="password" id="passwordInput"
-              class="w-full bg-bg-elevated border border-border-strong text-text-primary font-sans text-sm py-[11px] px-3.5 pr-11 rounded-sm outline-none transition-[border-color,box-shadow] duration-200 focus:border-accent focus:shadow-[0_0_0_3px_var(--color-accent-bg)] placeholder:text-text-faint"
-              placeholder="••••••••" autocomplete="current-password">
-            <button type="button"
-              class="absolute right-2 top-1/2 -translate-y-1/2 w-[30px] h-[30px] border-none bg-transparent text-text-dim flex items-center justify-center rounded-md cursor-pointer transition-[color,background] duration-150 hover:text-text-primary hover:bg-border-strong password-toggle"
-              onclick="togglePassword()" aria-label="Show / hide password">
-              <svg class="eye-on w-[15px] h-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
-              <svg class="eye-off w-[15px] h-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path
-                  d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                <line x1="1" y1="1" x2="23" y2="23" />
-              </svg>
-            </button>
-          </div>
-        </div>
-        <button id="signInBtn"
-          class="w-full bg-accent border-none text-white font-sans text-sm font-semibold py-3 rounded-sm cursor-pointer transition-[opacity,transform,box-shadow] duration-200 shadow-[0_4px_16px_-6px_var(--color-accent)] hover:opacity-[0.88] active:scale-[0.99] mt-1 disabled:opacity-50 disabled:cursor-not-allowed"
-          onclick="submitCredentials()">Sign In</button>
-        <div class="text-danger text-xs text-center mt-2 min-h-[14px]" id="loginError1"></div>
-      </div>
-
-    </div>
+    </form>
   </div>
 
-  <!-- ============================================================
-       SCRIPTS
-       ============================================================ -->
   <script>
-    // Marquee — JS RAF smooth infinite scroll
+  </script>
+
+  <script>
     document.addEventListener('DOMContentLoaded', function () {
       var inner = document.getElementById('marqueeInner');
       if (!inner) return;
       var track = inner.parentNode;
-      var wrap = track.parentNode;
       var clone = inner.cloneNode(true);
       clone.setAttribute('aria-hidden', 'true');
       track.appendChild(clone);
-      track.style.display = 'flex';
-      track.style.flexWrap = 'nowrap';
-      var SPEED = 0.5, x = 0, paused = false;
+      var SPEED = 0.4, x = 0, paused = false;
+      var wrap = track.parentNode;
       function step() {
         if (!paused) {
           x -= SPEED;
@@ -299,87 +346,32 @@
       wrap.addEventListener('mouseleave', function () { paused = false; });
       requestAnimationFrame(step);
     });
-  </script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-  <script src="config.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-  <script>
-    // GradientText animation
-    (function () {
-      var DURATION = 2500;
-      var elapsed = 0, lastTime = null;
-      function animate(time) {
-        if (lastTime === null) lastTime = time;
-        elapsed += time - lastTime;
-        lastTime = time;
-        var fullCycle = DURATION * 2;
-        var cycleTime = elapsed % fullCycle;
-        var p = cycleTime < DURATION ? (cycleTime / DURATION) * 100 : 100 - ((cycleTime - DURATION) / DURATION) * 100;
-        var el = document.getElementById('gradientTitle');
-        if (el) el.style.backgroundPosition = p + '% 50%';
-        requestAnimationFrame(animate);
-      }
-      requestAnimationFrame(animate);
-    })();
-  </script>
-  <script src="js/magic-rings.js" defer></script>
-  <script src="js/theme.js"></script>
-  <script src="js/auth.js"></script>
-  <script src="js/login-form.js"></script>
-  <script>
-    function openLoginModal() {
-      var m = document.getElementById("loginModal");
-      m.classList.remove("hidden");
-      m.classList.add("flex");
-      document.body.style.overflow = "hidden";
-      setTimeout(function () {
-        var u = document.getElementById("usernameInput");
-        if (u) u.focus();
-      }, 80);
-    }
-    function closeLoginModal() {
-      var m = document.getElementById("loginModal");
-      m.classList.add("hidden");
-      m.classList.remove("flex");
-      document.body.style.overflow = "";
-    }
-    function handleModalBackdrop(e) {
-      if (e.target === document.getElementById("loginModal")) closeLoginModal();
-    }
-    document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape") closeLoginModal();
-    });
-    document.addEventListener("DOMContentLoaded", function () {
-      if (typeof isVerified === "function" && isVerified()) {
-        location.replace("index.html");
-        return;
-      }
-      if (typeof setupLoginForm === "function") setupLoginForm();
-      initCardSwap();
-      initDecryptedText();
-    });
 
-    // DecryptedText
+    function togglePassword() {
+      var wrap = document.getElementById('passwordWrap');
+      var inp = document.getElementById('passwordInput');
+      var revealed = wrap.classList.toggle('pw-revealed');
+      inp.type = revealed ? 'text' : 'password';
+    }
+
     function initDecryptedText() {
       var el = document.getElementById('decryptLogo');
       if (!el) return;
       var text = el.textContent.trim();
       var CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()_+';
-      var SPEED = 90;
+      var SPEED = 60;
       el.innerHTML = text.split('').map(function (ch) {
-        return '<span data-ch="' + ch + '" class="dt-char">' + ch + '</span>';
+        return '<span data-ch="' + ch + '">' + ch + '</span>';
       }).join('');
-      var spans = Array.from(el.querySelectorAll('.dt-char'));
-      var intervalId = null, hasAnimated = false;
+      var spans = Array.from(el.querySelectorAll('span'));
+      var intervalId = null;
       var rand = function () { return CHARS[Math.floor(Math.random() * CHARS.length)]; };
       var decrypt = function () {
         if (intervalId) clearInterval(intervalId);
         spans.forEach(function (s) { if (s.dataset.ch !== ' ') s.textContent = rand(); });
         var pointer = 0;
         intervalId = setInterval(function () {
-          if (pointer >= spans.length) { clearInterval(intervalId); intervalId = null; return; }
+          if (pointer >= spans.length) { clearInterval(intervalId); return; }
           spans[pointer].textContent = spans[pointer].dataset.ch;
           pointer++;
           for (var i = pointer; i < spans.length; i++) {
@@ -388,80 +380,35 @@
         }, SPEED);
       };
       var observer = new IntersectionObserver(function (entries) {
-        entries.forEach(function (entry) {
-          if (entry.isIntersecting && !hasAnimated) { hasAnimated = true; decrypt(); }
-        });
+        if (entries[0].isIntersecting) { decrypt(); observer.disconnect(); }
       }, { threshold: 0.1 });
       observer.observe(el);
       el.addEventListener('mouseenter', decrypt);
-      el.addEventListener('mouseleave', function () {
-        if (intervalId) clearInterval(intervalId);
-        intervalId = null;
-        spans.forEach(function (s) { s.textContent = s.dataset.ch; });
-      });
     }
 
-    // LetterGlitch
-    (function initLetterGlitch() {
-      var canvas = document.getElementById('letterGlitchCanvas');
-      if (!canvas) return;
-      var COLORS = ['#2b4539', '#61dca3', '#61b3dc'];
-      var CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$&*()-_+=/[]{};:<>.,0123456789';
-      var FONT_SIZE = 16, CHAR_W = 10, CHAR_H = 20, GLITCH_SPEED = 50, SMOOTH = true;
-      var ctx = canvas.getContext('2d');
-      var letters = [], cols = 0, rows = 0, lastGlitch = Date.now(), rafId;
-      var randChar = function () { return CHARS[Math.floor(Math.random() * CHARS.length)]; };
-      var randColor = function () { return COLORS[Math.floor(Math.random() * COLORS.length)]; };
-      var hexToRgb = function (hex) { hex = hex.replace(/^#?([a-f\d])([a-f\d])([a-f\d])$/i, function (_, r, g, b) { return r + r + g + g + b + b; }); var r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex); return r ? { r: parseInt(r[1], 16), g: parseInt(r[2], 16), b: parseInt(r[3], 16) } : null; };
-      var lerpColor = function (a, b, t) { var s = hexToRgb(typeof a === 'string' ? a : '#000000'); var e = hexToRgb(typeof b === 'string' ? b : '#000000'); if (!s || !e) return typeof b === 'string' ? b : '#61dca3'; return 'rgb(' + Math.round(s.r + (e.r - s.r) * t) + ',' + Math.round(s.g + (e.g - s.g) * t) + ',' + Math.round(s.b + (e.b - s.b) * t) + ')'; };
-      var resize = function () { var dpr = window.devicePixelRatio || 1; var rect = canvas.parentElement.getBoundingClientRect(); canvas.width = rect.width * dpr; canvas.height = rect.height * dpr; canvas.style.width = rect.width + 'px'; canvas.style.height = rect.height + 'px'; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); cols = Math.ceil(rect.width / CHAR_W); rows = Math.ceil(rect.height / CHAR_H); letters = Array.from({ length: cols * rows }, function () { return { char: randChar(), color: randColor(), targetColor: randColor(), progress: 1 }; }); };
-      var draw = function () { var w = canvas.width / (window.devicePixelRatio || 1); var h = canvas.height / (window.devicePixelRatio || 1); ctx.clearRect(0, 0, w, h); ctx.font = FONT_SIZE + 'px monospace'; ctx.textBaseline = 'top'; letters.forEach(function (l, i) { ctx.fillStyle = l.color; ctx.fillText(l.char, (i % cols) * CHAR_W, Math.floor(i / cols) * CHAR_H); }); };
-      var update = function () { var count = Math.max(1, Math.floor(letters.length * 0.05)); for (var i = 0; i < count; i++) { var idx = Math.floor(Math.random() * letters.length); letters[idx].char = randChar(); letters[idx].targetColor = randColor(); if (!SMOOTH) { letters[idx].color = letters[idx].targetColor; letters[idx].progress = 1; } else { letters[idx].progress = 0; } } };
-      var smoothTick = function () { letters.forEach(function (l) { if (l.progress < 1) { l.progress = Math.min(1, l.progress + 0.05); l.color = lerpColor(l.color, l.targetColor, l.progress); } }); };
-      var animate = function () { var now = Date.now(); if (now - lastGlitch >= GLITCH_SPEED) { update(); draw(); lastGlitch = now; } if (SMOOTH) smoothTick(); rafId = requestAnimationFrame(animate); };
-      resize(); animate();
-      var resizeTimer;
-      window.addEventListener('resize', function () { clearTimeout(resizeTimer); resizeTimer = setTimeout(function () { cancelAnimationFrame(rafId); resize(); animate(); }, 100); });
-    })();
-
-    // CardSwap
-    function initCardSwap() {
-      if (typeof gsap === 'undefined') return;
-      var CARD_DISTANCE = 60, VERT_DISTANCE = 70, DELAY = 3000, SKEW = 6;
-      var EASE = 'elastic.out(0.6,0.9)', DUR_DROP = 2, DUR_MOVE = 2, DUR_RETURN = 2, PROMOTE_OVERLAP = 0.9, RETURN_DELAY = 0.05;
-      var cards = Array.from(document.querySelectorAll('#cardSwapStage .cs-card'));
-      var total = cards.length;
-      if (total < 2) return;
-      var makeSlot = function (i) { return { x: i * CARD_DISTANCE, y: -i * VERT_DISTANCE, z: -i * CARD_DISTANCE * 1.5, zIndex: total - i }; };
-      var placeNow = function (el, slot) { gsap.set(el, { x: slot.x, y: slot.y, z: slot.z, xPercent: -50, yPercent: -50, skewY: 0, transformOrigin: 'center center', zIndex: slot.zIndex, force3D: true }); };
-      cards.forEach(function (c, i) { placeNow(c, makeSlot(i)); });
-      var order = cards.map(function (_, i) { return i; });
-      function swap() {
-        var front = order[0], rest = order.slice(1);
-        var elFront = cards[front];
-        var tl = gsap.timeline();
-        tl.to(elFront, { y: '+=500', skewY: SKEW, duration: DUR_DROP, ease: EASE });
-        tl.addLabel('promote', '-=' + DUR_DROP * PROMOTE_OVERLAP);
-        rest.forEach(function (idx, i) { var slot = makeSlot(i); tl.set(cards[idx], { zIndex: slot.zIndex }, 'promote'); tl.to(cards[idx], { x: slot.x, y: slot.y, z: slot.z, duration: DUR_MOVE, ease: EASE }, 'promote+=' + i * 0.15); });
-        var backSlot = makeSlot(total - 1);
-        tl.addLabel('return', 'promote+=' + DUR_MOVE * RETURN_DELAY);
-        tl.call(function () { gsap.set(elFront, { zIndex: backSlot.zIndex }); }, undefined, 'return');
-        tl.to(elFront, { x: backSlot.x, y: backSlot.y, z: backSlot.z, skewY: 0, duration: DUR_RETURN, ease: EASE }, 'return');
-        tl.call(function () { order = rest.concat([front]); });
+    document.addEventListener('DOMContentLoaded', function () {
+      initDecryptedText();
+      if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length) {
+        firebase.auth().onAuthStateChanged(function (user) {
+          if (user) location.replace('index.html');
+        });
       }
-      swap();
-      setInterval(swap, DELAY);
-    }
+      if (typeof setupLoginForm === 'function') setupLoginForm();
+    });
   </script>
 
-  <!-- PWA Service Worker -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/login-form.js"></script>
+
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('/sw.js').catch(function () { });
+        navigator.serviceWorker.register('/sw.js').catch(function () {});
       });
     }
   </script>
 </body>
-
 </html>

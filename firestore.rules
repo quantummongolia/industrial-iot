@@ -1,15 +1,9 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Зөвшөөрөгдсөн дугаар шалгах — нэвтрээгүй ч нэг doc get хийж болно
-    match /allowed_phones/{phone} {
-      allow get: if true;
-      allow list, create, update, delete: if false;
-    }
-    // Users collection
-    match /users/{userId} {
-      allow read: if request.auth != null && request.auth.uid == userId;
-      allow write: if false;
+    // Firestore ашиглахгүй — бүх хандалт хаалттай
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

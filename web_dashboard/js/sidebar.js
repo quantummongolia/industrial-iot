@@ -7,26 +7,52 @@ function setupSidebar() {
   var sidebar  = document.getElementById("sidebar");
   var backdrop = document.getElementById("sidebarBackdrop");
   var toggle   = document.getElementById("sidebarToggle");
-  var titleEl  = document.getElementById("pageTitle");
+  var navTitleEl = document.getElementById("navPageTitle");
+
+  var isMobile = function() {
+    return window.matchMedia("(max-width: 768px)").matches;
+  };
 
   function closeSidebar() {
-    sidebar.classList.add("-translate-x-full");
-    sidebar.classList.remove("translate-x-0");
-    backdrop.classList.add("hidden");
-    backdrop.classList.remove("block");
+    if (isMobile()) {
+      sidebar.classList.add("-translate-x-full");
+      sidebar.classList.remove("translate-x-0");
+      backdrop.classList.add("hidden");
+      backdrop.classList.remove("block");
+    }
   }
 
   function openSidebar() {
-    sidebar.classList.remove("-translate-x-full");
-    sidebar.classList.add("translate-x-0");
-    backdrop.classList.remove("hidden");
-    backdrop.classList.add("block");
+    if (isMobile()) {
+      sidebar.classList.remove("-translate-x-full");
+      sidebar.classList.add("translate-x-0");
+      backdrop.classList.remove("hidden");
+      backdrop.classList.add("block");
+    }
   }
+
+  // On mobile, start with sidebar hidden
+  function handleResize() {
+    if (isMobile()) {
+      sidebar.classList.add("-translate-x-full");
+      sidebar.classList.remove("translate-x-0");
+      backdrop.classList.add("hidden");
+    } else {
+      sidebar.classList.remove("-translate-x-full");
+      sidebar.classList.remove("translate-x-0");
+      backdrop.classList.add("hidden");
+    }
+  }
+
+  handleResize();
+  window.addEventListener("resize", handleResize);
 
   if (toggle) {
     toggle.addEventListener("click", function() {
-      if (!sidebar.classList.contains("-translate-x-full")) closeSidebar();
-      else openSidebar();
+      if (isMobile()) {
+        if (sidebar.classList.contains("-translate-x-full")) openSidebar();
+        else closeSidebar();
+      }
     });
   }
   if (backdrop) backdrop.addEventListener("click", closeSidebar);
@@ -58,9 +84,10 @@ function setupSidebar() {
         panel.style.display = "block";
       }
 
-      if (titleEl) titleEl.textContent = item.textContent.trim();
+      var label = item.textContent.trim();
+      if (navTitleEl) navTitleEl.textContent = label;
 
-      if (window.matchMedia("(max-width: 768px)").matches) closeSidebar();
+      if (isMobile()) closeSidebar();
     });
   });
 

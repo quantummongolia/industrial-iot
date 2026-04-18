@@ -1,5 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
+@source "../";
 
 /* ============================================================
    THEME — Design system tokens mapped to Tailwind v4
@@ -146,6 +147,93 @@
    COMPONENT UTILITIES — Complex components via @layer
    ============================================================ */
 @layer components {
+  /* ============================================================
+     LIQUID GLASS — Flat, uniform, lightweight
+     ============================================================ */
+  .glass {
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .glass-strong {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .glass-soft {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  .glass-nav {
+    background: rgba(10, 10, 14, 0.6);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  .glass-sidebar {
+    background: rgba(14, 14, 17, 0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-right: 1px solid rgba(255, 255, 255, 0.04);
+  }
+  .glass-card {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    transition: background 0.2s var(--ease-smooth), border-color 0.2s var(--ease-smooth);
+  }
+  .glass-card:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.10);
+  }
+  .glass-input {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    transition: background 0.15s var(--ease-smooth), border-color 0.15s var(--ease-smooth);
+  }
+  .glass-input:focus {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--color-accent);
+  }
+
+  /* Light theme overrides */
+  [data-theme="light"] .glass,
+  [data-theme="light"] .glass-soft {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: rgba(0, 0, 0, 0.06);
+  }
+  [data-theme="light"] .glass-strong {
+    background: rgba(255, 255, 255, 0.7);
+    border-color: rgba(0, 0, 0, 0.06);
+  }
+  [data-theme="light"] .glass-nav {
+    background: rgba(248, 248, 250, 0.75);
+    border-bottom-color: rgba(0, 0, 0, 0.05);
+  }
+  [data-theme="light"] .glass-sidebar {
+    background: rgba(255, 255, 255, 0.8);
+    border-right-color: rgba(0, 0, 0, 0.04);
+  }
+  [data-theme="light"] .glass-card {
+    background: rgba(0, 0, 0, 0.02);
+    border-color: rgba(0, 0, 0, 0.06);
+  }
+  [data-theme="light"] .glass-card:hover {
+    background: rgba(0, 0, 0, 0.04);
+    border-color: rgba(0, 0, 0, 0.10);
+  }
+  [data-theme="light"] .glass-input {
+    background: rgba(0, 0, 0, 0.02);
+    border-color: rgba(0, 0, 0, 0.08);
+  }
+
   /* Login step visibility */
   .login-step { display: none; }
   .login-step.active {
@@ -263,16 +351,6 @@
   }
 
   /* Lightning canvas — removed, no longer used */
-
-  /* Card swap - stage perspective */
-  .cardswap-stage { perspective: 900px; }
-  .cs-card { will-change: transform; }
-  .cs-card-img[src=""] {
-    background: linear-gradient(135deg,
-      rgba(167,139,250,0.15) 0%,
-      rgba(139,92,246,0.08) 50%,
-      rgba(30,30,40,0.6) 100%);
-  }
 }
 
 /* ============================================================
