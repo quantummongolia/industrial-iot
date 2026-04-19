@@ -138,9 +138,18 @@ function setupSidebar() {
   });
 
   // Set initial active state
+  document.querySelectorAll(".tab-panel").forEach(function(p) {
+    p.classList.remove("active");
+    p.style.display = "none";
+  });
   var firstNav = document.querySelector('.nav-item[data-tab="energy"]');
   if (firstNav) {
-    firstNav.classList.add("bg-accent-bg", "text-accent", "font-semibold");
+    firstNav.classList.add("nav-active");
     firstNav.classList.remove("text-text-soft");
+  }
+  var firstPanel = document.getElementById("tab-energy");
+  if (firstPanel) {
+    firstPanel.classList.add("active");
+    firstPanel.style.display = "block";
   }
 }

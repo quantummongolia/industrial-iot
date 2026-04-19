@@ -456,36 +456,42 @@
 @layer components {
     .glass {
         -webkit-backdrop-filter: blur(12px);
+        backdrop-filter: blur(12px);
         background: #ffffff0a;
         border: 1px solid #ffffff0f
     }
 
     .glass-strong {
         -webkit-backdrop-filter: blur(18px);
+        backdrop-filter: blur(18px);
         background: #ffffff0d;
         border: 1px solid #ffffff14
     }
 
     .glass-soft {
         -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
         background: #ffffff08;
         border: 1px solid #ffffff0d
     }
 
     .glass-nav {
         -webkit-backdrop-filter: blur(16px);
+        backdrop-filter: blur(16px);
         background: #0a0a0e99;
         border-bottom: 1px solid #ffffff0d
     }
 
     .glass-sidebar {
         -webkit-backdrop-filter: blur(16px);
+        backdrop-filter: blur(16px);
         background: #0e0e11b3;
         border-right: 1px solid #ffffff0a
     }
 
     .glass-card {
         -webkit-backdrop-filter: blur(14px);
+        backdrop-filter: blur(14px);
         transition: background .2s var(--ease-smooth), border-color .2s var(--ease-smooth);
         background: #ffffff08;
         border: 1px solid #ffffff0f
@@ -498,6 +504,7 @@
 
     .glass-input {
         -webkit-backdrop-filter: blur(8px);
+        backdrop-filter: blur(8px);
         transition: background .15s var(--ease-smooth), border-color .15s var(--ease-smooth);
         background: #ffffff08;
         border: 1px solid #ffffff0f
