@@ -53,6 +53,13 @@ self.addEventListener('fetch', function(event) {
   }
 
   var url = new URL(request.url);
+
+  // version.json — үргэлж network, хэзээ ч cache хийхгүй (update detection)
+  if (url.pathname === '/version.json') {
+    event.respondWith(fetch(request, { cache: 'no-store' }));
+    return;
+  }
+
   var isCode = /\.(js|css|html)$/.test(url.pathname) || request.mode === 'navigate';
 
   if (isCode) {

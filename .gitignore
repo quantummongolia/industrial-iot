@@ -20,6 +20,9 @@ node_modules/
 .firebase/
 firebase-debug.log
 
+# Claude Code
+.claude/worktrees/
+
 # Нууц мэдээлэл — API key, нууц үг, тохиргоо
 secrets.h
 config.js

@@ -169,15 +169,11 @@
     border: 1px solid rgba(255, 255, 255, 0.05);
   }
   .glass-nav {
-    background: rgba(10, 10, 14, 0.6);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    background: #0a0a0e;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   }
   .glass-sidebar {
-    background: rgba(14, 14, 17, 0.7);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    background: #0e0e11;
     border-right: 1px solid rgba(255, 255, 255, 0.04);
   }
   .glass-card {
@@ -214,11 +210,11 @@
     border-color: rgba(0, 0, 0, 0.06);
   }
   [data-theme="light"] .glass-nav {
-    background: rgba(248, 248, 250, 0.75);
+    background: #f8f8fa;
     border-bottom-color: rgba(0, 0, 0, 0.05);
   }
   [data-theme="light"] .glass-sidebar {
-    background: rgba(255, 255, 255, 0.8);
+    background: #ffffff;
     border-right-color: rgba(0, 0, 0, 0.04);
   }
   [data-theme="light"] .glass-card {

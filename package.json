@@ -6,8 +6,11 @@
   "scripts": {
     "css:build": "npx @tailwindcss/cli -i web_dashboard/src/input.css -o web_dashboard/css/app.css --minify",
     "css:watch": "npx @tailwindcss/cli -i web_dashboard/src/input.css -o web_dashboard/css/app.css --watch",
-    "build": "npm run css:build",
-    "dev": "npm run css:watch"
+    "bump": "node scripts/bump-version.js",
+    "build": "npm run css:build && npm run bump",
+    "dev": "npm run css:watch",
+    "predeploy": "npm run build",
+    "deploy": "firebase deploy --only hosting"
   },
   "repository": {
     "type": "git",
