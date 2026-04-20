@@ -1,67 +1,49 @@
 // ============================================================
-//  SERVICE WORKER — Offline-first caching for PWA
-//  Strategy: Network-first for HTML/API, Cache-first for assets
+//  SERVICE WORKER — PWA caching
+//  Strategy: Network-first for code (HTML/JS/CSS) so deploys
+//  propagate instantly; cache-first for images/fonts.
 // ============================================================
 
-var CACHE_NAME = 'mresource-v1';
+var CACHE_NAME = 'mresource-' + Date.now();  // New cache on every deploy
 var OFFLINE_URL = '/404.html';
 
-// Assets to pre-cache on install
 var PRECACHE_URLS = [
   '/',
   '/index.html',
   '/login.html',
   '/404.html',
-  '/css/app.css',
-  '/js/theme.js',
-  '/js/auth.js',
-  '/js/login-form.js',
-  '/js/sidebar.js',
-  '/js/clock.js',
-  '/js/ip-detect.js',
-  '/js/realtime.js',
-  '/js/toast.js',
-  '/js/app.js',
-  '/img/industrial-iot-icon.png',
-  '/manifest.json'
+  '/manifest.json',
+  '/img/industrial-iot-icon.png'
 ];
 
-// Install — pre-cache core assets
 self.addEventListener('install', function(event) {
   event.waitUntil(
     caches.open(CACHE_NAME).then(function(cache) {
       return cache.addAll(PRECACHE_URLS);
     }).then(function() {
-      return self.skipWaiting();
+      return self.skipWaiting();  // Activate new SW immediately
     })
   );
 });
 
-// Activate — clean up old caches
 self.addEventListener('activate', function(event) {
   event.waitUntil(
     caches.keys().then(function(cacheNames) {
       return Promise.all(
-        cacheNames.filter(function(name) {
-          return name !== CACHE_NAME;
-        }).map(function(name) {
-          return caches.delete(name);
-        })
+        cacheNames.filter(function(name) { return name !== CACHE_NAME; })
+                  .map(function(name) { return caches.delete(name); })
       );
     }).then(function() {
-      return self.clients.claim();
+      return self.clients.claim();  // Take control of open tabs
     })
   );
 });
 
-// Fetch — Network-first for navigation, cache-first for assets
 self.addEventListener('fetch', function(event) {
   var request = event.request;
-
-  // Skip non-GET requests
   if (request.method !== 'GET') return;
 
-  // Skip Firebase and external API requests
+  // Skip 3rd-party APIs
   if (request.url.includes('firebasedatabase.app') ||
       request.url.includes('googleapis.com') ||
       request.url.includes('gstatic.com') ||
@@ -70,10 +52,19 @@ self.addEventListener('fetch', function(event) {
     return;
   }
 
-  // Navigation requests — network first, fallback to cache
-  if (request.mode === 'navigate') {
+  var url = new URL(request.url);
+  var isCode = /\.(js|css|html)$/.test(url.pathname) || request.mode === 'navigate';
+
+  if (isCode) {
+    // Network-first: code өөрчлөгдвөл шууд харагдана
     event.respondWith(
-      fetch(request).catch(function() {
+      fetch(request).then(function(response) {
+        if (response.status === 200) {
+          var clone = response.clone();
+          caches.open(CACHE_NAME).then(function(cache) { cache.put(request, clone); });
+        }
+        return response;
+      }).catch(function() {
         return caches.match(request).then(function(cached) {
           return cached || caches.match(OFFLINE_URL);
         });
@@ -82,25 +73,16 @@ self.addEventListener('fetch', function(event) {
     return;
   }
 
-  // Static assets — cache first, fallback to network
+  // Cache-first for images/fonts/other static assets
   event.respondWith(
     caches.match(request).then(function(cached) {
       if (cached) return cached;
-
       return fetch(request).then(function(response) {
-        // Cache successful responses
         if (response.status === 200) {
-          var responseClone = response.clone();
-          caches.open(CACHE_NAME).then(function(cache) {
-            cache.put(request, responseClone);
-          });
+          var clone = response.clone();
+          caches.open(CACHE_NAME).then(function(cache) { cache.put(request, clone); });
         }
         return response;
-      }).catch(function() {
-        // Offline fallback for HTML
-        if (request.headers.get('accept').includes('text/html')) {
-          return caches.match(OFFLINE_URL);
-        }
       });
     })
   );

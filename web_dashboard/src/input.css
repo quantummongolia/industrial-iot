@@ -248,6 +248,17 @@
     animation: tab-in 0.25s var(--ease-smooth);
   }
 
+  /* Desktop sidebar collapse (hamburger toggle) */
+  @media (min-width: 769px) {
+    body.sidebar-collapsed #sidebar {
+      transform: translateX(-100%);
+    }
+    body.sidebar-collapsed main {
+      margin-left: 0 !important;
+      transition: margin-left 0.3s var(--ease-smooth);
+    }
+  }
+
   /* LED pulse indicator */
   .led-online {
     background: var(--color-success);

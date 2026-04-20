@@ -64,6 +64,10 @@ unsigned long lastReadTime = 0;   // Timestamp of last sensor reading (milliseco
 unsigned long lastWifiCheck = 0;  // Timestamp of last WiFi connection check (milliseconds)
 bool firebaseReady = false;       // Flag indicating Firebase authentication is complete
 
+// Firebase upload backoff — prevents auth rate-limit storms on failure
+unsigned long fbNextAllowedAt = 0;   // Next allowed upload timestamp
+unsigned int  fbFailStreak    = 0;   // Consecutive upload failure count
+
 // ========================== CRC16 CHECKSUM ================================
 
 /*
@@ -262,14 +266,32 @@ void firebaseInit() {
  * @return - true if Firebase is authenticated and ready, false otherwise
  */
 bool ensureFirebase() {
-  if (!Firebase.ready())        // Check if Firebase auth token is valid
+  if (!Firebase.ready())
     return false;
-  if (!firebaseReady) {         // First time Firebase becomes ready
-    firebaseReady = true;       // Set flag to prevent repeated messages
+  if (!firebaseReady) {
+    firebaseReady = true;
     Serial.println("[Firebase] Ready");
   }
-  return true;                  // Firebase is ready for database operations
+  return true;
 }
+
+// Exponential backoff: 2s → 4s → 8s → 16s → ... → 5min cap.
+// Called after any Firebase.RTDB.set*() returns false.
+void fbOnFailure() {
+  fbFailStreak++;
+  unsigned long backoff = 2000UL * (1UL << min((unsigned int)8, fbFailStreak));  // 2s..~8min raw
+  if (backoff > 300000UL) backoff = 300000UL;                                     // cap at 5 min
+  fbNextAllowedAt = millis() + backoff;
+  Serial.printf("[Firebase] Backoff %lus (fail streak %u)\n", backoff / 1000, fbFailStreak);
+}
+
+void fbOnSuccess() {
+  if (fbFailStreak > 0) Serial.println("[Firebase] Recovered");
+  fbFailStreak    = 0;
+  fbNextAllowedAt = 0;
+}
+
+bool fbCanUpload() { return (long)(millis() - fbNextAllowedAt) >= 0; }
 
 // ========================== SETUP (RUNS ONCE AT BOOT) ==================================
 
@@ -367,31 +389,34 @@ void loop() {
   else
     Serial.printf("[FM2] Read failed — flow:%d total:%d\n", okFlow2, okTotal2);
 
-  // ---- Upload to Firebase ----
-  if (!ensureFirebase()) {
-    Serial.println("[System] Firebase not ready");
-    return;
-  }
+  // ---- Upload to Firebase (with backoff on failure) ----
+  if (!fbCanUpload()) return;         // Still waiting out backoff window
+  if (!ensureFirebase()) return;      // Auth not ready yet
+
+  bool anyWrite = false, anyFail = false;
 
   if (okFlow1) {
-    if (!Firebase.RTDB.setFloat(&fbData, FB_PATH_FM1_FLOW, flow1))
-      Serial.printf("[Firebase] FM1 flow ERROR: %s\n", fbData.errorReason().c_str());
+    if (Firebase.RTDB.setFloat(&fbData, FB_PATH_FM1_FLOW, flow1))   anyWrite = true;
+    else { anyFail = true; Serial.printf("[Firebase] FM1 flow ERROR: %s\n", fbData.errorReason().c_str()); }
   }
   if (okTotal1) {
-    if (!Firebase.RTDB.setFloat(&fbData, FB_PATH_FM1_TOTAL, total1))
-      Serial.printf("[Firebase] FM1 total ERROR: %s\n", fbData.errorReason().c_str());
+    if (Firebase.RTDB.setFloat(&fbData, FB_PATH_FM1_TOTAL, total1)) anyWrite = true;
+    else { anyFail = true; Serial.printf("[Firebase] FM1 total ERROR: %s\n", fbData.errorReason().c_str()); }
   }
   if (okFlow2) {
-    if (!Firebase.RTDB.setFloat(&fbData, FB_PATH_FM2_FLOW, flow2))
-      Serial.printf("[Firebase] FM2 flow ERROR: %s\n", fbData.errorReason().c_str());
+    if (Firebase.RTDB.setFloat(&fbData, FB_PATH_FM2_FLOW, flow2))   anyWrite = true;
+    else { anyFail = true; Serial.printf("[Firebase] FM2 flow ERROR: %s\n", fbData.errorReason().c_str()); }
   }
   if (okTotal2) {
-    if (!Firebase.RTDB.setFloat(&fbData, FB_PATH_FM2_TOTAL, total2))
-      Serial.printf("[Firebase] FM2 total ERROR: %s\n", fbData.errorReason().c_str());
+    if (Firebase.RTDB.setFloat(&fbData, FB_PATH_FM2_TOTAL, total2)) anyWrite = true;
+    else { anyFail = true; Serial.printf("[Firebase] FM2 total ERROR: %s\n", fbData.errorReason().c_str()); }
   }
 
-  if (okFlow1 || okFlow2) {
+  if (anyWrite) {
     Firebase.RTDB.setInt(&fbData, FB_PATH_LAST_UPDATED, (int)(millis() / 1000));
     Serial.println("[Firebase] Updated");
   }
+
+  if (anyFail)         fbOnFailure();
+  else if (anyWrite)   fbOnSuccess();
 }

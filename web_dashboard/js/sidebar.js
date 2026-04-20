@@ -52,6 +52,9 @@ function setupSidebar() {
       if (isMobile()) {
         if (sidebar.classList.contains("-translate-x-full")) openSidebar();
         else closeSidebar();
+      } else {
+        // Desktop: collapse/expand sidebar
+        document.body.classList.toggle("sidebar-collapsed");
       }
     });
   }
@@ -142,14 +145,15 @@ function setupSidebar() {
     p.classList.remove("active");
     p.style.display = "none";
   });
-  var firstNav = document.querySelector('.nav-item[data-tab="energy"]');
+  var firstNav = document.querySelector('.nav-item[data-tab="flow-meters"]');
   if (firstNav) {
-    firstNav.classList.add("nav-active");
+    firstNav.classList.add("bg-accent-bg", "text-accent", "font-semibold");
     firstNav.classList.remove("text-text-soft");
   }
-  var firstPanel = document.getElementById("tab-energy");
+  var firstPanel = document.getElementById("tab-flow-meters");
   if (firstPanel) {
     firstPanel.classList.add("active");
     firstPanel.style.display = "block";
   }
+  if (navTitleEl && firstNav) navTitleEl.textContent = firstNav.textContent.trim();
 }
