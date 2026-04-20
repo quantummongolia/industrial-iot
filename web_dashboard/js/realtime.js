@@ -1,59 +1,54 @@
 // ============================================================
 //  REALTIME — Firebase RTDB listeners for live flowmeter data
-//  ------------------------------------------------------------
-//  Энэ модуль Firebase SDK болон config.js (firebaseConfig) байгаа эсэхээс
-//  хамаарна. Хоёрын аль нь ч байхгүй тохиолдолд аюулгүйгээр skip хийнэ —
-//  ингэснээр pure UI/UX ажил Firebase эвдэхгүйгээр үргэлжилж чадна.
 //
-//  Sensor mapping:
-//    flowmeter1  →  #fm1Flow  /  #dataLed1
-//    flowmeter2  →  #fm2Flow  /  #dataLed2
-//    total       →  #fmTotal  (fm1 + fm2)
+//  Sensor mapping (Slave ID 2 = Суларсан уусмал, Slave ID 3 = Баян уусмал):
+//    /flow_system/flowmeter1/flow_rate   →  #fm1Flow  / #dataLed1
+//    /flow_system/flowmeter1/totalizer   →  #fm1Total
+//    /flow_system/flowmeter2/flow_rate   →  #fm2Flow  / #dataLed2
+//    /flow_system/flowmeter2/totalizer   →  #fm2Total
 //
 //  Public API:
 //    initRealtime() — элемент кэш + Firebase listeners-ийг эхлүүлнэ
 // ============================================================
 
 let _readingCount = 0;
-let _lastDataTime = 0;
-let _fm1 = 0;
-let _fm2 = 0;
-let _el  = {};
+let _el = {};
 
-// ---------- Helpers ----------
 function _blinkLed(ledEl) {
   if (!ledEl) return;
-  ledEl.classList.add("percentage-led-blink");
-  setTimeout(function() { ledEl.classList.remove("percentage-led-blink"); }, 400);
+  ledEl.classList.add("data-led-active");
+  setTimeout(function () { ledEl.classList.remove("data-led-active"); }, 400);
 }
 
-function _updateFlowmeter(key, flow) {
-  _lastDataTime = Date.now();
+function _onFlowRate(key, val) {
   _readingCount++;
-
+  const flow = parseFloat(val);
   if (key === "fm1") {
-    _fm1 = flow;
     if (_el.fm1Flow) _el.fm1Flow.textContent = flow.toFixed(2);
     _blinkLed(_el.dataLed1);
-  }
-  if (key === "fm2") {
-    _fm2 = flow;
+  } else {
     if (_el.fm2Flow) _el.fm2Flow.textContent = flow.toFixed(2);
     _blinkLed(_el.dataLed2);
   }
-
-  if (_el.fmTotal)      _el.fmTotal.textContent      = (_fm1 + _fm2).toFixed(2);
   if (_el.readingCount) _el.readingCount.textContent = _readingCount;
   if (_el.lastUpdate)   _el.lastUpdate.textContent   = new Date().toLocaleTimeString();
 }
 
-// ---------- Boot ----------
+function _onTotalizer(key, val) {
+  const total = parseFloat(val).toFixed(2);
+  if (key === "fm1") {
+    if (_el.fm1Total) _el.fm1Total.textContent = total;
+  } else {
+    if (_el.fm2Total) _el.fm2Total.textContent = total;
+  }
+}
+
 function initRealtime() {
-  // DOM элементүүдийг нэг удаа кэшлэнэ
   _el = {
     fm1Flow:      document.getElementById("fm1Flow"),
+    fm1Total:     document.getElementById("fm1Total"),
     fm2Flow:      document.getElementById("fm2Flow"),
-    fmTotal:      document.getElementById("fmTotal"),
+    fm2Total:     document.getElementById("fm2Total"),
     dataLed1:     document.getElementById("dataLed1"),
     dataLed2:     document.getElementById("dataLed2"),
     statusLed:    document.getElementById("statusLed"),
@@ -62,7 +57,6 @@ function initRealtime() {
     lastUpdate:   document.getElementById("lastUpdate"),
   };
 
-  // Firebase optional — SDK эсвэл config байхгүй бол чимээгүй гарна
   if (typeof firebase === "undefined" || !firebase.apps || !firebase.apps.length) {
     console.info("[realtime] Firebase skipped (SDK or app not initialized)");
     return;
@@ -82,16 +76,19 @@ function initRealtime() {
     }
   });
 
-  // Flow updates
-  db.ref("/flow_system/last_updated").on("value", () => {
-    _lastDataTime = Date.now();
+  // Flowmeter 1 — Суларсан уусмал (Slave ID 2)
+  db.ref("/flow_system/flowmeter1/flow_rate").on("value", s => {
+    if (s.val() !== null) _onFlowRate("fm1", s.val());
   });
-  db.ref("/flow_system/flowmeter1/current_flow").on("value", s => {
-    const v = s.val();
-    if (v !== null) _updateFlowmeter("fm1", parseFloat(v));
+  db.ref("/flow_system/flowmeter1/totalizer").on("value", s => {
+    if (s.val() !== null) _onTotalizer("fm1", s.val());
   });
-  db.ref("/flow_system/flowmeter2/current_flow").on("value", s => {
-    const v = s.val();
-    if (v !== null) _updateFlowmeter("fm2", parseFloat(v));
+
+  // Flowmeter 2 — Баян уусмал (Slave ID 3)
+  db.ref("/flow_system/flowmeter2/flow_rate").on("value", s => {
+    if (s.val() !== null) _onFlowRate("fm2", s.val());
+  });
+  db.ref("/flow_system/flowmeter2/totalizer").on("value", s => {
+    if (s.val() !== null) _onTotalizer("fm2", s.val());
   });
 }

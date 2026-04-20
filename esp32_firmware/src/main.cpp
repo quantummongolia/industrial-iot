@@ -38,18 +38,21 @@
 #define FLOWMETER2_SLAVE_ID 3   // Modbus address of second flowmeter
 #define MODBUS_BAUD 9600        // Modbus serial communication baud rate
 
-// Modbus holding register address for current flow reading
-#define REG_CURRENT_FLOW 0x0000
+// Modbus holding register addresses
+#define REG_FLOW_RATE   0x0000  // Reg[00-01]: Flow rate (32-bit float, Big-Endian)
+#define REG_TOTALIZER   0x0003  // Reg[03-06]: Totalizer (int32 + float fraction)
 
 // Timing configuration
 #define READ_INTERVAL_MS 800    // Interval between flowmeter readings in milliseconds
 #define WIFI_RETRY_MS 10000     // WiFi reconnection attempt interval in milliseconds
 #define WDT_TIMEOUT_S 30        // Watchdog timer timeout in seconds (resets ESP32 if stuck)
 
-// Firebase Realtime Database paths for storing sensor data
-#define FB_PATH_FM1_CURRENT "/flow_system/flowmeter1/current_flow"  // Flowmeter 1 current flow value path
-#define FB_PATH_FM2_CURRENT "/flow_system/flowmeter2/current_flow"  // Flowmeter 2 current flow value path
-#define FB_PATH_LAST_UPDATED "/flow_system/last_updated"            // Timestamp of last successful update
+// Firebase Realtime Database paths
+#define FB_PATH_FM1_FLOW      "/flow_system/flowmeter1/flow_rate"
+#define FB_PATH_FM1_TOTAL     "/flow_system/flowmeter1/totalizer"
+#define FB_PATH_FM2_FLOW      "/flow_system/flowmeter2/flow_rate"
+#define FB_PATH_FM2_TOTAL     "/flow_system/flowmeter2/totalizer"
+#define FB_PATH_LAST_UPDATED  "/flow_system/last_updated"
 
 // ========================== GLOBAL OBJECTS ==========================
 
@@ -165,41 +168,40 @@ float parseFloatBE(uint8_t *data) {
   return conv.f;  // Return the float interpretation of the assembled bytes
 }
 
-/*
- * Read a float value from a Modbus slave's holding registers.
- * Sends a read request, validates the response frame (CRC, slave ID, function code),
- * and parses the 4 data bytes as a Big-Endian float.
- * Retries are handled by the caller.
- * @param slaveId  - Modbus slave device address
- * @param reg      - Starting register address
- * @param outValue - Reference to store the parsed float result
- * @return         - true if valid response received and parsed, false on error
- */
-bool readFlowFloat(uint8_t slaveId, uint16_t reg, float &outValue) {
-  int len = sendAndRead(slaveId, reg, 2);  // Read 2 registers (4 bytes = 1 float)
-  if (len < 9)                             // Minimum valid response: 1(addr) + 1(fc) + 1(bytecount) + 4(data) + 2(crc) = 9 bytes
-    return false;
-
-  // Scan through received data to find a valid Modbus response frame
-  for (int i = 0; i <= len - 9; i++) {
-    if (rxbuf[i] == slaveId && rxbuf[i + 1] == 0x03) {  // Match slave ID and function code 03
-      uint8_t byteCount = rxbuf[i + 2];   // Number of data bytes in response
-      if (byteCount != 4)                  // Expect exactly 4 bytes (2 registers = 1 float)
-        continue;
-      int frameLen = 3 + byteCount + 2;   // Total frame length: header(3) + data(4) + CRC(2)
-      if (i + frameLen <= len) {           // Ensure complete frame is within buffer
-        // Extract and verify CRC16 checksum
-        uint16_t recvCrc =
-            rxbuf[i + frameLen - 2] | (rxbuf[i + frameLen - 1] << 8);  // Received CRC (little-endian)
-        uint16_t calcCrc = crc16(&rxbuf[i], frameLen - 2);             // Calculated CRC over frame
-        if (recvCrc == calcCrc) {          // CRC match confirms data integrity
-          outValue = parseFloatBE(&rxbuf[i + 3]);  // Parse float from data bytes (offset 3)
-          return true;                     // Successfully read and parsed flow value
-        }
-      }
-    }
+// Validate a Modbus response frame: slave ID, FC03, CRC, expected byte count.
+// Returns pointer to start of data bytes, or nullptr on failure.
+static uint8_t *validateFrame(uint8_t slaveId, int len, uint8_t expectBytes) {
+  for (int i = 0; i <= len - (int)(3 + expectBytes + 2); i++) {
+    if (rxbuf[i] != slaveId || rxbuf[i + 1] != 0x03) continue;
+    if (rxbuf[i + 2] != expectBytes) continue;
+    int frameLen = 3 + expectBytes + 2;
+    uint16_t recvCrc = rxbuf[i + frameLen - 2] | (rxbuf[i + frameLen - 1] << 8);
+    if (recvCrc == crc16(&rxbuf[i], frameLen - 2))
+      return &rxbuf[i + 3];  // pointer to first data byte
   }
-  return false;  // No valid response frame found in received data
+  return nullptr;
+}
+
+// Read flow rate (Reg[00-01], 4 bytes, Big-Endian float) from a slave.
+bool readFlowRate(uint8_t slaveId, float &outFlow) {
+  int len = sendAndRead(slaveId, REG_FLOW_RATE, 2);
+  uint8_t *data = validateFrame(slaveId, len, 4);
+  if (!data) return false;
+  outFlow = parseFloatBE(data);
+  return true;
+}
+
+// Read totalizer (Reg[03-06], 14 bytes) from a slave.
+// Layout: Reg[03-04] = int32 integer part, Reg[05-06] = float fractional part.
+bool readTotalizer(uint8_t slaveId, float &outTotal) {
+  int len = sendAndRead(slaveId, REG_TOTALIZER, 4);  // 4 registers = 8 bytes raw
+  uint8_t *data = validateFrame(slaveId, len, 8);
+  if (!data) return false;
+  uint32_t intPart = ((uint32_t)data[0] << 24) | ((uint32_t)data[1] << 16) |
+                     ((uint32_t)data[2] << 8)  |  (uint32_t)data[3];
+  float fracPart = parseFloatBE(&data[4]);
+  outTotal = (float)((double)intPart + (double)fracPart);
+  return true;
 }
 
 // ========================== WI-FI CONNECTION =========================
@@ -325,65 +327,71 @@ void loop() {
     return;
   lastReadTime = now;           // Update last read timestamp
 
-  // ---- Read Flowmeter 1 (Slave ID 2) ----
-  float flow1 = 0.0;           // Variable to store flowmeter 1 reading
-  bool ok1 = false;            // Flag indicating successful read
-  for (int attempt = 0; attempt < 3 && !ok1; attempt++) {  // Retry up to 3 times
-    ok1 = readFlowFloat(FLOWMETER1_SLAVE_ID, REG_CURRENT_FLOW, flow1);  // Read flow value
-    if (!ok1 && attempt < 2)   // If failed and more retries available
-      delay(50);               // Wait 50ms before retrying
+  // ---- Read Flowmeter 1 (Slave ID 2: Суларсан уусмал) ----
+  float flow1 = 0.0, total1 = 0.0;
+  bool okFlow1 = false, okTotal1 = false;
+
+  for (int i = 0; i < 3 && !okFlow1; i++) {
+    okFlow1 = readFlowRate(FLOWMETER1_SLAVE_ID, flow1);
+    if (!okFlow1 && i < 2) delay(50);
+  }
+  delay(50);
+  for (int i = 0; i < 3 && !okTotal1; i++) {
+    okTotal1 = readTotalizer(FLOWMETER1_SLAVE_ID, total1);
+    if (!okTotal1 && i < 2) delay(50);
   }
 
-  if (ok1) {
-    Serial.printf("[FM1] Flow: %.4f\n", flow1);  // Print successful reading
-  } else {
-    Serial.println("[FM1] Read failed (3 attempts)");  // All retries exhausted
-  }
+  if (okFlow1 && okTotal1)
+    Serial.printf("[FM1] Flow: %.3f m3/h | Total: %.3f m3\n", flow1, total1);
+  else
+    Serial.printf("[FM1] Read failed — flow:%d total:%d\n", okFlow1, okTotal1);
 
-  // Brief delay between reading flowmeter 1 and 2 to prevent RS485 bus collision
   delay(50);
 
-  // ---- Read Flowmeter 2 (Slave ID 3) ----
-  float flow2 = 0.0;           // Variable to store flowmeter 2 reading
-  bool ok2 = false;            // Flag indicating successful read
-  for (int attempt = 0; attempt < 3 && !ok2; attempt++) {  // Retry up to 3 times
-    ok2 = readFlowFloat(FLOWMETER2_SLAVE_ID, REG_CURRENT_FLOW, flow2);  // Read flow value
-    if (!ok2 && attempt < 2)   // If failed and more retries available
-      delay(50);               // Wait 50ms before retrying
+  // ---- Read Flowmeter 2 (Slave ID 3: Баян уусмал) ----
+  float flow2 = 0.0, total2 = 0.0;
+  bool okFlow2 = false, okTotal2 = false;
+
+  for (int i = 0; i < 3 && !okFlow2; i++) {
+    okFlow2 = readFlowRate(FLOWMETER2_SLAVE_ID, flow2);
+    if (!okFlow2 && i < 2) delay(50);
+  }
+  delay(50);
+  for (int i = 0; i < 3 && !okTotal2; i++) {
+    okTotal2 = readTotalizer(FLOWMETER2_SLAVE_ID, total2);
+    if (!okTotal2 && i < 2) delay(50);
   }
 
-  if (ok2) {
-    Serial.printf("[FM2] Flow: %.4f\n", flow2);  // Print successful reading
-  } else {
-    Serial.println("[FM2] Read failed (3 attempts)");  // All retries exhausted
-  }
+  if (okFlow2 && okTotal2)
+    Serial.printf("[FM2] Flow: %.3f m3/h | Total: %.3f m3\n", flow2, total2);
+  else
+    Serial.printf("[FM2] Read failed — flow:%d total:%d\n", okFlow2, okTotal2);
 
-  // ---- Upload readings to Firebase Realtime Database ----
-  if (!ensureFirebase()) {      // Check if Firebase is authenticated and ready
+  // ---- Upload to Firebase ----
+  if (!ensureFirebase()) {
     Serial.println("[System] Firebase not ready");
-    return;                     // Skip upload if Firebase is not available
+    return;
   }
 
-  // Upload Flowmeter 1 reading to Firebase if read was successful
-  if (ok1) {
-    if (Firebase.RTDB.setFloat(&fbData, FB_PATH_FM1_CURRENT, flow1)) {
-      Serial.println("[Firebase] FM1 current_flow updated");  // Upload successful
-    } else {
-      Serial.printf("[Firebase] FM1 ERROR: %s\n", fbData.errorReason().c_str());  // Print error message
-    }
+  if (okFlow1) {
+    if (!Firebase.RTDB.setFloat(&fbData, FB_PATH_FM1_FLOW, flow1))
+      Serial.printf("[Firebase] FM1 flow ERROR: %s\n", fbData.errorReason().c_str());
+  }
+  if (okTotal1) {
+    if (!Firebase.RTDB.setFloat(&fbData, FB_PATH_FM1_TOTAL, total1))
+      Serial.printf("[Firebase] FM1 total ERROR: %s\n", fbData.errorReason().c_str());
+  }
+  if (okFlow2) {
+    if (!Firebase.RTDB.setFloat(&fbData, FB_PATH_FM2_FLOW, flow2))
+      Serial.printf("[Firebase] FM2 flow ERROR: %s\n", fbData.errorReason().c_str());
+  }
+  if (okTotal2) {
+    if (!Firebase.RTDB.setFloat(&fbData, FB_PATH_FM2_TOTAL, total2))
+      Serial.printf("[Firebase] FM2 total ERROR: %s\n", fbData.errorReason().c_str());
   }
 
-  // Upload Flowmeter 2 reading to Firebase if read was successful
-  if (ok2) {
-    if (Firebase.RTDB.setFloat(&fbData, FB_PATH_FM2_CURRENT, flow2)) {
-      Serial.println("[Firebase] FM2 current_flow updated");  // Upload successful
-    } else {
-      Serial.printf("[Firebase] FM2 ERROR: %s\n", fbData.errorReason().c_str());  // Print error message
-    }
-  }
-
-  // Update the last_updated timestamp if at least one reading was successful
-  if (ok1 || ok2) {
-    Firebase.RTDB.setInt(&fbData, FB_PATH_LAST_UPDATED, (int)(millis() / 1000));  // Seconds since boot
+  if (okFlow1 || okFlow2) {
+    Firebase.RTDB.setInt(&fbData, FB_PATH_LAST_UPDATED, (int)(millis() / 1000));
+    Serial.println("[Firebase] Updated");
   }
 }

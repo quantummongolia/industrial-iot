@@ -262,10 +262,14 @@
     animation: var(--animate-pulse-ring);
   }
 
-  /* Percentage LED blink */
+  /* Data LED — тогтмол ногоон, ring effect байхгүй */
+  .data-led-active {
+    background-color: var(--color-success) !important;
+    box-shadow: 0 0 10px var(--color-success);
+  }
   .percentage-led-blink {
-    background: var(--color-success);
-    box-shadow: 0 0 8px var(--color-success);
+    background-color: var(--color-success) !important;
+    box-shadow: 0 0 10px var(--color-success);
   }
 
   /* Gradient text animation */
