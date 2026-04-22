@@ -34,7 +34,15 @@ self.addEventListener('activate', function(event) {
                   .map(function(name) { return caches.delete(name); })
       );
     }).then(function() {
-      return self.clients.claim();  // Take control of open tabs
+      return self.clients.claim();
+    }).then(function() {
+      // Хуучин cache-тай хэрэглэгчдийг автоматаар refresh хийнэ.
+      // update-manager.js байхгүй хуучин хувилбарууд ч энэ замаар шинэчлэгдэнэ.
+      return self.clients.matchAll({ type: 'window' }).then(function(clients) {
+        return Promise.all(clients.map(function(client) {
+          return client.navigate(client.url);
+        }));
+      });
     })
   );
 });
