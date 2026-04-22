@@ -240,15 +240,6 @@
     });
   }
 
-  // SW-аас force reload дохио ирвэл (client.navigate() ажиллахгүй үед fallback)
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.addEventListener('message', function(event) {
-      if (event.data && event.data.type === 'SW_FORCE_RELOAD') {
-        location.reload();
-      }
-    });
-  }
-
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {

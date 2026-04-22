@@ -17,28 +17,24 @@ var PRECACHE_URLS = [
 ];
 
 self.addEventListener('install', function(event) {
-  // Precache-г алгасна — activate дээр network-аас шууд татна
-  event.waitUntil(self.skipWaiting());
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(function(cache) {
+      return cache.addAll(PRECACHE_URLS);
+    }).then(function() {
+      return self.skipWaiting();  // Activate new SW immediately
+    })
+  );
 });
 
 self.addEventListener('activate', function(event) {
   event.waitUntil(
-    // 1. Бүх хуучин cache устгана (precache ч орно)
     caches.keys().then(function(cacheNames) {
-      return Promise.all(cacheNames.map(function(name) {
-        return caches.delete(name);
-      }));
+      return Promise.all(
+        cacheNames.filter(function(name) { return name !== CACHE_NAME; })
+                  .map(function(name) { return caches.delete(name); })
+      );
     }).then(function() {
-      return self.clients.claim();
-    }).then(function() {
-      // 2. Нээлттэй бүх tab-г network-аас шинэ HTML татуулж refresh хийнэ
-      return self.clients.matchAll({ type: 'window' }).then(function(clients) {
-        return Promise.all(clients.map(function(client) {
-          return client.navigate(client.url).catch(function() {
-            client.postMessage({ type: 'SW_FORCE_RELOAD' });
-          });
-        }));
-      });
+      return self.clients.claim();  // Take control of open tabs
     })
   );
 });
