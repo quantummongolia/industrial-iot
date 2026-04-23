@@ -23,6 +23,11 @@ jobs:
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
 
+      - name: Create config.js from secret
+        run: echo "$CONFIG_JS" > web_dashboard/config.js
+        env:
+          CONFIG_JS: ${{ secrets.CONFIG_JS }}
+
       - name: Deploy to Firebase
         run: npm run deploy
         env:
