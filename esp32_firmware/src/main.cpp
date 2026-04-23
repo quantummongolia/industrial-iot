@@ -11,6 +11,8 @@
  * config)
  *   - Flowmeter 2 (Modbus RTU protocol, Slave ID 3, 9600 baud, 8N1 serial
  * config)
+ *   - Flowmeter 3 (Modbus RTU protocol, Slave ID 4, 9600 baud, 8N1 serial
+ * config)
  *
  * Required libraries (configured in platformio.ini):
  *   - Firebase Arduino Client Library by Mobizt
@@ -40,6 +42,7 @@
 // Modbus slave device addresses
 #define FLOWMETER1_SLAVE_ID 2 // Modbus address of first flowmeter
 #define FLOWMETER2_SLAVE_ID 3 // Modbus address of second flowmeter
+#define FLOWMETER3_SLAVE_ID 4 // Modbus address of third flowmeter
 #define MODBUS_BAUD 9600      // Modbus serial communication baud rate
 
 // Modbus holding register addresses
@@ -64,6 +67,8 @@
 #define FB_PATH_FM1_TOTAL "/flow_system/flowmeter1/totalizer"
 #define FB_PATH_FM2_FLOW "/flow_system/flowmeter2/flow_rate"
 #define FB_PATH_FM2_TOTAL "/flow_system/flowmeter2/totalizer"
+#define FB_PATH_FM3_FLOW "/flow_system/flowmeter3/flow_rate"
+#define FB_PATH_FM3_TOTAL "/flow_system/flowmeter3/totalizer"
 #define FB_PATH_LAST_UPDATED "/flow_system/last_updated"
 
 // ========================== GLOBAL OBJECTS ==========================
@@ -79,8 +84,8 @@ bool firebaseReady = false;          // Firebase auth complete flag
 
 // Cache last-good totalizer values so we keep uploading them between 5-min
 // reads
-float lastTotal1 = 0.0, lastTotal2 = 0.0;
-bool hasTotal1 = false, hasTotal2 = false;
+float lastTotal1 = 0.0, lastTotal2 = 0.0, lastTotal3 = 0.0;
+bool hasTotal1 = false, hasTotal2 = false, hasTotal3 = false;
 
 // Firebase upload backoff — prevents auth rate-limit storms on failure
 unsigned long fbNextAllowedAt = 0; // Next allowed upload timestamp
@@ -405,7 +410,7 @@ void recoverModbusBus() {
 void setup() {
   Serial.begin(115200); // Initialize debug serial port at 115200 baud
   delay(100);           // Brief delay for serial port to stabilize
-  Serial.println("\n========= Flowmeter IoT System (x2) =========");
+  Serial.println("\n========= Flowmeter IoT System (x3) =========");
 
   // Configure MAX485 RS485 transceiver pins
   pinMode(MAX485_DE_RE,
@@ -417,8 +422,9 @@ void setup() {
   // Initialize RS485 serial port (Serial2) for Modbus communication
   Serial2.begin(MODBUS_BAUD, SERIAL_8N1, RS485_RX_PIN, RS485_TX_PIN);
   Serial.printf(
-      "[Modbus] Initialized — Flowmeter 1: Slave %d, Flowmeter 2: Slave %d\n",
-      FLOWMETER1_SLAVE_ID, FLOWMETER2_SLAVE_ID);
+      "[Modbus] Initialized — Flowmeter 1: Slave %d, Flowmeter 2: Slave %d, "
+      "Flowmeter 3: Slave %d\n",
+      FLOWMETER1_SLAVE_ID, FLOWMETER2_SLAVE_ID, FLOWMETER3_SLAVE_ID);
 
   WiFi.onEvent(onWifiEvent); // Register auto-reconnect event handler BEFORE
                              // first connect
@@ -528,9 +534,42 @@ void loop() {
     Serial.printf("[FM2] Read failed — flow:%d total:%d (doTotalizer=%d)\n",
                   okFlow2, okTotal2, doTotalizer);
 
+  delay(50);
+
+  // ---- Read Flowmeter 3 (Slave ID 4: Суларсан уусмал 2) ----
+  float flow3 = 0.0, total3 = 0.0;
+  bool okFlow3 = false, okTotal3 = false;
+
+  for (int i = 0; i < 3 && !okFlow3; i++) {
+    okFlow3 = readFlowRate(FLOWMETER3_SLAVE_ID, flow3);
+    if (!okFlow3 && i < 2)
+      delay(50);
+  }
+
+  if (doTotalizer) {
+    delay(50);
+    for (int i = 0; i < 3 && !okTotal3; i++) {
+      okTotal3 = readTotalizer(FLOWMETER3_SLAVE_ID, total3);
+      if (!okTotal3 && i < 2)
+        delay(50);
+    }
+    if (okTotal3) {
+      lastTotal3 = total3;
+      hasTotal3 = true;
+    }
+  }
+
+  if (okFlow3 && (!doTotalizer || okTotal3))
+    Serial.printf("[FM3] Flow: %.3f m3/h%s%.3f m3\n", flow3,
+                  doTotalizer ? " | Total: " : " (total cached: ",
+                  doTotalizer ? total3 : lastTotal3);
+  else
+    Serial.printf("[FM3] Read failed — flow:%d total:%d (doTotalizer=%d)\n",
+                  okFlow3, okTotal3, doTotalizer);
+
   // ---- Track read failures and escalate recovery if needed ----
-  bool anyReadOk =
-      okFlow1 || okFlow2 || (doTotalizer && (okTotal1 || okTotal2));
+  bool anyReadOk = okFlow1 || okFlow2 || okFlow3 ||
+                   (doTotalizer && (okTotal1 || okTotal2 || okTotal3));
   if (anyReadOk) {
     consecutiveReadFails = 0;
     totalRecoveryAttempts = 0;
@@ -584,6 +623,24 @@ void loop() {
     else {
       anyFail = true;
       Serial.printf("[Firebase] FM2 total ERROR: %s\n",
+                    fbData.errorReason().c_str());
+    }
+  }
+  if (okFlow3) {
+    if (Firebase.RTDB.setFloat(&fbData, FB_PATH_FM3_FLOW, flow3))
+      anyWrite = true;
+    else {
+      anyFail = true;
+      Serial.printf("[Firebase] FM3 flow ERROR: %s\n",
+                    fbData.errorReason().c_str());
+    }
+  }
+  if (doTotalizer && okTotal3) {
+    if (Firebase.RTDB.setFloat(&fbData, FB_PATH_FM3_TOTAL, total3))
+      anyWrite = true;
+    else {
+      anyFail = true;
+      Serial.printf("[Firebase] FM3 total ERROR: %s\n",
                     fbData.errorReason().c_str());
     }
   }
