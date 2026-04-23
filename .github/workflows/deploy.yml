@@ -1,0 +1,26 @@
+name: Deploy to Firebase Hosting
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'web_dashboard/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Deploy to Firebase
+        run: npm run deploy
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
