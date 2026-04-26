@@ -64,12 +64,10 @@ function initRealtime() {
     lastUpdate:   document.getElementById("lastUpdate"),
     // Teerem
     teeremWeight:     document.getElementById("teeremWeight"),
-    teeremWeightKg:   document.getElementById("teeremWeightKg"),
     teeremWeightTons: document.getElementById("teeremWeightTons"),
     teeremWeightLed:  document.getElementById("teeremWeightLed"),
     // Butluur
     butluurWeight:     document.getElementById("butluurWeight"),
-    butluurWeightKg:   document.getElementById("butluurWeightKg"),
     butluurWeightTons: document.getElementById("butluurWeightTons"),
     butluurWeightLed:  document.getElementById("butluurWeightLed"),
   };
@@ -125,9 +123,7 @@ function initRealtime() {
   });
   db.ref("/teerem/cumulative_kg").on("value", s => {
     if (s.val() === null) return;
-    const kg = parseInt(s.val(), 10);
-    if (_el.teeremWeightKg)   _el.teeremWeightKg.textContent   = kg;
-    if (_el.teeremWeightTons) _el.teeremWeightTons.textContent = (kg / 1000).toFixed(3);
+    if (_el.teeremWeightTons) _el.teeremWeightTons.textContent = (parseInt(s.val(), 10) / 1000).toFixed(3);
   });
 
   // ── Butluur ───────────────────────────────────────────
@@ -138,8 +134,6 @@ function initRealtime() {
   });
   db.ref("/butluur/cumulative_kg").on("value", s => {
     if (s.val() === null) return;
-    const kg = parseInt(s.val(), 10);
-    if (_el.butluurWeightKg)   _el.butluurWeightKg.textContent   = kg;
-    if (_el.butluurWeightTons) _el.butluurWeightTons.textContent = (kg / 1000).toFixed(3);
+    if (_el.butluurWeightTons) _el.butluurWeightTons.textContent = (parseInt(s.val(), 10) / 1000).toFixed(3);
   });
 }

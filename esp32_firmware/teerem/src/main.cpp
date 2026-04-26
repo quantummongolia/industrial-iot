@@ -35,7 +35,6 @@ constexpr uint32_t UPLOAD_MS = 1000; // Firebase upload throttle
 
 // ── Firebase paths ─────────────────────────────────────────────────────
 #define FB_PATH_FLOW   "/teerem/weight_rate"
-#define FB_PATH_KG     "/teerem/cumulative_kg"
 #define FB_PATH_UPDATE "/teerem/last_updated"
 
 // ── Modbus ─────────────────────────────────────────────────────────────
@@ -174,14 +173,10 @@ void loop() {
   lastPoll = millis();
 
   float flow;
-  int32_t kg;
   bool flowOk = modbus.readFloat(cfg::REG_FLOW, flow);
-  bool kgOk   = modbus.readInt32(cfg::REG_KG, kg);
 
   if (flowOk) Serial.printf("Flow = %.2f t/h\n", flow);
   else        Serial.println("Flow = #");
-  if (kgOk)   Serial.printf("Kg   = %ld\n", (long)kg);
-  else        Serial.println("Kg   = #");
 
   if (!Firebase.ready()) return;
   if (!firebaseReady) { firebaseReady = true; Serial.println("[Firebase] ready"); }
@@ -189,12 +184,7 @@ void loop() {
   if (flowOk) {
     if (!Firebase.RTDB.setFloat(&fbData, FB_PATH_FLOW, flow))
       Serial.printf("[Firebase] flow err: %s\n", fbData.errorReason().c_str());
-  }
-  if (kgOk) {
-    if (!Firebase.RTDB.setInt(&fbData, FB_PATH_KG, kg))
-      Serial.printf("[Firebase] kg err: %s\n", fbData.errorReason().c_str());
-  }
-  if (flowOk || kgOk) {
-    Firebase.RTDB.setInt(&fbData, FB_PATH_UPDATE, (int)(millis() / 1000));
+    else
+      Firebase.RTDB.setInt(&fbData, FB_PATH_UPDATE, (int)(millis() / 1000));
   }
 }
