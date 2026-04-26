@@ -62,6 +62,16 @@ function initRealtime() {
     statusText:   document.getElementById("statusText"),
     readingCount: document.getElementById("readingCount"),
     lastUpdate:   document.getElementById("lastUpdate"),
+    // Teerem
+    teeremWeight:     document.getElementById("teeremWeight"),
+    teeremWeightKg:   document.getElementById("teeremWeightKg"),
+    teeremWeightTons: document.getElementById("teeremWeightTons"),
+    teeremWeightLed:  document.getElementById("teeremWeightLed"),
+    // Butluur
+    butluurWeight:     document.getElementById("butluurWeight"),
+    butluurWeightKg:   document.getElementById("butluurWeightKg"),
+    butluurWeightTons: document.getElementById("butluurWeightTons"),
+    butluurWeightLed:  document.getElementById("butluurWeightLed"),
   };
 
   if (typeof firebase === "undefined" || !firebase.apps || !firebase.apps.length) {
@@ -105,5 +115,31 @@ function initRealtime() {
   });
   db.ref("/flow_system/flowmeter3/totalizer").on("value", s => {
     if (s.val() !== null) _onTotalizer("fm3", s.val());
+  });
+
+  // ── Teerem ────────────────────────────────────────────
+  db.ref("/teerem/weight_rate").on("value", s => {
+    if (s.val() === null) return;
+    if (_el.teeremWeight) _el.teeremWeight.textContent = parseFloat(s.val()).toFixed(2);
+    _blinkLed(_el.teeremWeightLed);
+  });
+  db.ref("/teerem/cumulative_kg").on("value", s => {
+    if (s.val() === null) return;
+    const kg = parseInt(s.val(), 10);
+    if (_el.teeremWeightKg)   _el.teeremWeightKg.textContent   = kg;
+    if (_el.teeremWeightTons) _el.teeremWeightTons.textContent = (kg / 1000).toFixed(3);
+  });
+
+  // ── Butluur ───────────────────────────────────────────
+  db.ref("/butluur/weight_rate").on("value", s => {
+    if (s.val() === null) return;
+    if (_el.butluurWeight) _el.butluurWeight.textContent = parseFloat(s.val()).toFixed(2);
+    _blinkLed(_el.butluurWeightLed);
+  });
+  db.ref("/butluur/cumulative_kg").on("value", s => {
+    if (s.val() === null) return;
+    const kg = parseInt(s.val(), 10);
+    if (_el.butluurWeightKg)   _el.butluurWeightKg.textContent   = kg;
+    if (_el.butluurWeightTons) _el.butluurWeightTons.textContent = (kg / 1000).toFixed(3);
   });
 }
