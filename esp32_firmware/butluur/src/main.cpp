@@ -119,17 +119,24 @@ FirebaseConfig fbConfig;
 bool firebaseReady = false;
 
 void onWifiEvent(WiFiEvent_t event) {
-  if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED) {
-    Serial.println("[WiFi] Disconnected — auto-reconnect");
+  switch (event) {
+  case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
+    Serial.println("[WiFi] Disconnected — attempting auto-reconnect");
     WiFi.reconnect();
-  } else if (event == ARDUINO_EVENT_WIFI_STA_GOT_IP) {
-    Serial.printf("[WiFi] Connected — IP: %s\n", WiFi.localIP().toString().c_str());
+    break;
+  case ARDUINO_EVENT_WIFI_STA_GOT_IP:
+    Serial.printf("[WiFi] Reconnected — IP: %s\n",
+                  WiFi.localIP().toString().c_str());
+    break;
+  default:
+    break;
   }
 }
 
 void wifiConnect() {
   if (WiFi.status() == WL_CONNECTED) return;
-  Serial.printf("[WiFi] Connecting to %s", WIFI_SSID);
+
+  Serial.printf("[WiFi] Connecting to network: %s", WIFI_SSID);
   WiFi.mode(WIFI_STA);
   WiFi.setAutoReconnect(true);
   WiFi.persistent(true);
@@ -140,7 +147,16 @@ void wifiConnect() {
     delay(500);
     Serial.print(".");
   }
-  Serial.println(WiFi.status() == WL_CONNECTED ? " OK" : " FAIL");
+
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.printf("\n[WiFi] Connected — IP: %s\n",
+                  WiFi.localIP().toString().c_str());
+  } else {
+    Serial.println("\n[WiFi] Connection failed — will retry later");
+    WiFi.disconnect(true);
+    delay(100);
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  }
 }
 
 void firebaseInit() {
