@@ -62,10 +62,14 @@ function initRealtime() {
     statusText:   document.getElementById("statusText"),
     readingCount: document.getElementById("readingCount"),
     lastUpdate:   document.getElementById("lastUpdate"),
-    // Teerem
+    // Teerem (Тээрэм tab)
     teeremWeight:     document.getElementById("teeremWeight"),
     teeremWeightTons: document.getElementById("teeremWeightTons"),
     teeremWeightLed:  document.getElementById("teeremWeightLed"),
+    // Teerem хуулбар (Activity tab)
+    teeremWeightAct:     document.getElementById("teeremWeightAct"),
+    teeremWeightTonsAct: document.getElementById("teeremWeightTonsAct"),
+    teeremWeightLedAct:  document.getElementById("teeremWeightLedAct"),
     // Butluur
     butluurWeight:     document.getElementById("butluurWeight"),
     butluurWeightTons: document.getElementById("butluurWeightTons"),
@@ -118,12 +122,17 @@ function initRealtime() {
   // ── Teerem ────────────────────────────────────────────
   db.ref("/teerem/weight_rate").on("value", s => {
     if (s.val() === null) return;
-    if (_el.teeremWeight) _el.teeremWeight.textContent = parseFloat(s.val()).toFixed(2);
+    const v = parseFloat(s.val()).toFixed(2);
+    if (_el.teeremWeight)    _el.teeremWeight.textContent    = v;
+    if (_el.teeremWeightAct) _el.teeremWeightAct.textContent = v;
     _blinkLed(_el.teeremWeightLed);
+    _blinkLed(_el.teeremWeightLedAct);
   });
   db.ref("/teerem/cumulative_kg").on("value", s => {
     if (s.val() === null) return;
-    if (_el.teeremWeightTons) _el.teeremWeightTons.textContent = (parseInt(s.val(), 10) / 1000).toFixed(3);
+    const t = (parseInt(s.val(), 10) / 1000).toFixed(3);
+    if (_el.teeremWeightTons)    _el.teeremWeightTons.textContent    = t;
+    if (_el.teeremWeightTonsAct) _el.teeremWeightTonsAct.textContent = t;
   });
 
   // ── Butluur ───────────────────────────────────────────

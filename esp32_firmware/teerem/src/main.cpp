@@ -39,6 +39,25 @@ constexpr uint32_t FRAME_GAP_MS = 10; // Modbus RTU inter-frame silence
 #define FB_PATH_KG "/teerem/cumulative_kg"
 #define FB_PATH_UPDATE "/teerem/last_updated"
 
+// ── RGB LED (WS2812, GPIO 21 — S3-Zero onboard) ────────────────────────
+#ifndef RGB_LED_PIN
+#define RGB_LED_PIN 21
+#endif
+static constexpr uint32_t LED_FLASH_MS = 80;
+uint32_t ledOffMs = 0;
+
+static inline void flashLed(uint8_t r, uint8_t g, uint8_t b) {
+  rgbLedWrite(RGB_LED_PIN, r, g, b);
+  ledOffMs = millis() + LED_FLASH_MS;
+}
+
+static inline void updateLed() {
+  if (ledOffMs && millis() >= ledOffMs) {
+    rgbLedWrite(RGB_LED_PIN, 0, 0, 0);
+    ledOffMs = 0;
+  }
+}
+
 // ── Modbus ─────────────────────────────────────────────────────────────
 class Modbus {
 public:
@@ -199,11 +218,21 @@ void setup() {
 }
 
 void loop() {
+  updateLed();
+
   static unsigned long lastPoll = 0;
   if (millis() - lastPoll < cfg::POLL_MS)
     return;
   lastPoll = millis();
 
+  // 1) WiFi шалгах — холбогдоогүй бол улаан flash, цааш ажиллах хэрэггүй
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("[WiFi] not connected");
+    flashLed(24, 0, 0); // RED
+    return;
+  }
+
+  // 2) Modbus унших
   float flow;
   bool flowOk = modbus.readFloat(cfg::REG_FLOW, flow);
 
@@ -222,24 +251,43 @@ void loop() {
   else
     Serial.println("Weight = #");
 
-  if (!Firebase.ready())
+  // Modbus уншилтын аль нэг нь алдсан бол улбар шар
+  if (!flowOk || !weightOk) {
+    flashLed(24, 0, 24); // PINK / MAGENTA
     return;
+  }
+
+  // 3) Firebase бэлэн биш бол улбар шар (өгөгдөл дамжаагүй)
+  if (!Firebase.ready()) {
+    flashLed(24, 0, 24); // PINK / MAGENTA
+    return;
+  }
   if (!firebaseReady) {
     firebaseReady = true;
     Serial.println("[Firebase] ready");
   }
 
+  bool uploadOk = false;
+
   if (flowOk) {
-    if (!Firebase.RTDB.setFloat(&fbData, FB_PATH_FLOW, flow))
+    if (Firebase.RTDB.setFloat(&fbData, FB_PATH_FLOW, flow))
+      uploadOk = true;
+    else
       Serial.printf("[Firebase] flow err: %s\n", fbData.errorReason().c_str());
   }
 
   if (weightOk) {
     int32_t weightKg = (int32_t)(weightT * 1000.0);
-    if (!Firebase.RTDB.setInt(&fbData, FB_PATH_KG, weightKg))
+    if (Firebase.RTDB.setInt(&fbData, FB_PATH_KG, weightKg))
+      uploadOk = true;
+    else
       Serial.printf("[Firebase] kg err: %s\n", fbData.errorReason().c_str());
   }
 
-  if (flowOk || weightOk)
+  if (uploadOk) {
     Firebase.RTDB.setInt(&fbData, FB_PATH_UPDATE, (int)(millis() / 1000));
+    flashLed(0, 24, 0); // GREEN — дамжуулалт амжилттай
+  } else {
+    flashLed(24, 0, 24); // PINK — upload амжилтгүй
+  }
 }

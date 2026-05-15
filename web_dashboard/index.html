@@ -120,7 +120,7 @@
             stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
           </svg>
-          Flow meters
+          Activity
         </div>
 
         <!-- Energy consumption -->
@@ -240,8 +240,7 @@
       <!-- TAB: Flow meters -->
       <div class="tab-panel active animate-tab-in" id="tab-flow-meters">
         <!-- Stats Grid -->
-        <div
-          class="grid grid-cols-[repeat(3,1fr)_1.5fr] gap-4 mb-4 max-lg:grid-cols-3 max-md:grid-cols-2 max-sm:grid-cols-1">
+        <div class="grid grid-cols-3 gap-4 mb-4 max-md:grid-cols-2 max-sm:grid-cols-1">
           <!-- Flowmeter 2 -->
           <div
             class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
@@ -299,17 +298,50 @@
                 m³</span>
             </div>
           </div>
-          <!-- Chart card -->
+        </div>
+
+        <!-- 01-WT-01 Бутлуурын жин (placeholder — төхөөрөмж суурилуулсны дараа холбоно) -->
+        <div class="grid grid-cols-1 gap-4 mb-4 max-w-sm">
           <div
-            class="max-lg:col-span-full lg:col-start-4 lg:row-span-2 glass-card rounded-DEFAULT p-[18px_20px] flex flex-col min-h-[240px]">
-            <div class="flex justify-between items-center mb-1">
-              <span class="text-sm font-semibold text-text-primary">Flow History</span>
-              <span class="text-xs text-text-soft inline-flex items-center gap-1">Last 7 days</span>
+            class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
+            <div class="flex items-center gap-2 text-[13px] text-text-soft mb-2 font-medium">
+              <div
+                class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
+                id="wt01Led"></div>
+              01-WT-01 Бутлуурын жин
             </div>
-            <div class="flex-1 flex items-end justify-between gap-1.5 pt-6 min-h-[160px] relative">
-              <div class="flex-1 flex flex-col items-center gap-2 min-w-0" id="chartBars">
-                <div class="text-[10px] text-text-dim text-center">No data</div>
-              </div>
+            <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
+              <span id="wt01Weight">0.00</span>
+              <span class="text-base text-text-dim font-medium"> t/h</span>
+            </div>
+            <div class="mt-3 pt-3 border-t border-border-base flex items-center justify-between">
+              <span class="text-[11px] text-text-dim">Cumulative</span>
+              <span class="text-[13px] font-semibold text-text-soft tabular-nums">
+                <span id="wt01WeightTons">0.000</span> t
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Тээрэм карт (Activity-д хуулбар) -->
+        <div class="grid grid-cols-1 gap-4 mb-4 max-w-sm">
+          <div
+            class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
+            <div class="flex items-center gap-2 text-[13px] text-text-soft mb-2 font-medium">
+              <div
+                class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
+                id="teeremWeightLedAct"></div>
+              02-WT-02 Тээрмийн жин
+            </div>
+            <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
+              <span id="teeremWeightAct">0.00</span>
+              <span class="text-base text-text-dim font-medium"> t/h</span>
+            </div>
+            <div class="mt-3 pt-3 border-t border-border-base flex items-center justify-between">
+              <span class="text-[11px] text-text-dim">Cumulative</span>
+              <span class="text-[13px] font-semibold text-text-soft tabular-nums">
+                <span id="teeremWeightTonsAct">0.000</span> t
+              </span>
             </div>
           </div>
         </div>
