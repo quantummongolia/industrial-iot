@@ -73,6 +73,9 @@ public:
 
 private:
   bool readRegs(uint16_t addr, uint8_t regCnt, uint8_t *rx) {
+    while (Serial1.available())
+      Serial1.read(); // өмнөх амжилтгүй уншилтын хоцрогдсон байтыг цэвэрлэх
+
     uint8_t req[8] = {
         cfg::SLAVE, 0x03, uint8_t(addr >> 8), uint8_t(addr), 0, regCnt, 0, 0};
     uint16_t c = crc16(req, 6);
