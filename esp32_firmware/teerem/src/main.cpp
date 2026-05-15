@@ -3,8 +3,9 @@
  *  ESP32-S3-Zero Тээрэм → Firebase Realtime Database
  * ============================================================
  *
- *  Modbus RTU (RS485 via MAX485) → flow rate (t/h) + cumulative weight (kg)
- *  → Firebase RTDB path: /teerem/flow_rate, /teerem/cumulative_kg
+ *  Modbus RTU (RS485 via MAX485) → flow rate (t/h) + cumulative weight (t)
+ *  → Firebase RTDB: /teerem/weight_rate (float t/h),
+ *                   /teerem/cumulative_kg (int kg, эх double-аар уншсаныг ×1000)
  *
  *  Pinout (S3-Zero):
  *    GPIO 4 — MAX485 RO  (RX)
@@ -26,15 +27,16 @@ constexpr uint8_t TX_PIN = 5;
 constexpr uint8_t DE_RE = 6;
 constexpr uint8_t SLAVE = 1;
 constexpr uint32_t BAUD = 9600;
-constexpr uint16_t REG_FLOW = 0;   // 40001: Flow Rate (Float, t/h)
-constexpr uint16_t REG_KG = 10;    // 40011: Cumulative weight (Int32, kg)
-constexpr uint32_t POLL_MS = 1000; // Modbus poll interval
+constexpr uint16_t REG_FLOW = 0;     // 40001: Flow Rate (Float, t/h)
+constexpr uint16_t REG_WEIGHT_T = 6; // 40007: Cumulative weight (Double, t)
+constexpr uint32_t POLL_MS = 1000;   // Modbus poll interval
 constexpr uint32_t RX_TMO = 200;
-constexpr uint32_t UPLOAD_MS = 1000; // Firebase upload throttle
+constexpr uint32_t FRAME_GAP_MS = 10; // Modbus RTU inter-frame silence
 } // namespace cfg
 
 // ── Firebase paths ─────────────────────────────────────────────────────
 #define FB_PATH_FLOW "/teerem/weight_rate"
+#define FB_PATH_KG "/teerem/cumulative_kg"
 #define FB_PATH_UPDATE "/teerem/last_updated"
 
 // ── Modbus ─────────────────────────────────────────────────────────────
@@ -56,12 +58,16 @@ public:
     return true;
   }
 
-  bool readInt32(uint16_t addr, int32_t &out) {
-    uint8_t rx[9];
-    if (!readRegs(addr, 2, rx))
+  // Big-Endian 64-bit IEEE 754 double, 4 регистр (8 байт), word-swap байхгүй
+  bool readDouble(uint16_t addr, double &out) {
+    uint8_t rx[13]; // 5 framing + 4*2 data
+    if (!readRegs(addr, 4, rx))
       return false;
-    out = (int32_t)((uint32_t)rx[3] << 24 | (uint32_t)rx[4] << 16 |
-                    (uint32_t)rx[5] << 8 | rx[6]);
+    uint64_t raw = ((uint64_t)rx[3] << 56) | ((uint64_t)rx[4] << 48) |
+                   ((uint64_t)rx[5] << 40) | ((uint64_t)rx[6] << 32) |
+                   ((uint64_t)rx[7] << 24) | ((uint64_t)rx[8] << 16) |
+                   ((uint64_t)rx[9] << 8) | (uint64_t)rx[10];
+    memcpy(&out, &raw, 8);
     return true;
   }
 
@@ -198,10 +204,20 @@ void loop() {
   float flow;
   bool flowOk = modbus.readFloat(cfg::REG_FLOW, flow);
 
+  delay(cfg::FRAME_GAP_MS);
+
+  double weightT;
+  bool weightOk = modbus.readDouble(cfg::REG_WEIGHT_T, weightT);
+
   if (flowOk)
-    Serial.printf("Flow = %.2f t/h\n", flow);
+    Serial.printf("Flow   = %.2f t/h\n", flow);
   else
-    Serial.println("Flow = #");
+    Serial.println("Flow   = #");
+
+  if (weightOk)
+    Serial.printf("Weight = %.3f t\n", weightT);
+  else
+    Serial.println("Weight = #");
 
   if (!Firebase.ready())
     return;
@@ -213,7 +229,14 @@ void loop() {
   if (flowOk) {
     if (!Firebase.RTDB.setFloat(&fbData, FB_PATH_FLOW, flow))
       Serial.printf("[Firebase] flow err: %s\n", fbData.errorReason().c_str());
-    else
-      Firebase.RTDB.setInt(&fbData, FB_PATH_UPDATE, (int)(millis() / 1000));
   }
+
+  if (weightOk) {
+    int32_t weightKg = (int32_t)(weightT * 1000.0);
+    if (!Firebase.RTDB.setInt(&fbData, FB_PATH_KG, weightKg))
+      Serial.printf("[Firebase] kg err: %s\n", fbData.errorReason().c_str());
+  }
+
+  if (flowOk || weightOk)
+    Firebase.RTDB.setInt(&fbData, FB_PATH_UPDATE, (int)(millis() / 1000));
 }
