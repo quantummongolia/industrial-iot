@@ -5,7 +5,8 @@
  *
  *  Modbus RTU (RS485 via MAX485) → flow rate (t/h) + cumulative weight (t)
  *  → Firebase RTDB: /teerem/weight_rate (float t/h),
- *                   /teerem/cumulative_kg (int kg, эх double-аар уншсаныг ×1000)
+ *                   /teerem/cumulative_kg (int kg, эх double-аар уншсаныг
+ * ×1000)
  *
  *  Pinout (S3-Zero):
  *    GPIO 4 — MAX485 RO  (RX)
@@ -19,6 +20,7 @@
 #include <WiFi.h>
 #include <addons/RTDBHelper.h>
 #include <addons/TokenHelper.h>
+#include <esp_task_wdt.h>
 
 // ── Modbus тохиргоо ────────────────────────────────────────────────────
 namespace cfg {
@@ -32,6 +34,13 @@ constexpr uint16_t REG_WEIGHT_T = 6; // 40007: Cumulative weight (Double, t)
 constexpr uint32_t POLL_MS = 1000;   // Modbus poll interval
 constexpr uint32_t RX_TMO = 200;
 constexpr uint32_t FRAME_GAP_MS = 10; // Modbus RTU inter-frame silence
+
+// Resilience tuning
+constexpr uint32_t WDT_TIMEOUT_S = 30;        // Hard reset if loop stalls
+constexpr uint32_t WIFI_RETRY_MS = 10000;     // WiFi reconnect probe interval
+constexpr uint8_t MODBUS_RETRY = 3;           // Per-read attempts
+constexpr uint8_t MAX_CONSECUTIVE_FAILS = 10; // Escalate after this many
+constexpr uint8_t MAX_RECOVERY_ATTEMPTS = 20; // Force reboot after this many
 } // namespace cfg
 
 // ── Firebase paths ─────────────────────────────────────────────────────
@@ -39,22 +48,91 @@ constexpr uint32_t FRAME_GAP_MS = 10; // Modbus RTU inter-frame silence
 #define FB_PATH_KG "/teerem/cumulative_kg"
 #define FB_PATH_UPDATE "/teerem/last_updated"
 
-// ── RGB LED (WS2812, GPIO 21 — S3-Zero onboard) ────────────────────────
-#ifndef RGB_LED_PIN
-#define RGB_LED_PIN 21
-#endif
-static constexpr uint32_t LED_FLASH_MS = 80;
-uint32_t ledOffMs = 0;
+// ── RGB LED (WS2812 GPIO 21 — Waveshare ESP32-S3-Zero onboard) ─────────
+// Uses the Arduino-ESP32 built-in driver (rgbLedWrite in core 3.x,
+// neopixelWrite in 2.x). The driver handles WS2812 timing and GRB byte
+// order internally — call writeRGB(R, G, B) and you get exactly those colors.
+namespace led {
+constexpr uint8_t PIN = 21;
+constexpr uint8_t BRIGHTNESS = 40; // 0-255 — same as user's working test sketch
+constexpr uint16_t ON_MS = 250;    // visible-on portion of each blink
+constexpr uint16_t OFF_MS = 250;   // off portion of each blink (1 Hz total)
+constexpr uint16_t FLASH_ON_MS = 250; // one-shot green flash window
 
-static inline void flashLed(uint8_t r, uint8_t g, uint8_t b) {
-  rgbLedWrite(RGB_LED_PIN, r, g, b);
-  ledOffMs = millis() + LED_FLASH_MS;
+inline void writeRGB(uint8_t r, uint8_t g, uint8_t b) {
+#if defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 3)
+  rgbLedWrite(PIN, r, g, b);
+#else
+  neopixelWrite(PIN, r, g, b);
+#endif
 }
 
-static inline void updateLed() {
-  if (ledOffMs && millis() >= ledOffMs) {
-    rgbLedWrite(RGB_LED_PIN, 0, 0, 0);
-    ledOffMs = 0;
+inline uint8_t scale(uint8_t v) { return (uint16_t(v) * BRIGHTNESS) / 255; }
+
+enum Mode { OFF, BLINK_RED, BLINK_PURPLE };
+Mode mode = OFF;
+unsigned long nextToggle = 0;
+unsigned long flashOffAt = 0;
+bool on = false;
+
+void begin() { writeRGB(0, 0, 0); }
+
+// Set the background blink mode. OFF stops blinking entirely.
+void setMode(Mode m) {
+  if (m == mode)
+    return;
+  mode = m;
+  on = false;
+  nextToggle = millis();
+  if (m == OFF)
+    writeRGB(0, 0, 0);
+}
+
+// One-shot green flash on every successful Firebase upload.
+void flashGreen() {
+  flashOffAt = millis() + FLASH_ON_MS;
+  writeRGB(0, scale(255), 0);
+}
+
+// Non-blocking driver — call once per loop iteration.
+void update() {
+  unsigned long now = millis();
+
+  if (flashOffAt) {
+    if (now < flashOffAt)
+      return; // green flash still on
+    flashOffAt = 0;
+    writeRGB(0, 0, 0);
+    on = false;
+    nextToggle = now; // restart blink cycle cleanly
+  }
+
+  if (mode == OFF)
+    return;
+
+  if (now < nextToggle)
+    return;
+  if (on) {
+    writeRGB(0, 0, 0);
+    on = false;
+    nextToggle = now + OFF_MS;
+  } else {
+    if (mode == BLINK_RED)
+      writeRGB(scale(255), 0, 0);
+    else // BLINK_PURPLE — red + blue mixed
+      writeRGB(scale(255), 0, scale(255));
+    on = true;
+    nextToggle = now + ON_MS;
+  }
+}
+} // namespace led
+
+// Dedicated LED task — pinned to core 0 so Modbus / Firebase blocking on
+// core 1 (where Arduino loop runs) can't stall the blink cadence.
+void ledTask(void *) {
+  for (;;) {
+    led::update();
+    vTaskDelay(pdMS_TO_TICKS(20)); // 50 Hz refresh
   }
 }
 
@@ -65,6 +143,18 @@ public:
     pinMode(cfg::DE_RE, OUTPUT);
     digitalWrite(cfg::DE_RE, LOW);
     Serial1.begin(cfg::BAUD, SERIAL_8N1, cfg::RX_PIN, cfg::TX_PIN);
+  }
+
+  // Drain UART, restart Serial1, cycle MAX485 DE/RE — clears wedged bus state.
+  void recover() {
+    while (Serial1.available())
+      Serial1.read();
+    Serial1.end();
+    delay(50);
+    Serial1.begin(cfg::BAUD, SERIAL_8N1, cfg::RX_PIN, cfg::TX_PIN);
+    digitalWrite(cfg::DE_RE, HIGH);
+    delay(5);
+    digitalWrite(cfg::DE_RE, LOW);
   }
 
   bool readFloat(uint16_t addr, float &out) {
@@ -151,6 +241,52 @@ FirebaseAuth fbAuth;
 FirebaseConfig fbConfig;
 
 bool firebaseReady = false;
+unsigned long lastWifiCheck = 0;
+
+// Modbus recovery — escalate after repeated read failures, reboot if hopeless.
+unsigned int consecutiveReadFails = 0;
+unsigned int totalRecoveryAttempts = 0;
+
+// Firebase exponential backoff — keeps a flaky network from generating retry
+// storms during auth failures or sustained upload errors.
+unsigned long fbNextAllowedAt = 0;
+unsigned int fbFailStreak = 0;
+
+void fbOnFailure() {
+  fbFailStreak++;
+  unsigned long backoff =
+      2000UL * (1UL << min((unsigned int)8, fbFailStreak)); // 2s..~8min raw
+  if (backoff > 300000UL)
+    backoff = 300000UL; // cap at 5 min
+  fbNextAllowedAt = millis() + backoff;
+  Serial.printf("[Firebase] Backoff %lus (fail streak %u)\n", backoff / 1000,
+                fbFailStreak);
+}
+
+void fbOnSuccess() {
+  if (fbFailStreak > 0)
+    Serial.println("[Firebase] Recovered");
+  fbFailStreak = 0;
+  fbNextAllowedAt = 0;
+}
+
+bool fbCanUpload() { return (long)(millis() - fbNextAllowedAt) >= 0; }
+
+// Escalating Modbus recovery: re-init UART + cycle DE/RE; reboot if exhausted.
+void recoverModbusBus() {
+  totalRecoveryAttempts++;
+  Serial.printf("[Recovery] Attempt #%u after %u failed cycles\n",
+                totalRecoveryAttempts, consecutiveReadFails);
+  if (totalRecoveryAttempts >= cfg::MAX_RECOVERY_ATTEMPTS) {
+    Serial.println("[Recovery] Max attempts — forcing reboot via WDT");
+    delay(100);
+    while (true) {
+    } // Let watchdog reset the chip cleanly
+  }
+  modbus.recover();
+  consecutiveReadFails = 0;
+  Serial.println("[Recovery] RS485 bus re-initialized");
+}
 
 void onWifiEvent(WiFiEvent_t event) {
   switch (event) {
@@ -211,35 +347,75 @@ void setup() {
   delay(300);
   Serial.println("\n========= Teerem IoT (S3-Zero) =========");
 
+  led::begin();
+  // LED runs on its own core 0 task so Modbus / Firebase blocking calls
+  // on core 1 (Arduino loop) never freeze the blink animation.
+  xTaskCreatePinnedToCore(ledTask, "ledTask", 2048, nullptr, 1, nullptr, 0);
+
   modbus.begin();
   WiFi.onEvent(onWifiEvent);
   wifiConnect();
   firebaseInit();
+
+  // Hardware watchdog — reboots the chip if loop() goes silent for too long
+  // (e.g. Firebase SSL handshake wedged on a flaky network).
+  esp_task_wdt_config_t wdtConfig = {.timeout_ms = cfg::WDT_TIMEOUT_S * 1000,
+                                     .idle_core_mask = 0,
+                                     .trigger_panic = true};
+  esp_task_wdt_reconfigure(&wdtConfig);
+  esp_task_wdt_add(NULL);
+  Serial.printf("[WDT] Watchdog started — %lu second timeout\n",
+                (unsigned long)cfg::WDT_TIMEOUT_S);
 }
 
 void loop() {
-  updateLed();
+  esp_task_wdt_reset();
+  // led::update() runs on the dedicated ledTask (core 0) — no need to call
+  // it here. Driving from loop() was making blocks in Modbus / Firebase
+  // freeze the LED state visually.
+  unsigned long now = millis();
+
+  // Manual WiFi retry — fallback for when onWifiEvent stops firing. MUST be
+  // non-blocking: wifiConnect() has a 15s wait loop that would freeze the LED
+  // state machine and make the blink look like a solid colour. WiFi.reconnect()
+  // just kicks the async reconnect attempt and returns immediately.
+  if (WiFi.status() != WL_CONNECTED &&
+      now - lastWifiCheck >= cfg::WIFI_RETRY_MS) {
+    lastWifiCheck = now;
+    Serial.println("[WiFi] retry — async reconnect");
+    WiFi.reconnect();
+  }
 
   static unsigned long lastPoll = 0;
-  if (millis() - lastPoll < cfg::POLL_MS)
+  if (now - lastPoll < cfg::POLL_MS)
     return;
-  lastPoll = millis();
+  lastPoll = now;
 
-  // 1) WiFi шалгах — холбогдоогүй бол улаан flash, цааш ажиллах хэрэггүй
+  // 1) WiFi шалгах — холбогдоогүй бол улаан LED тогтмол анивчина
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("[WiFi] not connected");
-    flashLed(24, 0, 0); // RED
+    led::setMode(led::BLINK_RED);
     return;
   }
 
-  // 2) Modbus унших
-  float flow;
-  bool flowOk = modbus.readFloat(cfg::REG_FLOW, flow);
+  // 2) Modbus унших — retry-тэй (transient bus noise-ыг тойрох)
+  float flow = 0;
+  bool flowOk = false;
+  for (uint8_t i = 0; i < cfg::MODBUS_RETRY && !flowOk; i++) {
+    flowOk = modbus.readFloat(cfg::REG_FLOW, flow);
+    if (!flowOk && i + 1 < cfg::MODBUS_RETRY)
+      delay(cfg::FRAME_GAP_MS);
+  }
 
   delay(cfg::FRAME_GAP_MS);
 
-  double weightT;
-  bool weightOk = modbus.readDouble(cfg::REG_WEIGHT_T, weightT);
+  double weightT = 0;
+  bool weightOk = false;
+  for (uint8_t i = 0; i < cfg::MODBUS_RETRY && !weightOk; i++) {
+    weightOk = modbus.readDouble(cfg::REG_WEIGHT_T, weightT);
+    if (!weightOk && i + 1 < cfg::MODBUS_RETRY)
+      delay(cfg::FRAME_GAP_MS);
+  }
 
   if (flowOk)
     Serial.printf("Flow   = %.2f t/h\n", flow);
@@ -251,15 +427,29 @@ void loop() {
   else
     Serial.println("Weight = #");
 
-  // Modbus уншилтын аль нэг нь алдсан бол улбар шар
+  // Track read failures; escalate to bus recovery if they pile up.
+  if (flowOk || weightOk) {
+    consecutiveReadFails = 0;
+    totalRecoveryAttempts = 0;
+  } else {
+    consecutiveReadFails++;
+    if (consecutiveReadFails >= cfg::MAX_CONSECUTIVE_FAILS)
+      recoverModbusBus();
+  }
+
+  // Modbus уншилтын аль нэг нь алдсан бол ягаан анивчина
   if (!flowOk || !weightOk) {
-    flashLed(24, 0, 24); // PINK / MAGENTA
+    led::setMode(led::BLINK_PURPLE);
     return;
   }
 
-  // 3) Firebase бэлэн биш бол улбар шар (өгөгдөл дамжаагүй)
+  // 3) Firebase backoff/ready шалгах
+  if (!fbCanUpload()) {
+    led::setMode(led::BLINK_PURPLE);
+    return;
+  }
   if (!Firebase.ready()) {
-    flashLed(24, 0, 24); // PINK / MAGENTA
+    led::setMode(led::BLINK_PURPLE);
     return;
   }
   if (!firebaseReady) {
@@ -268,26 +458,37 @@ void loop() {
   }
 
   bool uploadOk = false;
+  bool anyFail = false;
 
   if (flowOk) {
     if (Firebase.RTDB.setFloat(&fbData, FB_PATH_FLOW, flow))
       uploadOk = true;
-    else
+    else {
+      anyFail = true;
       Serial.printf("[Firebase] flow err: %s\n", fbData.errorReason().c_str());
+    }
   }
 
   if (weightOk) {
     int32_t weightKg = (int32_t)(weightT * 1000.0);
     if (Firebase.RTDB.setInt(&fbData, FB_PATH_KG, weightKg))
       uploadOk = true;
-    else
+    else {
+      anyFail = true;
       Serial.printf("[Firebase] kg err: %s\n", fbData.errorReason().c_str());
+    }
   }
 
   if (uploadOk) {
     Firebase.RTDB.setInt(&fbData, FB_PATH_UPDATE, (int)(millis() / 1000));
-    flashLed(0, 24, 0); // GREEN — дамжуулалт амжилттай
+    led::setMode(led::OFF);
+    led::flashGreen(); // GREEN — амжилттай upload бүрт нэг анивчина
   } else {
-    flashLed(24, 0, 24); // PINK — upload амжилтгүй
+    led::setMode(led::BLINK_PURPLE);
   }
+
+  if (anyFail)
+    fbOnFailure();
+  else if (uploadOk)
+    fbOnSuccess();
 }
