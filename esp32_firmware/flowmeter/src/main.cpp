@@ -471,22 +471,16 @@ void loop() {
     lastTotalizerRead = now;
 
   // ---- Read Flowmeter 1 (Slave ID 2: Суларсан уусмал) ----
+  // Retry хийхгүй — sensor хариу өгөхгүй бол энэ cycle-д орхиод явна.
+  // Дараагийн cycle-д дахин оролдоно. Bus noise зөвхөн нэг cycle-д утга
+  // тасрахад л хүргэнэ, дашбоард дараагийн уншилтаар сэргэнэ.
   float flow1 = 0.0, total1 = 0.0;
-  bool okFlow1 = false, okTotal1 = false;
-
-  for (int i = 0; i < 3 && !okFlow1; i++) {
-    okFlow1 = readFlowRate(FLOWMETER1_SLAVE_ID, flow1);
-    if (!okFlow1 && i < 2)
-      delay(50);
-  }
+  bool okFlow1 = readFlowRate(FLOWMETER1_SLAVE_ID, flow1);
+  bool okTotal1 = false;
 
   if (doTotalizer) {
     delay(50);
-    for (int i = 0; i < 3 && !okTotal1; i++) {
-      okTotal1 = readTotalizer(FLOWMETER1_SLAVE_ID, total1);
-      if (!okTotal1 && i < 2)
-        delay(50);
-    }
+    okTotal1 = readTotalizer(FLOWMETER1_SLAVE_ID, total1);
     if (okTotal1) {
       lastTotal1 = total1;
       hasTotal1 = true;
@@ -505,21 +499,12 @@ void loop() {
 
   // ---- Read Flowmeter 2 (Slave ID 3: Баян уусмал) ----
   float flow2 = 0.0, total2 = 0.0;
-  bool okFlow2 = false, okTotal2 = false;
-
-  for (int i = 0; i < 3 && !okFlow2; i++) {
-    okFlow2 = readFlowRate(FLOWMETER2_SLAVE_ID, flow2);
-    if (!okFlow2 && i < 2)
-      delay(50);
-  }
+  bool okFlow2 = readFlowRate(FLOWMETER2_SLAVE_ID, flow2);
+  bool okTotal2 = false;
 
   if (doTotalizer) {
     delay(50);
-    for (int i = 0; i < 3 && !okTotal2; i++) {
-      okTotal2 = readTotalizer(FLOWMETER2_SLAVE_ID, total2);
-      if (!okTotal2 && i < 2)
-        delay(50);
-    }
+    okTotal2 = readTotalizer(FLOWMETER2_SLAVE_ID, total2);
     if (okTotal2) {
       lastTotal2 = total2;
       hasTotal2 = true;
@@ -538,21 +523,12 @@ void loop() {
 
   // ---- Read Flowmeter 3 (Slave ID 4: Суларсан уусмал 2) ----
   float flow3 = 0.0, total3 = 0.0;
-  bool okFlow3 = false, okTotal3 = false;
-
-  for (int i = 0; i < 3 && !okFlow3; i++) {
-    okFlow3 = readFlowRate(FLOWMETER3_SLAVE_ID, flow3);
-    if (!okFlow3 && i < 2)
-      delay(50);
-  }
+  bool okFlow3 = readFlowRate(FLOWMETER3_SLAVE_ID, flow3);
+  bool okTotal3 = false;
 
   if (doTotalizer) {
     delay(50);
-    for (int i = 0; i < 3 && !okTotal3; i++) {
-      okTotal3 = readTotalizer(FLOWMETER3_SLAVE_ID, total3);
-      if (!okTotal3 && i < 2)
-        delay(50);
-    }
+    okTotal3 = readTotalizer(FLOWMETER3_SLAVE_ID, total3);
     if (okTotal3) {
       lastTotal3 = total3;
       hasTotal3 = true;
@@ -580,78 +556,35 @@ void loop() {
     }
   }
 
-  // ---- Upload to Firebase (with backoff on failure) ----
+  // ---- Upload to Firebase (single multi-path PATCH → 1 HTTP request) ----
+  // 6-7 setFloat дуудлагыг нэг updateNode болгож хувиргав. RS485 + 3 sensor
+  // дуусаад нэг л HTTPS round-trip — loop iteration ~1.5s → ~0.7s болсон.
   if (!fbCanUpload())
     return;
   if (!ensureFirebase())
     return;
 
-  bool anyWrite = false, anyFail = false;
+  FirebaseJson json;
+  bool anyWrite = false;
 
-  if (okFlow1) {
-    if (Firebase.RTDB.setFloat(&fbData, FB_PATH_FM1_FLOW, flow1))
-      anyWrite = true;
-    else {
-      anyFail = true;
-      Serial.printf("[Firebase] FM1 flow ERROR: %s\n",
-                    fbData.errorReason().c_str());
-    }
-  }
-  // Only push totalizer when we just read it fresh — avoids spamming RTDB with
-  // unchanged values
-  if (doTotalizer && okTotal1) {
-    if (Firebase.RTDB.setFloat(&fbData, FB_PATH_FM1_TOTAL, total1))
-      anyWrite = true;
-    else {
-      anyFail = true;
-      Serial.printf("[Firebase] FM1 total ERROR: %s\n",
-                    fbData.errorReason().c_str());
-    }
-  }
-  if (okFlow2) {
-    if (Firebase.RTDB.setFloat(&fbData, FB_PATH_FM2_FLOW, flow2))
-      anyWrite = true;
-    else {
-      anyFail = true;
-      Serial.printf("[Firebase] FM2 flow ERROR: %s\n",
-                    fbData.errorReason().c_str());
-    }
-  }
-  if (doTotalizer && okTotal2) {
-    if (Firebase.RTDB.setFloat(&fbData, FB_PATH_FM2_TOTAL, total2))
-      anyWrite = true;
-    else {
-      anyFail = true;
-      Serial.printf("[Firebase] FM2 total ERROR: %s\n",
-                    fbData.errorReason().c_str());
-    }
-  }
-  if (okFlow3) {
-    if (Firebase.RTDB.setFloat(&fbData, FB_PATH_FM3_FLOW, flow3))
-      anyWrite = true;
-    else {
-      anyFail = true;
-      Serial.printf("[Firebase] FM3 flow ERROR: %s\n",
-                    fbData.errorReason().c_str());
-    }
-  }
-  if (doTotalizer && okTotal3) {
-    if (Firebase.RTDB.setFloat(&fbData, FB_PATH_FM3_TOTAL, total3))
-      anyWrite = true;
-    else {
-      anyFail = true;
-      Serial.printf("[Firebase] FM3 total ERROR: %s\n",
-                    fbData.errorReason().c_str());
-    }
-  }
+  if (okFlow1) { json.set("flowmeter1/flow_rate", flow1); anyWrite = true; }
+  if (okFlow2) { json.set("flowmeter2/flow_rate", flow2); anyWrite = true; }
+  if (okFlow3) { json.set("flowmeter3/flow_rate", flow3); anyWrite = true; }
+  // Totalizer-ыг шинээр уншсан үед л бичинэ — өөрчлөгдөөгүй утгаар RTDB-г бөглөхгүй
+  if (doTotalizer && okTotal1) { json.set("flowmeter1/totalizer", total1); anyWrite = true; }
+  if (doTotalizer && okTotal2) { json.set("flowmeter2/totalizer", total2); anyWrite = true; }
+  if (doTotalizer && okTotal3) { json.set("flowmeter3/totalizer", total3); anyWrite = true; }
 
-  if (anyWrite) {
-    Firebase.RTDB.setInt(&fbData, FB_PATH_LAST_UPDATED, (int)(millis() / 1000));
+  if (!anyWrite)
+    return;
+
+  json.set("last_updated", (int)(millis() / 1000));
+
+  if (Firebase.RTDB.updateNode(&fbData, "/flow_system", &json)) {
     Serial.println("[Firebase] Updated");
-  }
-
-  if (anyFail)
-    fbOnFailure();
-  else if (anyWrite)
     fbOnSuccess();
+  } else {
+    Serial.printf("[Firebase] update ERROR: %s\n", fbData.errorReason().c_str());
+    fbOnFailure();
+  }
 }
