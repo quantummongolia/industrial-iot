@@ -239,8 +239,14 @@
 
       <!-- TAB: Flow meters -->
       <div class="tab-panel active animate-tab-in" id="tab-flow-meters">
-        <!-- Stats Grid -->
-        <div class="grid grid-cols-3 gap-4 mb-4 max-md:grid-cols-2 max-sm:grid-cols-1">
+
+        <!-- Metric cards — auto-flow grid.
+             Card нэмэх/хасахдаа зүгээр л дараах <div class="glass-card …">-ийг
+             энэ контейнерт оруулаад/устгахад л болно. Грид өөрөө дахин эрэмбэлнэ.
+             - Desktop / Tablet (≥640px): 2 багана
+             - PWA / Mobile (<640px):    1 багана -->
+        <div class="grid grid-cols-2 gap-4 mb-4 max-sm:grid-cols-1">
+
           <!-- Flowmeter 2 -->
           <div
             class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
@@ -260,6 +266,7 @@
                 m³</span>
             </div>
           </div>
+
           <!-- Flowmeter 3 -->
           <div
             class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
@@ -279,6 +286,7 @@
                 m³</span>
             </div>
           </div>
+
           <!-- Flowmeter 1 -->
           <div
             class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
@@ -298,10 +306,8 @@
                 m³</span>
             </div>
           </div>
-        </div>
 
-        <!-- Тээрэм карт (Activity-д хуулбар) -->
-        <div class="grid grid-cols-1 gap-4 mb-4 max-w-sm">
+          <!-- 02-WT-02 Тээрмийн жин -->
           <div
             class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
             <div class="flex items-center gap-2 text-[13px] text-text-soft mb-2 font-medium">
@@ -321,10 +327,8 @@
               </span>
             </div>
           </div>
-        </div>
 
-        <!-- 01-WT-01 Бутлуурын жин (placeholder — төхөөрөмж суурилуулсны дараа холбоно) -->
-        <div class="grid grid-cols-1 gap-4 mb-4 max-w-sm">
+          <!-- 01-WT-01 Бутлуурын жин (placeholder — төхөөрөмж суурилуулсны дараа холбоно) -->
           <div
             class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
             <div class="flex items-center gap-2 text-[13px] text-text-soft mb-2 font-medium">
@@ -344,6 +348,7 @@
               </span>
             </div>
           </div>
+
         </div>
 
         <!-- System Info -->
