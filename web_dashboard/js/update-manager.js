@@ -75,6 +75,46 @@
   function ensureModal() {
     if (document.getElementById('updateModal')) return;
 
+    // Press effect + spinner styles (modal-д хэрэглэгдэх дэд элементүүдэд)
+    if (!document.getElementById('updateModalStyles')) {
+      const styleEl = document.createElement('style');
+      styleEl.id = 'updateModalStyles';
+      styleEl.textContent = `
+        #updateModal button {
+          -webkit-tap-highlight-color: transparent;
+          touch-action: manipulation;
+          will-change: transform;
+          transition:
+            transform 120ms cubic-bezier(0.4, 0, 0.2, 1),
+            filter 150ms ease,
+            opacity 150ms ease,
+            background-color 150ms ease;
+        }
+        #updateModalRefresh:hover:not(:disabled) { filter: brightness(1.1); }
+        #updateModalLater:hover:not(:disabled)   { background: rgba(255,255,255,0.04); }
+        #updateModal button:active:not(:disabled) {
+          transform: scale(0.94);
+          filter: brightness(0.88);
+        }
+        #updateModal button:disabled {
+          cursor: not-allowed;
+          transform: none;
+        }
+        .update-spinner {
+          display: inline-block;
+          width: 14px; height: 14px;
+          border: 2px solid rgba(255, 255, 255, 0.28);
+          border-top-color: #fff;
+          border-radius: 50%;
+          animation: update-spinner-spin 0.7s linear infinite;
+          vertical-align: -2px;
+          margin-right: 8px;
+        }
+        @keyframes update-spinner-spin { to { transform: rotate(360deg); } }
+      `;
+      document.head.appendChild(styleEl);
+    }
+
     const modal = document.createElement('div');
     modal.id = 'updateModal';
     modal.style.cssText = `
@@ -116,7 +156,7 @@
           font-size: 18px; font-weight: 700;
           color: var(--color-text-primary, #f5f5f7);
           margin: 0 0 8px;
-        ">Шинэ хувилбар бэлэн</h3>
+        " id="updateModalTitle">Шинэ хувилбар бэлэн</h3>
         <p style="
           font-size: 13px; line-height: 1.5;
           color: var(--color-text-soft, #a1a1aa);
@@ -130,7 +170,7 @@
             color: var(--color-text-soft, #a1a1aa);
             border-radius: 10px;
             font-size: 13px; font-weight: 500; font-family: inherit;
-            cursor: pointer; transition: background 0.15s;
+            cursor: pointer;
           ">Дараа</button>
           <button id="updateModalRefresh" style="
             flex: 1; padding: 11px 16px;
@@ -139,7 +179,7 @@
             color: #fff;
             border-radius: 10px;
             font-size: 13px; font-weight: 600; font-family: inherit;
-            cursor: pointer; transition: filter 0.15s;
+            cursor: pointer;
           ">Шинэчлэх</button>
         </div>
       </div>
@@ -148,6 +188,26 @@
 
     document.getElementById('updateModalRefresh').onclick = doUpdate;
     document.getElementById('updateModalLater').onclick   = doSnooze;
+  }
+
+  // "Шинэчилж байна..." state — товч дарангуут хэрэглэгчид feedback өгнө
+  function setRefreshingState() {
+    const refresh = document.getElementById('updateModalRefresh');
+    const later   = document.getElementById('updateModalLater');
+    const subtitle = document.getElementById('updateModalSubtitle');
+    if (refresh) {
+      refresh.disabled = true;
+      refresh.style.cursor = 'wait';
+      refresh.innerHTML = '<span class="update-spinner"></span>Шинэчилж байна...';
+    }
+    if (later) {
+      later.disabled = true;
+      later.style.opacity = '0.4';
+      later.style.pointerEvents = 'none';
+    }
+    if (subtitle) {
+      subtitle.textContent = 'Cache цэвэрлэж, шинэ хувилбар татаж байна...';
+    }
   }
 
   function showModal(remoteVersion) {
@@ -174,6 +234,10 @@
 
   // ---------- Actions ----------
   async function doUpdate() {
+    // Шууд visual feedback: cache clear + SW unregister 3-7с үргэлжилнэ,
+    // тиймээс хэрэглэгч царцсан мэт мэдрэхгүйн тулд modal-г "ажиллаж байна" төлөв рүү шилжүүлнэ.
+    setRefreshingState();
+
     clearSnooze();
 
     // 1. Service worker-н бүх cache устгана
