@@ -600,7 +600,9 @@ void loop() {
       recoverModbusBus();
   }
 
-  // ── 5) Firebase upload — нэг updateNode("/") -ээр бүхэл бөгцийг илгээнэ ──
+  // ── 5) Firebase upload — root("/") нэг update нь rules engine-д бүх 13+
+  // замыг шалгуулж response timeout үүсгэдэг. Тиймээс /teerem ба
+  // /energy_meters subtree-үүдийг тус тусад нь жижиг updateNode-оор бичнэ.
   if (!fbCanUpload()) {
     led::setMode(led::SLOW_RED);
     return;
@@ -614,45 +616,64 @@ void loop() {
     Serial.println("[Firebase] ready");
   }
 
-  FirebaseJson json;
-  bool anyWrite = false;
-
-  if (flowOk) { json.set("teerem/weight_rate", flow); anyWrite = true; }
-  if (weightOk) {
-    json.set("teerem/cumulative_kg", (int)(weightT * 1000.0));
-    anyWrite = true;
+  // ─ Subtree 1: /teerem ──────────────────────────────────────────────
+  bool teeremOk = true;
+  bool teeremAny = false;
+  {
+    FirebaseJson j;
+    if (flowOk) { j.set("weight_rate", flow); teeremAny = true; }
+    if (weightOk) {
+      j.set("cumulative_kg", (int)(weightT * 1000.0));
+      teeremAny = true;
+    }
+    if (teeremAny) {
+      j.set("last_updated", (int)(millis() / 1000));
+      teeremOk = Firebase.RTDB.updateNode(&fbData, "/teerem", &j);
+      if (!teeremOk)
+        Serial.printf("[Firebase] /teerem ERROR: %s\n",
+                      fbData.errorReason().c_str());
+    }
   }
 
-  auto addEm = [&](const char *id, const Spm33Reading &r, bool withI) {
-    String base = String("energy_meters/") + id + "/";
-    if (r.powerOk) { json.set((base + "power_kw").c_str(), r.powerKW); anyWrite = true; }
-    if (r.energyOk) { json.set((base + "total_energy_kwh").c_str(), r.energyKWh); anyWrite = true; }
-    if (withI && r.currentsOk) {
-      json.set((base + "current_a").c_str(), r.currentA);
-      json.set((base + "current_b").c_str(), r.currentB);
-      json.set((base + "current_c").c_str(), r.currentC);
-      anyWrite = true;
+  // ─ Subtree 2: /energy_meters ───────────────────────────────────────
+  bool emOk = true;
+  bool emAny = false;
+  {
+    FirebaseJson j;
+    auto addEm = [&](const char *id, const Spm33Reading &r, bool withI) {
+      String base = String(id) + "/";
+      if (r.powerOk) { j.set((base + "power_kw").c_str(), r.powerKW); emAny = true; }
+      if (r.energyOk) { j.set((base + "total_energy_kwh").c_str(), r.energyKWh); emAny = true; }
+      if (withI && r.currentsOk) {
+        j.set((base + "current_a").c_str(), r.currentA);
+        j.set((base + "current_b").c_str(), r.currentB);
+        j.set((base + "current_c").c_str(), r.currentC);
+        emAny = true;
+      }
+    };
+    addEm("em01", em01, false);
+    addEm("em02", em02, false);
+    addEm("em04", em04, true);
+    addEm("em05", em05, true);
+    if (emAny) {
+      emOk = Firebase.RTDB.updateNode(&fbData, "/energy_meters", &j);
+      if (!emOk)
+        Serial.printf("[Firebase] /energy_meters ERROR: %s\n",
+                      fbData.errorReason().c_str());
     }
-  };
-  addEm("em01", em01, false);
-  addEm("em02", em02, false);
-  addEm("em04", em04, true);
-  addEm("em05", em05, true);
+  }
 
-  if (!anyWrite) {
+  if (!teeremAny && !emAny) {
     led::setMode(led::SLOW_RED);
     return;
   }
 
-  json.set("teerem/last_updated", (int)(millis() / 1000));
-
-  if (Firebase.RTDB.updateNode(&fbData, "/", &json)) {
+  if (teeremOk && emOk) {
     Serial.println("[Firebase] Updated");
     fbOnSuccess();
     led::setMode(led::OFF);
     led::pulse();
   } else {
-    Serial.printf("[Firebase] update ERROR: %s\n", fbData.errorReason().c_str());
     fbOnFailure();
     led::setMode(led::SLOW_RED);
   }
