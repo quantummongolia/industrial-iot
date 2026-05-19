@@ -169,26 +169,120 @@ function initRealtime() {
     if (_el.butluurWeightTons) _el.butluurWeightTons.textContent = (parseInt(s.val(), 10) / 1000).toFixed(3);
   });
 
-  // ── Цахилгаан тоолуурууд ──────────────────────────────
-  // Power + energy дөрвөн card-д адил, гүйдэл 04/05-д л байдаг.
-  function bindMeter(key, hasCurrents) {
+  // ── Цахилгаан тоолуурууд + Нийт эрчим хүч хураангуй ───────────────
+  // ALL meters here — ажиллаагүй самбарууд ч жагсаагдсан (Firebase утга
+  // байхгүй бол UI placeholder 0.00 хэвээр, 10 сек дараа гурвалжин гарна).
+  const METERS = [
+    { key: "em01", name: "Боловсруулах үйлдвэр ХС", hasCurrents: false },
+    { key: "em02", name: "Нунтаглах хэсэг ХС",       hasCurrents: false },
+    { key: "em04", name: "Бөмбөлөгт тээрэм 1",       hasCurrents: true  },
+    { key: "em05", name: "Бөмбөлөгт тээрэм 2",       hasCurrents: true  },
+    { key: "em06", name: "Өтгөрүүлэгч УС",            hasCurrents: false },
+    { key: "em07", name: "Уусгалтын ган УС",          hasCurrents: false },
+    { key: "em08", name: "Шүүн шахах УС",             hasCurrents: false },
+    { key: "em09", name: "Десорбци ХС",               hasCurrents: false },
+    { key: "em10", name: "Нуруулдан уусгалт ХС",      hasCurrents: false },
+    { key: "em11", name: "Компрессор ХС",             hasCurrents: false },
+    { key: "em12", name: "Шатахуун түгээх ХС",        hasCurrents: false },
+    { key: "em13", name: "Уурын зуух ХС",             hasCurrents: false },
+    { key: "em14", name: "Хотхон ХС",                 hasCurrents: false },
+  ];
+
+  // Нийт эрчим хүч card-д самбарын мөрүүдийг render хийнэ.
+  const summaryList = document.getElementById("energySummaryList");
+  const summaryRows = {}; // key → { led, name, stale, energy }
+  if (summaryList) {
+    METERS.forEach(m => {
+      const row = document.createElement("div");
+      // CSS-аар `display:flex` тавьдаг (input.css → #energySummaryList > *).
+      // Эндээс align/justify/gap/font зэргээ Tailwind-аар хийнэ.
+      row.className = "items-center justify-between gap-2 text-[13px] py-0.5";
+      // Inline width/height/style ашиглав — Tailwind-ийн arbitrary class JS-аар
+      // inject хийсэн HTML дотор compile хийгдэхгүй тул SVG-ийг шууд size-лнэ.
+      row.innerHTML =
+        '<div class="flex items-center gap-2 text-text-soft min-w-0">' +
+          '<div style="width:7px;height:7px" class="rounded-full bg-text-faint transition-[background,box-shadow] duration-300 shrink-0" data-led></div>' +
+          '<span class="truncate">' + m.name + '</span>' +
+          '<svg data-stale width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" ' +
+               'style="display:none;flex-shrink:0;color:var(--color-warning,#f59e0b)">' +
+            '<path d="M12 2L1 21h22L12 2zm0 4.5L19.5 19h-15L12 6.5z"/>' +
+            '<rect x="11" y="10" width="2" height="5" rx="1" fill="currentColor"/>' +
+            '<circle cx="12" cy="17" r="1" fill="currentColor"/>' +
+          '</svg>' +
+        '</div>' +
+        '<span class="font-semibold text-text-soft tabular-nums shrink-0">' +
+          '<span data-energy>0.000</span> kWh' +
+        '</span>';
+      summaryList.appendChild(row);
+      summaryRows[m.key] = {
+        led:    row.querySelector("[data-led]"),
+        stale:  row.querySelector("[data-stale]"),
+        energy: row.querySelector("[data-energy]"),
+      };
+    });
+  }
+
+  // Сүүлд утга ирсэн агшин ба одоо урсаж буй чадал — нийлбэр + stale-д хэрэглэнэ.
+  const STALE_MS = 10 * 1000;
+  const lastUpdateAt = {};
+  const currentPower = {};
+  const summaryPowerEl = document.getElementById("energySummaryPower");
+
+  function _bumpMeter(key) {
+    lastUpdateAt[key] = Date.now();
+    const row = summaryRows[key];
+    if (row && row.stale) row.stale.style.display = "none";
+    if (row && row.led) _blinkLed(row.led);
+  }
+
+  function _recomputeTotalPower() {
+    if (!summaryPowerEl) return;
+    let sum = 0;
+    for (const k in currentPower) sum += currentPower[k];
+    summaryPowerEl.textContent = sum.toFixed(2);
+  }
+
+  function _checkStale() {
+    const now = Date.now();
+    METERS.forEach(m => {
+      const ts = lastUpdateAt[m.key];
+      const row = summaryRows[m.key];
+      if (!row || !row.stale) return;
+      const isStale = ts == null || (now - ts) > STALE_MS;
+      row.stale.style.display = isStale ? "inline-block" : "none";
+    });
+  }
+  setInterval(_checkStale, 1000);
+
+  // Сенсоруудтай холбоотой card-ийн хувийн span-уудыг шинэчилнэ. Хураангуй
+  // мөрийг (energy + led + stale + sum) бас энд хариуцна.
+  function bindMeter(meta) {
+    const key = meta.key;
     const power  = _el[key + "Power"];
     const energy = _el[key + "Energy"];
     const led    = _el[key + "Led"];
     const curA   = _el[key + "CurA"];
     const curB   = _el[key + "CurB"];
     const curC   = _el[key + "CurC"];
+    const sumRow = summaryRows[key];
 
     db.ref("/energy_meters/" + key + "/power_kw").on("value", s => {
       if (s.val() === null) return;
-      if (power) power.textContent = parseFloat(s.val()).toFixed(2);
+      const v = parseFloat(s.val());
+      if (power) power.textContent = v.toFixed(2);
       _blinkLed(led);
+      currentPower[key] = v;
+      _recomputeTotalPower();
+      _bumpMeter(key);
     });
     db.ref("/energy_meters/" + key + "/total_energy_kwh").on("value", s => {
       if (s.val() === null) return;
-      if (energy) energy.textContent = parseFloat(s.val()).toFixed(3);
+      const v = parseFloat(s.val()).toFixed(3);
+      if (energy) energy.textContent = v;
+      if (sumRow && sumRow.energy) sumRow.energy.textContent = v;
+      _bumpMeter(key);
     });
-    if (hasCurrents) {
+    if (meta.hasCurrents) {
       db.ref("/energy_meters/" + key + "/current_a").on("value", s => {
         if (s.val() === null) return;
         if (curA) curA.textContent = parseFloat(s.val()).toFixed(2);
@@ -204,8 +298,5 @@ function initRealtime() {
     }
   }
 
-  bindMeter("em01", false);
-  bindMeter("em02", false);
-  bindMeter("em04", true);
-  bindMeter("em05", true);
+  METERS.forEach(bindMeter);
 }

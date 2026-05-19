@@ -110,12 +110,12 @@
        NOTIFICATION PANEL — баруун дээд буланд гарч ирдэг dropdown.
        Агуулга нь дараа баяжуулна.
        ========================================================== -->
-  <div id="notifPanel"
-    class="hidden fixed bg-bg-elevated border border-border-base overflow-hidden"
+  <div id="notifPanel" class="hidden fixed bg-bg-elevated border border-border-base overflow-hidden"
     style="top: calc(var(--navbar-h, 44px) + 8px); right: 12px; width: 320px; max-width: calc(100vw - 24px); z-index: 150; border-radius: 18px; box-shadow: 0 24px 48px rgba(0,0,0,0.35);">
     <div class="flex items-center justify-between px-4 py-3 border-b border-border-base">
       <span class="text-[13px] font-semibold text-text-primary">Мэдэгдэл</span>
-      <button class="w-7 h-7 flex items-center justify-center rounded-full text-text-soft hover:text-text-primary hover:bg-bg-card transition-colors duration-150"
+      <button
+        class="w-7 h-7 flex items-center justify-center rounded-full text-text-soft hover:text-text-primary hover:bg-bg-card transition-colors duration-150"
         onclick="toggleNotifPanel(false)" aria-label="Close">
         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
           stroke-linecap="round" stroke-linejoin="round">
@@ -282,6 +282,22 @@
 
       <!-- TAB: Flow meters -->
       <div class="tab-panel active animate-tab-in" id="tab-flow-meters">
+
+        <!-- Нийт эрчим хүч — бүх 13 цахилгаан тоолуурын realtime нийлбэр.
+             Тооцоолол бүгд browser дээр (Firebase aggregate биш). -->
+        <div class="glass-card rounded-DEFAULT p-6 mb-4" id="energySummaryCard">
+          <div class="text-[13px] text-text-soft mb-2 font-medium">Нийт эрчим хүчний хэрэглээ</div>
+          <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary mb-4">
+            <span id="energySummaryPower">0.00</span>
+            <span class="text-base text-text-dim font-medium"> kW</span>
+          </div>
+          <!-- Самбарууд CSS multi-column-аар автоматаар тэнцүү хуваагдаж
+               дээрээс доош, дараа нь баруун багана уруу урсана. Layout логик
+               input.css → #energySummaryList дотор. -->
+          <div class="pt-3 border-t border-border-base" id="energySummaryList">
+            <!-- JS-ээр render хийгдэнэ. Эх жагсаалт нь realtime.js дотор. -->
+          </div>
+        </div>
 
         <!-- Metric cards — auto-flow grid.
              Card нэмэх/хасахдаа зүгээр л дараах <div class="glass-card …">-ийг
@@ -516,7 +532,7 @@
                   id="emLed04"></div>
                 Бөмбөлөгт тээрэм 1
               </div>
-              <div class="flex gap-3 justify-end text-right tabular-nums">
+              <div class="flex gap-3 justify-start text-left tabular-nums">
                 <div>
                   <div class="text-[11px] text-text-dim leading-none">A</div>
                   <div class="text-[13px] font-semibold text-text-soft mt-1.5"><span id="emCurrentA04">0.00</span></div>
@@ -553,7 +569,7 @@
                   id="emLed05"></div>
                 Бөмбөлөгт тээрэм 2
               </div>
-              <div class="flex gap-3 justify-end text-right tabular-nums">
+              <div class="flex gap-3 justify-start text-left tabular-nums">
                 <div>
                   <div class="text-[11px] text-text-dim leading-none">A</div>
                   <div class="text-[13px] font-semibold text-text-soft mt-1.5"><span id="emCurrentA05">0.00</span></div>
@@ -702,6 +718,69 @@
               <span class="text-[11px] text-text-dim">Total Energy</span>
               <span class="text-[13px] font-semibold text-text-soft tabular-nums">
                 <span id="emEnergy11">0.000</span> kWh
+              </span>
+            </div>
+          </div>
+
+          <!-- 12 — Шатахуун түгээх ХС -->
+          <div
+            class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
+            <div class="flex items-center gap-2 text-[13px] text-text-soft mb-2 font-medium">
+              <div
+                class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
+                id="emLed12"></div>
+              Шатахуун түгээх ХС
+            </div>
+            <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
+              <span id="emPower12">0.00</span>
+              <span class="text-base text-text-dim font-medium"> kW</span>
+            </div>
+            <div class="mt-3 pt-3 border-t border-border-base flex items-center justify-between">
+              <span class="text-[11px] text-text-dim">Total Energy</span>
+              <span class="text-[13px] font-semibold text-text-soft tabular-nums">
+                <span id="emEnergy12">0.000</span> kWh
+              </span>
+            </div>
+          </div>
+
+          <!-- 13 — Уурын зуух ХС -->
+          <div
+            class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
+            <div class="flex items-center gap-2 text-[13px] text-text-soft mb-2 font-medium">
+              <div
+                class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
+                id="emLed13"></div>
+              Уурын зуух ХС
+            </div>
+            <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
+              <span id="emPower13">0.00</span>
+              <span class="text-base text-text-dim font-medium"> kW</span>
+            </div>
+            <div class="mt-3 pt-3 border-t border-border-base flex items-center justify-between">
+              <span class="text-[11px] text-text-dim">Total Energy</span>
+              <span class="text-[13px] font-semibold text-text-soft tabular-nums">
+                <span id="emEnergy13">0.000</span> kWh
+              </span>
+            </div>
+          </div>
+
+          <!-- 14 — Хотхон ХС -->
+          <div
+            class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
+            <div class="flex items-center gap-2 text-[13px] text-text-soft mb-2 font-medium">
+              <div
+                class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
+                id="emLed14"></div>
+              Хотхон ХС
+            </div>
+            <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
+              <span id="emPower14">0.00</span>
+              <span class="text-base text-text-dim font-medium"> kW</span>
+            </div>
+            <div class="mt-3 pt-3 border-t border-border-base flex items-center justify-between">
+              <span class="text-[11px] text-text-dim">Total Energy</span>
+              <span class="text-[13px] font-semibold text-text-soft tabular-nums">
+                <span id="emEnergy14">0.000</span> kWh
               </span>
             </div>
           </div>
