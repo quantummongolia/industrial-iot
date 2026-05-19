@@ -17,7 +17,7 @@
 
   // Realtime-аар шинэчлэгддэг span ID-н pattern.
   // Шинэ metric нэмэгдэх үед энд таарах шинэ префикс нэмж болно.
-  var METRIC_ID_RE = /^(fm[0-9]+|teeremWeight|butluurWeight|wt[0-9]+|em(Power|Energy))/;
+  var METRIC_ID_RE = /^(fm[0-9]+|teeremWeight|butluurWeight|wt[0-9]+|em(Power|Energy|CurrentA|CurrentB|CurrentC))/;
 
   var lastUpdate = new WeakMap(); // card → timestamp
 

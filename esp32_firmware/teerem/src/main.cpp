@@ -1,12 +1,21 @@
 /*
  * ============================================================
- *  ESP32-S3-Zero Тээрэм → Firebase Realtime Database
+ *  ESP32-S3-Zero Тээрэм + Цахилгаан тоолуурууд → Firebase RTDB
  * ============================================================
  *
- *  Modbus RTU (RS485 via MAX485) → flow rate (t/h) + cumulative weight (t)
- *  → Firebase RTDB: /teerem/weight_rate (float t/h),
- *                   /teerem/cumulative_kg (int kg, эх double-аар уншсаныг
- * ×1000)
+ *  Нэг RS485 шугам дээр Modbus RTU @ 19200bps :
+ *    Slave 1 : Тээрмийн тэжээлийн жин (flow t/h + cumulative t)
+ *    Slave 2 : SPM33 — Боловсруулах үйлдвэр ХС     (P, E)
+ *    Slave 3 : SPM33 — Нунтаглах хэсэг ХС          (P, E)
+ *    Slave 4 : SPM33 — Бөмбөлөгт тээрэм 1          (P, E, Ia/Ib/Ic)
+ *    Slave 5 : SPM33 — Бөмбөлөгт тээрэм 2          (P, E, Ia/Ib/Ic)
+ *
+ *  Firebase RTDB:
+ *    /teerem/weight_rate, /teerem/cumulative_kg, /teerem/last_updated
+ *    /energy_meters/em01/{power_kw,total_energy_kwh}
+ *    /energy_meters/em02/{power_kw,total_energy_kwh}
+ *    /energy_meters/em04/{power_kw,total_energy_kwh,current_a,current_b,current_c}
+ *    /energy_meters/em05/{power_kw,total_energy_kwh,current_a,current_b,current_c}
  *
  *  Pinout (S3-Zero):
  *    GPIO 4 — MAX485 RO  (RX)
@@ -27,37 +36,44 @@ namespace cfg {
 constexpr uint8_t RX_PIN = 4;
 constexpr uint8_t TX_PIN = 5;
 constexpr uint8_t DE_RE = 6;
-constexpr uint8_t SLAVE = 1;
-constexpr uint32_t BAUD = 9600;
+constexpr uint32_t BAUD = 19200;
+
+// Slave IDs
+constexpr uint8_t SCALE_SLAVE = 1; // Тээрмийн жин
+constexpr uint8_t EM01_SLAVE = 2;  // Боловсруулах үйлдвэр ХС
+constexpr uint8_t EM02_SLAVE = 3;  // Нунтаглах хэсэг ХС
+constexpr uint8_t EM04_SLAVE = 4;  // Бөмбөлөгт тээрэм 1
+constexpr uint8_t EM05_SLAVE = 5;  // Бөмбөлөгт тээрэм 2
+
+// Тэжээлийн жин (одоо байгаа сенсор)
 constexpr uint16_t REG_FLOW = 0;     // 40001: Flow Rate (Float, t/h)
 constexpr uint16_t REG_WEIGHT_T = 6; // 40007: Cumulative weight (Double, t)
-constexpr uint32_t POLL_MS = 1000;   // Modbus poll interval
-constexpr uint32_t RX_TMO = 200;
-constexpr uint32_t FRAME_GAP_MS = 10; // Modbus RTU inter-frame silence
 
-// Resilience tuning
-constexpr uint32_t WDT_TIMEOUT_S = 30;        // Hard reset if loop stalls
-constexpr uint32_t WIFI_RETRY_MS = 10000;     // WiFi reconnect probe interval
-constexpr uint8_t MODBUS_RETRY = 3;           // Per-read attempts
-constexpr uint8_t MAX_CONSECUTIVE_FAILS = 10; // Escalate after this many
-constexpr uint8_t MAX_RECOVERY_ATTEMPTS = 20; // Force reboot after this many
+// SPM33 register addresses (4xxxx - 40001 = Modbus address)
+constexpr uint16_t SPM33_REG_IA = 6;     // 40007: Phase A current (UINT16, ×0.001 A)
+constexpr uint16_t SPM33_REG_POWER = 10; // 40011: Total active power LINT32, ×0.1 W
+constexpr uint16_t SPM33_REG_ENERGY = 25; // 40026: Total active energy LUINT32, ×0.1 kWh
+constexpr uint16_t SPM33_REG_CT_PRI = 201; // 40202: CT primary side value (1..50000)
+constexpr uint8_t SPM33_CT_SEC = 5;        // SPM33 CT secondary side (5A typical)
+
+constexpr uint32_t POLL_MS = 1000; // Read interval
+constexpr uint32_t RX_TMO = 200;
+constexpr uint32_t FRAME_GAP_MS = 10;
+
+constexpr uint32_t WDT_TIMEOUT_S = 30;
+constexpr uint32_t WIFI_RETRY_MS = 10000;
+constexpr uint8_t MODBUS_RETRY = 2;
+constexpr uint8_t MAX_CONSECUTIVE_FAILS = 10;
+constexpr uint8_t MAX_RECOVERY_ATTEMPTS = 20;
 } // namespace cfg
 
-// ── Firebase paths ─────────────────────────────────────────────────────
-#define FB_PATH_FLOW "/teerem/weight_rate"
-#define FB_PATH_KG "/teerem/cumulative_kg"
-#define FB_PATH_UPDATE "/teerem/last_updated"
-
 // ── RGB LED (WS2812 GPIO 21 — Waveshare ESP32-S3-Zero onboard) ─────────
-// Uses the Arduino-ESP32 built-in driver (rgbLedWrite in core 3.x,
-// neopixelWrite in 2.x). The driver handles WS2812 timing and GRB byte
-// order internally — call writeRGB(R, G, B) and you get exactly those colors.
 namespace led {
 constexpr uint8_t PIN = 21;
-constexpr uint8_t BRIGHTNESS = 40; // 0-255 — same as user's working test sketch
-constexpr uint16_t ON_MS = 250;    // visible-on portion of each blink
-constexpr uint16_t OFF_MS = 250;   // off portion of each blink (1 Hz total)
-constexpr uint16_t FLASH_ON_MS = 250; // one-shot green flash window
+constexpr uint8_t BRIGHTNESS = 40;
+constexpr uint16_t ON_MS = 250;
+constexpr uint16_t OFF_MS = 250;
+constexpr uint16_t FLASH_ON_MS = 250;
 
 inline void writeRGB(uint8_t r, uint8_t g, uint8_t b) {
 #if defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 3)
@@ -77,7 +93,6 @@ bool on = false;
 
 void begin() { writeRGB(0, 0, 0); }
 
-// Set the background blink mode. OFF stops blinking entirely.
 void setMode(Mode m) {
   if (m == mode)
     return;
@@ -88,23 +103,21 @@ void setMode(Mode m) {
     writeRGB(0, 0, 0);
 }
 
-// One-shot green flash on every successful Firebase upload.
 void flashGreen() {
   flashOffAt = millis() + FLASH_ON_MS;
   writeRGB(0, scale(255), 0);
 }
 
-// Non-blocking driver — call once per loop iteration.
 void update() {
   unsigned long now = millis();
 
   if (flashOffAt) {
     if (now < flashOffAt)
-      return; // green flash still on
+      return;
     flashOffAt = 0;
     writeRGB(0, 0, 0);
     on = false;
-    nextToggle = now; // restart blink cycle cleanly
+    nextToggle = now;
   }
 
   if (mode == OFF)
@@ -119,7 +132,7 @@ void update() {
   } else {
     if (mode == BLINK_RED)
       writeRGB(scale(255), 0, 0);
-    else // BLINK_PURPLE — red + blue mixed
+    else
       writeRGB(scale(255), 0, scale(255));
     on = true;
     nextToggle = now + ON_MS;
@@ -127,12 +140,10 @@ void update() {
 }
 } // namespace led
 
-// Dedicated LED task — pinned to core 0 so Modbus / Firebase blocking on
-// core 1 (where Arduino loop runs) can't stall the blink cadence.
 void ledTask(void *) {
   for (;;) {
     led::update();
-    vTaskDelay(pdMS_TO_TICKS(20)); // 50 Hz refresh
+    vTaskDelay(pdMS_TO_TICKS(20));
   }
 }
 
@@ -145,7 +156,6 @@ public:
     Serial1.begin(cfg::BAUD, SERIAL_8N1, cfg::RX_PIN, cfg::TX_PIN);
   }
 
-  // Drain UART, restart Serial1, cycle MAX485 DE/RE — clears wedged bus state.
   void recover() {
     while (Serial1.available())
       Serial1.read();
@@ -157,9 +167,10 @@ public:
     digitalWrite(cfg::DE_RE, LOW);
   }
 
-  bool readFloat(uint16_t addr, float &out) {
+  // Big-Endian 32-bit IEEE 754 float (тэжээлийн жин)
+  bool readFloat(uint8_t slave, uint16_t addr, float &out) {
     uint8_t rx[9];
-    if (!readRegs(addr, 2, rx))
+    if (!readRegs(slave, addr, 2, rx))
       return false;
     uint32_t raw = (uint32_t)rx[3] << 24 | (uint32_t)rx[4] << 16 |
                    (uint32_t)rx[5] << 8 | rx[6];
@@ -167,10 +178,10 @@ public:
     return true;
   }
 
-  // Big-Endian 64-bit IEEE 754 double, 4 регистр (8 байт), word-swap байхгүй
-  bool readDouble(uint16_t addr, double &out) {
-    uint8_t rx[13]; // 5 framing + 4*2 data
-    if (!readRegs(addr, 4, rx))
+  // Big-Endian 64-bit IEEE 754 double (тэжээлийн жин cumulative)
+  bool readDouble(uint8_t slave, uint16_t addr, double &out) {
+    uint8_t rx[13];
+    if (!readRegs(slave, addr, 4, rx))
       return false;
     uint64_t raw = ((uint64_t)rx[3] << 56) | ((uint64_t)rx[4] << 48) |
                    ((uint64_t)rx[5] << 40) | ((uint64_t)rx[6] << 32) |
@@ -180,13 +191,51 @@ public:
     return true;
   }
 
-private:
-  bool readRegs(uint16_t addr, uint8_t regCnt, uint8_t *rx) {
-    while (Serial1.available())
-      Serial1.read(); // өмнөх амжилтгүй уншилтын хоцрогдсон байтыг цэвэрлэх
+  // SPM33 — нэг UINT16 регистр
+  bool readU16(uint8_t slave, uint16_t addr, uint16_t &out) {
+    uint8_t rx[7];
+    if (!readRegs(slave, addr, 1, rx))
+      return false;
+    out = ((uint16_t)rx[3] << 8) | rx[4];
+    return true;
+  }
 
-    uint8_t req[8] = {
-        cfg::SLAVE, 0x03, uint8_t(addr >> 8), uint8_t(addr), 0, regCnt, 0, 0};
+  // SPM33 — гурван дараалсан UINT16 (Ia, Ib, Ic)
+  bool readU16x3(uint8_t slave, uint16_t addr, uint16_t out[3]) {
+    uint8_t rx[11];
+    if (!readRegs(slave, addr, 3, rx))
+      return false;
+    for (int i = 0; i < 3; i++)
+      out[i] = ((uint16_t)rx[3 + i * 2] << 8) | rx[4 + i * 2];
+    return true;
+  }
+
+  // SPM33 LINT32 / LUINT32 — Low word first, byte order big-endian within each word
+  bool readU32LowFirst(uint8_t slave, uint16_t addr, uint32_t &out) {
+    uint8_t rx[9];
+    if (!readRegs(slave, addr, 2, rx))
+      return false;
+    out = ((uint32_t)rx[5] << 24) | ((uint32_t)rx[6] << 16) |
+          ((uint32_t)rx[3] << 8) | (uint32_t)rx[4];
+    return true;
+  }
+
+  bool readI32LowFirst(uint8_t slave, uint16_t addr, int32_t &out) {
+    uint32_t raw;
+    if (!readU32LowFirst(slave, addr, raw))
+      return false;
+    out = (int32_t)raw;
+    return true;
+  }
+
+private:
+  bool readRegs(uint8_t slave, uint16_t addr, uint8_t regCnt, uint8_t *rx) {
+    while (Serial1.available())
+      Serial1.read();
+
+    uint8_t req[8] = {slave,        0x03,    uint8_t(addr >> 8),
+                      uint8_t(addr), 0,       regCnt,
+                      0,             0};
     uint16_t c = crc16(req, 6);
     req[6] = c & 0xFF;
     req[7] = c >> 8;
@@ -196,7 +245,7 @@ private:
     const uint8_t respLen = 5 + regCnt * 2;
     if (!receive(rx, respLen))
       return false;
-    if (rx[0] != cfg::SLAVE || rx[1] != 0x03 || rx[2] != regCnt * 2)
+    if (rx[0] != slave || rx[1] != 0x03 || rx[2] != regCnt * 2)
       return false;
     if (crc16(rx, respLen - 2) !=
         uint16_t(rx[respLen - 2] | (rx[respLen - 1] << 8)))
@@ -234,6 +283,88 @@ private:
   }
 };
 
+// ── SPM33 helper-үүд ───────────────────────────────────────────────────
+struct Spm33Reading {
+  bool powerOk = false;
+  bool energyOk = false;
+  bool currentsOk = false;
+  float powerKW = 0;          // primary side kW
+  float energyKWh = 0;        // primary side kWh
+  float currentA = 0;         // primary A
+  float currentB = 0;
+  float currentC = 0;
+};
+
+// Modbus retry helper
+template <typename F>
+static bool withRetry(F &&fn) {
+  for (uint8_t i = 0; i < cfg::MODBUS_RETRY; i++) {
+    if (fn())
+      return true;
+    if (i + 1 < cfg::MODBUS_RETRY)
+      delay(cfg::FRAME_GAP_MS);
+  }
+  return false;
+}
+
+// CT primary бол метр дээр гараар тохируулдаг тогтмол тоо (рег. 40202).
+// Boot үед уншиж кэшилнэ. Бүтэлгүй бол loop() cycle бүрт амжилттай болтол дахин
+// оролдоно. Метр дээр CT-г өөрчилсөн бол ESP32-г restart хийхэд шинэ утга авна.
+static uint16_t ctPrimary[6] = {1, 1, 1, 1, 1, 1};
+static bool ctPrimaryKnown[6] = {false, false, false, false, false, false};
+
+bool Spm33_readCtPrimary(Modbus &mb, uint8_t slave) {
+  uint16_t v = 0;
+  bool ok = withRetry([&] { return mb.readU16(slave, cfg::SPM33_REG_CT_PRI, v); });
+  if (ok && v > 0) {
+    ctPrimary[slave] = v;
+    ctPrimaryKnown[slave] = true;
+    Serial.printf("[SPM33 #%u] CT primary = %u A\n", slave, v);
+    return true;
+  }
+  return false;
+}
+
+Spm33Reading Spm33_read(Modbus &mb, uint8_t slave, bool withCurrents) {
+  Spm33Reading r;
+
+  int32_t powerRaw = 0;
+  r.powerOk = withRetry(
+      [&] { return mb.readI32LowFirst(slave, cfg::SPM33_REG_POWER, powerRaw); });
+  if (r.powerOk) {
+    // Secondary side W (×0.1). To primary side: × (CT_pri / CT_sec).
+    float secW = powerRaw * 0.1f;
+    float priW = secW * (float)ctPrimary[slave] / (float)cfg::SPM33_CT_SEC;
+    r.powerKW = priW / 1000.0f;
+  }
+
+  delay(cfg::FRAME_GAP_MS);
+
+  uint32_t energyRaw = 0;
+  r.energyOk = withRetry(
+      [&] { return mb.readU32LowFirst(slave, cfg::SPM33_REG_ENERGY, energyRaw); });
+  if (r.energyOk) {
+    // 40026 нь primary side kWh-ийг ×0.1-ээр өгдөг (5.1 хүснэгт)
+    r.energyKWh = energyRaw * 0.1f;
+  }
+
+  if (withCurrents) {
+    delay(cfg::FRAME_GAP_MS);
+    uint16_t ix[3] = {0, 0, 0};
+    r.currentsOk = withRetry([&] {
+      return mb.readU16x3(slave, cfg::SPM33_REG_IA, ix);
+    });
+    if (r.currentsOk) {
+      const float k = 0.001f * (float)ctPrimary[slave] / (float)cfg::SPM33_CT_SEC;
+      r.currentA = ix[0] * k;
+      r.currentB = ix[1] * k;
+      r.currentC = ix[2] * k;
+    }
+  }
+
+  return r;
+}
+
 // ── Глобал ─────────────────────────────────────────────────────────────
 Modbus modbus;
 FirebaseData fbData;
@@ -243,21 +374,18 @@ FirebaseConfig fbConfig;
 bool firebaseReady = false;
 unsigned long lastWifiCheck = 0;
 
-// Modbus recovery — escalate after repeated read failures, reboot if hopeless.
 unsigned int consecutiveReadFails = 0;
 unsigned int totalRecoveryAttempts = 0;
 
-// Firebase exponential backoff — keeps a flaky network from generating retry
-// storms during auth failures or sustained upload errors.
 unsigned long fbNextAllowedAt = 0;
 unsigned int fbFailStreak = 0;
 
 void fbOnFailure() {
   fbFailStreak++;
   unsigned long backoff =
-      2000UL * (1UL << min((unsigned int)8, fbFailStreak)); // 2s..~8min raw
+      2000UL * (1UL << min((unsigned int)8, fbFailStreak));
   if (backoff > 300000UL)
-    backoff = 300000UL; // cap at 5 min
+    backoff = 300000UL;
   fbNextAllowedAt = millis() + backoff;
   Serial.printf("[Firebase] Backoff %lus (fail streak %u)\n", backoff / 1000,
                 fbFailStreak);
@@ -272,7 +400,6 @@ void fbOnSuccess() {
 
 bool fbCanUpload() { return (long)(millis() - fbNextAllowedAt) >= 0; }
 
-// Escalating Modbus recovery: re-init UART + cycle DE/RE; reboot if exhausted.
 void recoverModbusBus() {
   totalRecoveryAttempts++;
   Serial.printf("[Recovery] Attempt #%u after %u failed cycles\n",
@@ -281,7 +408,7 @@ void recoverModbusBus() {
     Serial.println("[Recovery] Max attempts — forcing reboot via WDT");
     delay(100);
     while (true) {
-    } // Let watchdog reset the chip cleanly
+    }
   }
   modbus.recover();
   consecutiveReadFails = 0;
@@ -348,17 +475,25 @@ void setup() {
   Serial.println("\n========= Teerem IoT (S3-Zero) =========");
 
   led::begin();
-  // LED runs on its own core 0 task so Modbus / Firebase blocking calls
-  // on core 1 (Arduino loop) never freeze the blink animation.
   xTaskCreatePinnedToCore(ledTask, "ledTask", 2048, nullptr, 1, nullptr, 0);
 
   modbus.begin();
+
+  // SPM33 CT primary утгыг боотлох үед бүх 4 slave-ээс уншиж кэшилнэ — P
+  // (40011) болон гүйдлийг secondary→primary хөрвүүлэхэд хэрэглэнэ. Унших нь
+  // алдвал loop() cycle бүрт амжилттай болтол дахин оролдоно.
+  delay(100);
+  const uint8_t spmSlaves[4] = {cfg::EM01_SLAVE, cfg::EM02_SLAVE,
+                                cfg::EM04_SLAVE, cfg::EM05_SLAVE};
+  for (uint8_t s : spmSlaves) {
+    Spm33_readCtPrimary(modbus, s);
+    delay(cfg::FRAME_GAP_MS);
+  }
+
   WiFi.onEvent(onWifiEvent);
   wifiConnect();
   firebaseInit();
 
-  // Hardware watchdog — reboots the chip if loop() goes silent for too long
-  // (e.g. Firebase SSL handshake wedged on a flaky network).
   esp_task_wdt_config_t wdtConfig = {.timeout_ms = cfg::WDT_TIMEOUT_S * 1000,
                                      .idle_core_mask = 0,
                                      .trigger_panic = true};
@@ -370,15 +505,8 @@ void setup() {
 
 void loop() {
   esp_task_wdt_reset();
-  // led::update() runs on the dedicated ledTask (core 0) — no need to call
-  // it here. Driving from loop() was making blocks in Modbus / Firebase
-  // freeze the LED state visually.
   unsigned long now = millis();
 
-  // Manual WiFi retry — fallback for when onWifiEvent stops firing. MUST be
-  // non-blocking: wifiConnect() has a 15s wait loop that would freeze the LED
-  // state machine and make the blink look like a solid colour. WiFi.reconnect()
-  // just kicks the async reconnect attempt and returns immediately.
   if (WiFi.status() != WL_CONNECTED &&
       now - lastWifiCheck >= cfg::WIFI_RETRY_MS) {
     lastWifiCheck = now;
@@ -391,44 +519,72 @@ void loop() {
     return;
   lastPoll = now;
 
-  // 1) WiFi шалгах — холбогдоогүй бол улаан LED тогтмол анивчина
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("[WiFi] not connected");
     led::setMode(led::BLINK_RED);
     return;
   }
 
-  // 2) Modbus унших — retry-тэй (transient bus noise-ыг тойрох)
-  float flow = 0;
-  bool flowOk = false;
-  for (uint8_t i = 0; i < cfg::MODBUS_RETRY && !flowOk; i++) {
-    flowOk = modbus.readFloat(cfg::REG_FLOW, flow);
-    if (!flowOk && i + 1 < cfg::MODBUS_RETRY)
-      delay(cfg::FRAME_GAP_MS);
+  // Boot үед уншиж чадаагүй CT primary-уудыг дахин оролдох — нэг slave/cycle
+  // (RS485 bus-ыг сенсорын уншилттай зэрэгцэхгүй).
+  {
+    static const uint8_t spmSlaves[4] = {cfg::EM01_SLAVE, cfg::EM02_SLAVE,
+                                         cfg::EM04_SLAVE, cfg::EM05_SLAVE};
+    for (uint8_t s : spmSlaves) {
+      if (!ctPrimaryKnown[s]) {
+        Spm33_readCtPrimary(modbus, s);
+        delay(cfg::FRAME_GAP_MS);
+        break; // зөвхөн нэгийг л оролдоно, цаг хэмнэхийн тулд
+      }
+    }
   }
 
+  // ── 1) Тэжээлийн жин (Slave 1) ────────────────────────────────────
+  float flow = 0;
+  bool flowOk = withRetry(
+      [&] { return modbus.readFloat(cfg::SCALE_SLAVE, cfg::REG_FLOW, flow); });
   delay(cfg::FRAME_GAP_MS);
 
   double weightT = 0;
-  bool weightOk = false;
-  for (uint8_t i = 0; i < cfg::MODBUS_RETRY && !weightOk; i++) {
-    weightOk = modbus.readDouble(cfg::REG_WEIGHT_T, weightT);
-    if (!weightOk && i + 1 < cfg::MODBUS_RETRY)
-      delay(cfg::FRAME_GAP_MS);
-  }
+  bool weightOk = withRetry(
+      [&] { return modbus.readDouble(cfg::SCALE_SLAVE, cfg::REG_WEIGHT_T, weightT); });
+  delay(cfg::FRAME_GAP_MS);
 
-  if (flowOk)
-    Serial.printf("Flow   = %.2f t/h\n", flow);
-  else
-    Serial.println("Flow   = #");
+  // ── 2) SPM33 цахилгаан тоолуурууд ─────────────────────────────────
+  Spm33Reading em01 = Spm33_read(modbus, cfg::EM01_SLAVE, false);
+  delay(cfg::FRAME_GAP_MS);
+  Spm33Reading em02 = Spm33_read(modbus, cfg::EM02_SLAVE, false);
+  delay(cfg::FRAME_GAP_MS);
+  Spm33Reading em04 = Spm33_read(modbus, cfg::EM04_SLAVE, true);
+  delay(cfg::FRAME_GAP_MS);
+  Spm33Reading em05 = Spm33_read(modbus, cfg::EM05_SLAVE, true);
 
-  if (weightOk)
-    Serial.printf("Weight = %.3f t\n", weightT);
-  else
-    Serial.println("Weight = #");
+  // ── 3) Уншилтын логийг товч ─────────────────────────────────────────
+  Serial.printf("[Scale] flow:%s weight:%s\n",
+                flowOk ? String(flow, 2).c_str() : "#",
+                weightOk ? String(weightT, 3).c_str() : "#");
+  auto logEm = [](const char *tag, const Spm33Reading &r, bool withI) {
+    Serial.printf("[%s] P:%s E:%s", tag,
+                  r.powerOk ? String(r.powerKW, 2).c_str() : "#",
+                  r.energyOk ? String(r.energyKWh, 1).c_str() : "#");
+    if (withI)
+      Serial.printf(" Ia:%s Ib:%s Ic:%s",
+                    r.currentsOk ? String(r.currentA, 2).c_str() : "#",
+                    r.currentsOk ? String(r.currentB, 2).c_str() : "#",
+                    r.currentsOk ? String(r.currentC, 2).c_str() : "#");
+    Serial.println();
+  };
+  logEm("EM01", em01, false);
+  logEm("EM02", em02, false);
+  logEm("EM04", em04, true);
+  logEm("EM05", em05, true);
 
-  // Track read failures; escalate to bus recovery if they pile up.
-  if (flowOk || weightOk) {
+  // ── 4) Алдаа escalate ──────────────────────────────────────────────
+  bool anyOk = flowOk || weightOk || em01.powerOk || em01.energyOk ||
+               em02.powerOk || em02.energyOk || em04.powerOk || em04.energyOk ||
+               em04.currentsOk || em05.powerOk || em05.energyOk ||
+               em05.currentsOk;
+  if (anyOk) {
     consecutiveReadFails = 0;
     totalRecoveryAttempts = 0;
   } else {
@@ -437,13 +593,7 @@ void loop() {
       recoverModbusBus();
   }
 
-  // Modbus уншилтын аль нэг нь алдсан бол ягаан анивчина
-  if (!flowOk || !weightOk) {
-    led::setMode(led::BLINK_PURPLE);
-    return;
-  }
-
-  // 3) Firebase backoff/ready шалгах
+  // ── 5) Firebase upload — нэг updateNode("/") -ээр бүхэл бөгцийг илгээнэ ──
   if (!fbCanUpload()) {
     led::setMode(led::BLINK_PURPLE);
     return;
@@ -457,38 +607,46 @@ void loop() {
     Serial.println("[Firebase] ready");
   }
 
-  bool uploadOk = false;
-  bool anyFail = false;
+  FirebaseJson json;
+  bool anyWrite = false;
 
-  if (flowOk) {
-    if (Firebase.RTDB.setFloat(&fbData, FB_PATH_FLOW, flow))
-      uploadOk = true;
-    else {
-      anyFail = true;
-      Serial.printf("[Firebase] flow err: %s\n", fbData.errorReason().c_str());
-    }
-  }
-
+  if (flowOk) { json.set("teerem/weight_rate", flow); anyWrite = true; }
   if (weightOk) {
-    int32_t weightKg = (int32_t)(weightT * 1000.0);
-    if (Firebase.RTDB.setInt(&fbData, FB_PATH_KG, weightKg))
-      uploadOk = true;
-    else {
-      anyFail = true;
-      Serial.printf("[Firebase] kg err: %s\n", fbData.errorReason().c_str());
-    }
+    json.set("teerem/cumulative_kg", (int)(weightT * 1000.0));
+    anyWrite = true;
   }
 
-  if (uploadOk) {
-    Firebase.RTDB.setInt(&fbData, FB_PATH_UPDATE, (int)(millis() / 1000));
+  auto addEm = [&](const char *id, const Spm33Reading &r, bool withI) {
+    String base = String("energy_meters/") + id + "/";
+    if (r.powerOk) { json.set((base + "power_kw").c_str(), r.powerKW); anyWrite = true; }
+    if (r.energyOk) { json.set((base + "total_energy_kwh").c_str(), r.energyKWh); anyWrite = true; }
+    if (withI && r.currentsOk) {
+      json.set((base + "current_a").c_str(), r.currentA);
+      json.set((base + "current_b").c_str(), r.currentB);
+      json.set((base + "current_c").c_str(), r.currentC);
+      anyWrite = true;
+    }
+  };
+  addEm("em01", em01, false);
+  addEm("em02", em02, false);
+  addEm("em04", em04, true);
+  addEm("em05", em05, true);
+
+  if (!anyWrite) {
+    led::setMode(led::BLINK_PURPLE);
+    return;
+  }
+
+  json.set("teerem/last_updated", (int)(millis() / 1000));
+
+  if (Firebase.RTDB.updateNode(&fbData, "/", &json)) {
+    Serial.println("[Firebase] Updated");
+    fbOnSuccess();
     led::setMode(led::OFF);
-    led::flashGreen(); // GREEN — амжилттай upload бүрт нэг анивчина
+    led::flashGreen();
   } else {
+    Serial.printf("[Firebase] update ERROR: %s\n", fbData.errorReason().c_str());
+    fbOnFailure();
     led::setMode(led::BLINK_PURPLE);
   }
-
-  if (anyFail)
-    fbOnFailure();
-  else if (uploadOk)
-    fbOnSuccess();
 }

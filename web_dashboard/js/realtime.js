@@ -74,6 +74,29 @@ function initRealtime() {
     butluurWeight:     document.getElementById("butluurWeight"),
     butluurWeightTons: document.getElementById("butluurWeightTons"),
     butluurWeightLed:  document.getElementById("butluurWeightLed"),
+    // Цахилгаан тоолуурууд (Slave ID → card)
+    //   em01 ← Slave 2 (Боловсруулах үйлдвэр ХС)
+    //   em02 ← Slave 3 (Нунтаглах хэсэг ХС)
+    //   em04 ← Slave 4 (Бөмбөлөгт тээрэм 1)
+    //   em05 ← Slave 5 (Бөмбөлөгт тээрэм 2)
+    em01Power:  document.getElementById("emPower01"),
+    em01Energy: document.getElementById("emEnergy01"),
+    em01Led:    document.getElementById("emLed01"),
+    em02Power:  document.getElementById("emPower02"),
+    em02Energy: document.getElementById("emEnergy02"),
+    em02Led:    document.getElementById("emLed02"),
+    em04Power:   document.getElementById("emPower04"),
+    em04Energy:  document.getElementById("emEnergy04"),
+    em04Led:     document.getElementById("emLed04"),
+    em04CurA:    document.getElementById("emCurrentA04"),
+    em04CurB:    document.getElementById("emCurrentB04"),
+    em04CurC:    document.getElementById("emCurrentC04"),
+    em05Power:   document.getElementById("emPower05"),
+    em05Energy:  document.getElementById("emEnergy05"),
+    em05Led:     document.getElementById("emLed05"),
+    em05CurA:    document.getElementById("emCurrentA05"),
+    em05CurB:    document.getElementById("emCurrentB05"),
+    em05CurC:    document.getElementById("emCurrentC05"),
   };
 
   if (typeof firebase === "undefined" || !firebase.apps || !firebase.apps.length) {
@@ -145,4 +168,44 @@ function initRealtime() {
     if (s.val() === null) return;
     if (_el.butluurWeightTons) _el.butluurWeightTons.textContent = (parseInt(s.val(), 10) / 1000).toFixed(3);
   });
+
+  // ── Цахилгаан тоолуурууд ──────────────────────────────
+  // Power + energy дөрвөн card-д адил, гүйдэл 04/05-д л байдаг.
+  function bindMeter(key, hasCurrents) {
+    const power  = _el[key + "Power"];
+    const energy = _el[key + "Energy"];
+    const led    = _el[key + "Led"];
+    const curA   = _el[key + "CurA"];
+    const curB   = _el[key + "CurB"];
+    const curC   = _el[key + "CurC"];
+
+    db.ref("/energy_meters/" + key + "/power_kw").on("value", s => {
+      if (s.val() === null) return;
+      if (power) power.textContent = parseFloat(s.val()).toFixed(2);
+      _blinkLed(led);
+    });
+    db.ref("/energy_meters/" + key + "/total_energy_kwh").on("value", s => {
+      if (s.val() === null) return;
+      if (energy) energy.textContent = parseFloat(s.val()).toFixed(3);
+    });
+    if (hasCurrents) {
+      db.ref("/energy_meters/" + key + "/current_a").on("value", s => {
+        if (s.val() === null) return;
+        if (curA) curA.textContent = parseFloat(s.val()).toFixed(2);
+      });
+      db.ref("/energy_meters/" + key + "/current_b").on("value", s => {
+        if (s.val() === null) return;
+        if (curB) curB.textContent = parseFloat(s.val()).toFixed(2);
+      });
+      db.ref("/energy_meters/" + key + "/current_c").on("value", s => {
+        if (s.val() === null) return;
+        if (curC) curC.textContent = parseFloat(s.val()).toFixed(2);
+      });
+    }
+  }
+
+  bindMeter("em01", false);
+  bindMeter("em02", false);
+  bindMeter("em04", true);
+  bindMeter("em05", true);
 }
