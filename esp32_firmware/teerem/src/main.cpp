@@ -67,28 +67,37 @@ constexpr uint8_t MAX_CONSECUTIVE_FAILS = 10;
 constexpr uint8_t MAX_RECOVERY_ATTEMPTS = 20;
 } // namespace cfg
 
-// ── RGB LED (WS2812 GPIO 21 — Waveshare ESP32-S3-Zero onboard) ─────────
+// ── RGB STATUS LED (WS2812 GPIO 21 — Waveshare ESP32-S3-Zero onboard) ──
+//   SLOW_RED — WiFi / Modbus / Firebase аль нэг нь алдсан үед удаан анивчина
+//              (500ms on / 500ms off → 1 Hz).
+//   pulse()  — Firebase-д амжилттай upload болгонд нэг богино ногоон импульс
+//              (~120ms). Modbus poll-ийн 1 Hz ритмтэй синхрон.
 namespace led {
 constexpr uint8_t PIN = 21;
-constexpr uint8_t BRIGHTNESS = 40;
-constexpr uint16_t ON_MS = 250;
-constexpr uint16_t OFF_MS = 250;
-constexpr uint16_t FLASH_ON_MS = 250;
+constexpr uint8_t BRIGHTNESS = 60;
+constexpr uint16_t SLOW_ON_MS = 500;
+constexpr uint16_t SLOW_OFF_MS = 500;
+constexpr uint16_t PULSE_MS = 120;
 
 inline void writeRGB(uint8_t r, uint8_t g, uint8_t b) {
+  // Энэ board-ийн WS2812 чип нь R/G сувгуудыг солиод эмиттэр-лж байна
+  // (rgbLedWrite-ийн GRB conversion нь зарим S3-Zero batch-д таарахгүй).
+  // Тиймээс r ба g-г солиод дамжуулна — дуудлагын талд "red"/"green" хэвээр.
 #if defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 3)
-  rgbLedWrite(PIN, r, g, b);
+  rgbLedWrite(PIN, g, r, b);
 #else
-  neopixelWrite(PIN, r, g, b);
+  neopixelWrite(PIN, g, r, b);
 #endif
 }
 
 inline uint8_t scale(uint8_t v) { return (uint16_t(v) * BRIGHTNESS) / 255; }
 
-enum Mode { OFF, BLINK_RED, BLINK_PURPLE };
-Mode mode = OFF;
+enum Mode { OFF, SLOW_RED };
+// Boot үед өгөгдөл хараахан явуулаагүй учир улаан анивчиж эхэлнэ.
+// Эхний амжилттай upload-аас хойш OFF болж ногоон pulse-ээр л асна.
+Mode mode = SLOW_RED;
 unsigned long nextToggle = 0;
-unsigned long flashOffAt = 0;
+unsigned long pulseOffAt = 0;
 bool on = false;
 
 void begin() { writeRGB(0, 0, 0); }
@@ -103,18 +112,19 @@ void setMode(Mode m) {
     writeRGB(0, 0, 0);
 }
 
-void flashGreen() {
-  flashOffAt = millis() + FLASH_ON_MS;
+// One-shot green pulse — амжилттай upload болгонд дуудагдана.
+void pulse() {
+  pulseOffAt = millis() + PULSE_MS;
   writeRGB(0, scale(255), 0);
 }
 
 void update() {
   unsigned long now = millis();
 
-  if (flashOffAt) {
-    if (now < flashOffAt)
+  if (pulseOffAt) {
+    if (now < pulseOffAt)
       return;
-    flashOffAt = 0;
+    pulseOffAt = 0;
     writeRGB(0, 0, 0);
     on = false;
     nextToggle = now;
@@ -128,14 +138,11 @@ void update() {
   if (on) {
     writeRGB(0, 0, 0);
     on = false;
-    nextToggle = now + OFF_MS;
+    nextToggle = now + SLOW_OFF_MS;
   } else {
-    if (mode == BLINK_RED)
-      writeRGB(scale(255), 0, 0);
-    else
-      writeRGB(scale(255), 0, scale(255));
+    writeRGB(scale(255), 0, 0); // SLOW_RED
     on = true;
-    nextToggle = now + ON_MS;
+    nextToggle = now + SLOW_ON_MS;
   }
 }
 } // namespace led
@@ -521,7 +528,7 @@ void loop() {
 
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("[WiFi] not connected");
-    led::setMode(led::BLINK_RED);
+    led::setMode(led::SLOW_RED);
     return;
   }
 
@@ -595,11 +602,11 @@ void loop() {
 
   // ── 5) Firebase upload — нэг updateNode("/") -ээр бүхэл бөгцийг илгээнэ ──
   if (!fbCanUpload()) {
-    led::setMode(led::BLINK_PURPLE);
+    led::setMode(led::SLOW_RED);
     return;
   }
   if (!Firebase.ready()) {
-    led::setMode(led::BLINK_PURPLE);
+    led::setMode(led::SLOW_RED);
     return;
   }
   if (!firebaseReady) {
@@ -633,7 +640,7 @@ void loop() {
   addEm("em05", em05, true);
 
   if (!anyWrite) {
-    led::setMode(led::BLINK_PURPLE);
+    led::setMode(led::SLOW_RED);
     return;
   }
 
@@ -643,10 +650,10 @@ void loop() {
     Serial.println("[Firebase] Updated");
     fbOnSuccess();
     led::setMode(led::OFF);
-    led::flashGreen();
+    led::pulse();
   } else {
     Serial.printf("[Firebase] update ERROR: %s\n", fbData.errorReason().c_str());
     fbOnFailure();
-    led::setMode(led::BLINK_PURPLE);
+    led::setMode(led::SLOW_RED);
   }
 }
