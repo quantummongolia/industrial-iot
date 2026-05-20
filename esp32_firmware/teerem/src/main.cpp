@@ -57,7 +57,7 @@ constexpr uint16_t SPM33_REG_ENERGY = 25; // 40026: Total active energy LUINT32,
 constexpr uint16_t SPM33_REG_CT_PRI = 201; // 40202: CT primary side value (1..50000)
 constexpr uint8_t SPM33_CT_SEC = 5;        // SPM33 CT secondary side (5A typical)
 
-constexpr uint32_t POLL_MS = 1000; // Read interval
+constexpr uint32_t POLL_MS = 1500; // Read interval
 constexpr uint32_t RX_TMO = 200;
 constexpr uint32_t FRAME_GAP_MS = 10;
 
