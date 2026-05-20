@@ -29,6 +29,7 @@ constexpr uint32_t SELF_TEST_MIN_UPTIME_MS = 30000;
 constexpr uint8_t  SELF_TEST_PUBLISH_GOAL = 3;
 constexpr uint32_t OTA_TASK_STACK = 8192;
 constexpr uint8_t  OTA_RETRY_MAX = 1;       // network алдаанд нэг удаа дахин оролдох
+constexpr uint8_t  BOOT_FAILURE_THRESHOLD = 3;  // Энэ тооноос илүү дараалан self-test амжилтгүй → app-level rollback
 
 FirebaseData      streamFb;
 unsigned long     lastHeartbeat = 0;
@@ -348,7 +349,48 @@ void selfTestIfReady() {
     j.set("validated_at", (int)unixNow());
     Firebase.RTDB.updateNodeSilent(&streamFb, basePath().c_str(), &j);
   }
+
+  // App-level boot counter цэвэрлэх — энэ boot self-test амжилттай давсан
+  {
+    Preferences p;
+    p.begin("ota", false);
+    if (p.getUChar("boot_fail", 0) != 0) {
+      p.putUChar("boot_fail", 0);
+      Serial.println("[OTA] boot_fail counter cleared");
+    }
+    p.end();
+  }
   selfTestDone = true;
+}
+
+// Boot эхэнд дуудна — boot count counter-ийг шалгаж, threshold давсан бол
+// app-level rollback хийнэ (өмнөх partition руу switch + restart).
+// Bootloader rollback идэвхгүй платформ дээр энэ нь үндсэн хамгаалалт.
+void checkAppLevelRollback() {
+  Preferences p;
+  p.begin("ota", false);
+  uint8_t failCount = p.getUChar("boot_fail", 0) + 1;
+  p.putUChar("boot_fail", failCount);
+  Serial.printf("[OTA] boot_fail count = %u (threshold %u)\n",
+                failCount, BOOT_FAILURE_THRESHOLD);
+
+  if (failCount >= BOOT_FAILURE_THRESHOLD) {
+    // App-level rollback — өмнөх partition руу switch
+    const esp_partition_t* prev = esp_ota_get_next_update_partition(NULL);
+    if (prev) {
+      Serial.printf("[OTA] App-level rollback → switching to %s\n", prev->label);
+      esp_ota_set_boot_partition(prev);
+      p.putUChar("boot_fail", 0);
+      p.end();
+      delay(500);
+      ESP.restart();
+    } else {
+      Serial.println("[OTA] App-level rollback failed: no other partition");
+      p.end();
+    }
+  } else {
+    p.end();
+  }
 }
 
 } // anonymous namespace
@@ -358,6 +400,10 @@ void begin(FirebaseData* fbData) {
   deviceId = deriveId();
   Serial.printf("[OTA] DEVICE_ID = %s\n", deviceId.c_str());
   Serial.printf("[OTA] FIRMWARE_VERSION = %s\n", firmwareVersion);
+
+  // App-level rollback шалгалт — boot fail counter threshold давсан бол өмнөх
+  // partition руу switch хийгээд ESP.restart() дуудна (энэ функцээс буцахгүй).
+  checkAppLevelRollback();
 
   publishBootState(fbData);
 
