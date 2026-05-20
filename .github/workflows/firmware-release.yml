@@ -35,12 +35,35 @@ jobs:
       - name: Install PlatformIO
         run: pip install --upgrade platformio
 
-      - name: Stub secrets.h (build уу ажиллахгүй учир бодит түлхүүр шаардлагагүй)
+      - name: Generate secrets.h from GitHub Secrets
         working-directory: esp32_firmware/teerem/src
+        env:
+          WIFI_SSID:           ${{ secrets.WIFI_SSID }}
+          WIFI_PASSWORD:       ${{ secrets.WIFI_PASSWORD }}
+          FIREBASE_API_KEY:    ${{ secrets.FIREBASE_API_KEY }}
+          FIREBASE_DB_URL:     ${{ secrets.FIREBASE_DB_URL }}
+          FIREBASE_USER_EMAIL: ${{ secrets.FIREBASE_USER_EMAIL }}
+          FIREBASE_USER_PASS:  ${{ secrets.FIREBASE_USER_PASS }}
         run: |
-          if [ ! -f secrets.h ]; then
-            cp secrets.h.example secrets.h
-          fi
+          # Бүх 6 secret заавал тохируулагдсан байх ёстой
+          for var in WIFI_SSID WIFI_PASSWORD FIREBASE_API_KEY FIREBASE_DB_URL FIREBASE_USER_EMAIL FIREBASE_USER_PASS; do
+            if [ -z "${!var}" ]; then
+              echo "::error::GitHub secret $var дутаж байна — Settings → Secrets → Actions-д нэмэх"
+              exit 1
+            fi
+          done
+          cat > secrets.h <<EOF
+          #ifndef SECRETS_H
+          #define SECRETS_H
+          #define WIFI_SSID           "${WIFI_SSID}"
+          #define WIFI_PASSWORD       "${WIFI_PASSWORD}"
+          #define FIREBASE_API_KEY    "${FIREBASE_API_KEY}"
+          #define FIREBASE_DB_URL     "${FIREBASE_DB_URL}"
+          #define FIREBASE_USER_EMAIL "${FIREBASE_USER_EMAIL}"
+          #define FIREBASE_USER_PASS  "${FIREBASE_USER_PASS}"
+          #endif
+          EOF
+          echo "secrets.h generated (credentials redacted from log)"
 
       - name: Build firmware
         working-directory: esp32_firmware/teerem
