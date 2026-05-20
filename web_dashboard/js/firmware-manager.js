@@ -63,7 +63,9 @@
   function _deviceCard(deviceId, dev) {
     const st = _statusColor(dev);
     const isLatest = _latestRelease && dev.firmware === _latestRelease.version;
-    const canUpdate = _latestRelease && !isLatest && st.label !== "offline";
+    // Offline шалгалтыг хийхгүй — команд /pending-д хадгалагдана, device онлайн
+    // болсон даруйд (эсвэл аль хэдийн онлайн байгаа бол шууд) татаж авна.
+    const canUpdate = _latestRelease && !isLatest;
     return `
       <div class="glass-card rounded-DEFAULT p-5" data-device="${deviceId}">
         <div class="flex items-start justify-between gap-3 mb-3">
