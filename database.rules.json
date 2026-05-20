@@ -1,0 +1,36 @@
+{
+  "rules": {
+    ".read": "auth != null",
+    ".write": "auth != null",
+
+    "comment": "TODO: /admins/{uid}=true гэсэн node үүсгээд админ user-үүдийг тэнд бүртгэнэ. Энэ нь /commands/.../pending руу зөвхөн админ бичих эрхтэй болгоно.",
+
+    "firmware": {
+      ".read": "auth != null",
+      "$module": {
+        "latest": {
+          ".write": "root.child('admins').child(auth.uid).val() === true"
+        }
+      }
+    },
+
+    "devices": {
+      ".read": "auth != null",
+      "$deviceId": {
+        ".write": "auth != null"
+      }
+    },
+
+    "commands": {
+      ".read": "auth != null",
+      "$deviceId": {
+        "pending": {
+          ".write": "root.child('admins').child(auth.uid).val() === true"
+        },
+        "result": {
+          ".write": "auth != null"
+        }
+      }
+    }
+  }
+}
