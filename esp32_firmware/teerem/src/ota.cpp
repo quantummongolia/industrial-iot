@@ -7,6 +7,7 @@
 #include <WiFiClientSecure.h>
 #include <esp_ota_ops.h>
 #include <mbedtls/md.h>
+#include <time.h>
 
 #ifndef FIRMWARE_VERSION
 #define FIRMWARE_VERSION "0.0.0-unknown"
@@ -30,6 +31,13 @@ uint8_t           publishCounter = 0;
 bool              selfTestDone = false;
 String            currentCmdId;   // Дамжуулж байгаа команд (replay protection)
 
+// NTP синхронжсон бол жинхэнэ Unix timestamp буцаана, үгүй бол 0.
+// Firebase сан NTP-г default-аар идэвхжүүлдэг тул хэдхэн секундын дотор тогтворждог.
+uint32_t unixNow() {
+  time_t t = time(nullptr);
+  return (t > 1700000000) ? (uint32_t)t : 0;
+}
+
 String basePath()                { return "/devices/" + deviceId; }
 String commandsPendingPath()     { return "/commands/" + deviceId + "/pending"; }
 String commandResultPath(const String& cmdId) {
@@ -52,7 +60,7 @@ void writeStage(FirebaseData* fb, const String& stage, int progress,
   j.set("stage", stage);
   j.set("progress", progress);
   j.set("message", message);
-  j.set("ts", (int)(millis() / 1000));
+  j.set("ts", (int)unixNow());
   j.set("cmd_id", currentCmdId);
   Firebase.RTDB.updateNodeSilent(fb, (basePath() + "/ota_status").c_str(), &j);
 }
@@ -62,7 +70,7 @@ void writeResult(FirebaseData* fb, const String& cmdId, const String& status,
   FirebaseJson j;
   j.set("status", status);
   j.set("message", message);
-  j.set("completed_at", (int)(millis() / 1000));
+  j.set("completed_at", (int)unixNow());
   j.set("firmware_version", firmwareVersion);
   Firebase.RTDB.updateNodeSilent(fb, commandResultPath(cmdId).c_str(), &j);
 }
@@ -96,19 +104,19 @@ void publishBootState(FirebaseData* fb) {
 
   FirebaseJson j;
   j.set("firmware", firmwareVersion);
-  j.set("boot_time", (int)(millis() / 1000));
+  j.set("boot_time", (int)unixNow());
   j.set("reset_reason", rrStr);
   j.set("status", status);
   j.set("mac", WiFi.macAddress());
   j.set("ip", WiFi.localIP().toString());
   j.set("partition", running ? running->label : "?");
-  j.set("last_heartbeat", (int)(millis() / 1000));
+  j.set("last_heartbeat", (int)unixNow());
   Firebase.RTDB.updateNodeSilent(fb, basePath().c_str(), &j);
 }
 
 void writeHeartbeat(FirebaseData* fb) {
   FirebaseJson j;
-  j.set("last_heartbeat", (int)(millis() / 1000));
+  j.set("last_heartbeat", (int)unixNow());
   j.set("uptime_s", (int)(millis() / 1000));
   j.set("free_heap", (int)ESP.getFreeHeap());
   j.set("rssi", WiFi.RSSI());
@@ -271,7 +279,7 @@ void selfTestIfReady() {
     // RTDB-д статус шинэчилнэ
     FirebaseJson j;
     j.set("status", "running");
-    j.set("validated_at", (int)(millis() / 1000));
+    j.set("validated_at", (int)unixNow());
     Firebase.RTDB.updateNodeSilent(&streamFb, basePath().c_str(), &j);
   }
   selfTestDone = true;
