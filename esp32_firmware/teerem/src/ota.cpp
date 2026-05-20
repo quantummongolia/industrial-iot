@@ -162,6 +162,9 @@ void performOta(FirebaseData* fb, const String& url, const String& expectedSha25
 
   httpUpdate.rebootOnUpdate(false);  // restart-ыг бид өөрсдөө хяналттай хийнэ
   httpUpdate.onProgress(onUpdateProgress);
+  // GitHub releases-ийн asset URL нь release-assets.githubusercontent.com рүү
+  // 302 redirect өгдөг — заавал дагах ёстой.
+  httpUpdate.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
 
   // Streamер нь sha256-г бичих явцад шалгахаар Update.setMD5 ашигладаг —
   // sha256 hash-ыг "expected"-ээр өгөөд update() дотор stream бичигдсэний дараа
