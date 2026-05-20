@@ -1,0 +1,99 @@
+name: Firmware Release
+
+# Tag push дээр ажиллана: teerem-v1.2.3 → teerem firmware build → GitHub Release
+on:
+  push:
+    tags:
+      - 'teerem-v*'
+
+permissions:
+  contents: write   # Release үүсгэх + asset upload
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (with full history for git describe)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache PlatformIO + pip
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.platformio
+            ~/.cache/pip
+          key: ${{ runner.os }}-pio-${{ hashFiles('esp32_firmware/teerem/platformio.ini') }}
+
+      - name: Install PlatformIO
+        run: pip install --upgrade platformio
+
+      - name: Stub secrets.h (build уу ажиллахгүй учир бодит түлхүүр шаардлагагүй)
+        working-directory: esp32_firmware/teerem/src
+        run: |
+          if [ ! -f secrets.h ]; then
+            cp secrets.h.example secrets.h
+          fi
+
+      - name: Build firmware
+        working-directory: esp32_firmware/teerem
+        run: pio run
+
+      - name: Compute sha256 + rename binary
+        id: artifact
+        working-directory: esp32_firmware/teerem
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"        # teerem-v1.2.3
+          VER="${TAG#teerem-v}"                 # 1.2.3
+          OUT="teerem-${VER}.bin"
+          cp .pio/build/esp32-s3-zero/firmware.bin "$OUT"
+          SHA=$(sha256sum "$OUT" | awk '{print $1}')
+          SIZE=$(stat -c '%s' "$OUT")
+          echo "version=$VER"   >> $GITHUB_OUTPUT
+          echo "binary=$OUT"    >> $GITHUB_OUTPUT
+          echo "sha256=$SHA"    >> $GITHUB_OUTPUT
+          echo "size=$SIZE"     >> $GITHUB_OUTPUT
+          echo "Built $OUT ($SIZE bytes, sha256=$SHA)"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: esp32_firmware/teerem/${{ steps.artifact.outputs.binary }}
+          body: |
+            ## Teerem firmware v${{ steps.artifact.outputs.version }}
+
+            - **Binary:** `${{ steps.artifact.outputs.binary }}`
+            - **Size:** ${{ steps.artifact.outputs.size }} bytes
+            - **SHA-256:** `${{ steps.artifact.outputs.sha256 }}`
+
+            ### OTA шинэчлэлт
+            Веб дашбоардаас `Firmware → Update` товчоор device бүрд push хийнэ.
+
+      - name: Publish release metadata to RTDB
+        env:
+          FIREBASE_DB_URL: ${{ secrets.FIREBASE_DB_URL }}
+          FIREBASE_RTDB_SECRET: ${{ secrets.FIREBASE_RTDB_SECRET }}
+        run: |
+          VER="${{ steps.artifact.outputs.version }}"
+          SHA="${{ steps.artifact.outputs.sha256 }}"
+          BIN="${{ steps.artifact.outputs.binary }}"
+          URL="https://github.com/${{ github.repository }}/releases/download/teerem-v${VER}/${BIN}"
+          PUBLISHED=$(date +%s)
+          curl -sf -X PUT \
+            "${FIREBASE_DB_URL}/firmware/teerem/latest.json?auth=${FIREBASE_RTDB_SECRET}" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"version\": \"${VER}\",
+              \"url\": \"${URL}\",
+              \"sha256\": \"${SHA}\",
+              \"size\": ${{ steps.artifact.outputs.size }},
+              \"published_at\": ${PUBLISHED}
+            }"
+          echo "Published /firmware/teerem/latest → ${VER}"

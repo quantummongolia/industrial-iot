@@ -24,6 +24,7 @@
  */
 
 #include "secrets.h"
+#include "ota.h"
 #include <Arduino.h>
 #include <Firebase_ESP_Client.h>
 #include <WiFi.h>
@@ -56,7 +57,7 @@ constexpr uint16_t SPM33_REG_ENERGY = 25; // 40026: Total active energy LUINT32,
 constexpr uint16_t SPM33_REG_CT_PRI = 201; // 40202: CT primary side value (1..50000)
 constexpr uint8_t SPM33_CT_SEC = 5;        // SPM33 CT secondary side (5A typical)
 
-constexpr uint32_t POLL_MS = 1500; // Read interval
+constexpr uint32_t POLL_MS = 1000; // Read interval
 constexpr uint32_t RX_TMO = 200;
 constexpr uint32_t FRAME_GAP_MS = 10;
 
@@ -614,6 +615,7 @@ void loop() {
   if (!firebaseReady) {
     firebaseReady = true;
     Serial.println("[Firebase] ready");
+    ota::begin(&fbData);  // DEVICE_ID register + командын stream нээх
   }
 
   // ─ Subtree 1: /teerem ──────────────────────────────────────────────
@@ -628,7 +630,7 @@ void loop() {
     }
     if (teeremAny) {
       j.set("last_updated", (int)(millis() / 1000));
-      teeremOk = Firebase.RTDB.updateNode(&fbData, "/teerem", &j);
+      teeremOk = Firebase.RTDB.updateNodeSilent(&fbData, "/teerem", &j);
       if (!teeremOk)
         Serial.printf("[Firebase] /teerem ERROR: %s\n",
                       fbData.errorReason().c_str());
@@ -656,7 +658,7 @@ void loop() {
     addEm("em04", em04, true);
     addEm("em05", em05, true);
     if (emAny) {
-      emOk = Firebase.RTDB.updateNode(&fbData, "/energy_meters", &j);
+      emOk = Firebase.RTDB.updateNodeSilent(&fbData, "/energy_meters", &j);
       if (!emOk)
         Serial.printf("[Firebase] /energy_meters ERROR: %s\n",
                       fbData.errorReason().c_str());
@@ -677,4 +679,7 @@ void loop() {
     fbOnFailure();
     led::setMode(led::SLOW_RED);
   }
+
+  // OTA heartbeat + self-test gate (амжилттай upload бүрд +1)
+  ota::loop(&fbData, teeremOk && emOk);
 }
