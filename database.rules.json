@@ -48,9 +48,6 @@
       }
     },
 
-    "//": "OTA + remote control rules — admin email-уудыг доорхи root('admins') node-доос унших.",
-    "//admin_setup": "Шинэ admin нэмэх: Firebase Console-д /admins/<email_unique_key>/email = 'foo@bar.com' гэж бичих. Email-ийн '.' тэмдэгтийг '_' болгож key хийнэ. Жнь purewdorj0304_gmail_com.",
-
     "admins": {
       ".read":  "auth != null && root.child('admins').child(auth.token.email.replace('.', '_').replace('@', '_at_')).val() != null",
       ".write": false
