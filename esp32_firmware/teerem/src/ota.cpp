@@ -363,19 +363,35 @@ void selfTestIfReady() {
   selfTestDone = true;
 }
 
-// Boot эхэнд дуудна — boot count counter-ийг шалгаж, threshold давсан бол
-// app-level rollback хийнэ (өмнөх partition руу switch + restart).
-// Bootloader rollback идэвхгүй платформ дээр энэ нь үндсэн хамгаалалт.
+// Boot эхэнд дуудна — boot count counter-ийг зөвхөн PENDING_VERIFY state-д буюу
+// сүүлд OTA-аар суулгасан firmware-д шалгана. Validated (ESP_OTA_IMG_VALID)
+// app-ийг "fail" гэж тоолохгүй — өмнө амжилттай ажилласан firmware дахин
+// reboot хийгээд rollback гарах эрсдэл арилна.
 void checkAppLevelRollback() {
+  esp_ota_img_states_t state;
+  const esp_partition_t* running = esp_ota_get_running_partition();
+  bool isPending = (running && esp_ota_get_state_partition(running, &state) == ESP_OK
+                    && state == ESP_OTA_IMG_PENDING_VERIFY);
+
   Preferences p;
   p.begin("ota", false);
+
+  if (!isPending) {
+    // Validated firmware ажиллаж байна — counter цэвэрлэе (өмнөх firmware-ын үлдсэн утга)
+    if (p.getUChar("boot_fail", 0) != 0) {
+      p.putUChar("boot_fail", 0);
+      Serial.println("[OTA] Running validated firmware — boot_fail cleared");
+    }
+    p.end();
+    return;
+  }
+
   uint8_t failCount = p.getUChar("boot_fail", 0) + 1;
   p.putUChar("boot_fail", failCount);
-  Serial.printf("[OTA] boot_fail count = %u (threshold %u)\n",
+  Serial.printf("[OTA] PENDING_VERIFY boot #%u (threshold %u)\n",
                 failCount, BOOT_FAILURE_THRESHOLD);
 
   if (failCount >= BOOT_FAILURE_THRESHOLD) {
-    // App-level rollback — өмнөх partition руу switch
     const esp_partition_t* prev = esp_ota_get_next_update_partition(NULL);
     if (prev) {
       Serial.printf("[OTA] App-level rollback → switching to %s\n", prev->label);
