@@ -6,6 +6,8 @@ on:
       - main
     paths:
       - 'web_dashboard/**'
+      - 'database.rules.json'
+      - 'firebase.json'
 
 jobs:
   deploy:

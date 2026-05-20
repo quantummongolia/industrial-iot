@@ -10,7 +10,7 @@
     "build": "npm run css:build && npm run bump",
     "dev": "npm run css:watch",
     "predeploy": "npm run build",
-    "deploy": "firebase deploy --only hosting"
+    "deploy": "firebase deploy --only hosting,database"
   },
   "repository": {
     "type": "git",
