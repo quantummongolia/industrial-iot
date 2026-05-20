@@ -45,8 +45,8 @@ jobs:
           FIREBASE_USER_EMAIL: ${{ secrets.FIREBASE_USER_EMAIL }}
           FIREBASE_USER_PASS:  ${{ secrets.FIREBASE_USER_PASS }}
         run: |
-          # Бүх 6 secret заавал тохируулагдсан байх ёстой
-          for var in WIFI_SSID WIFI_PASSWORD FIREBASE_API_KEY FIREBASE_DB_URL FIREBASE_USER_EMAIL FIREBASE_USER_PASS; do
+          # Заавал шаардлагатай secrets (WIFI_PASSWORD нь нээлттэй сүлжээнд хоосон байж болно)
+          for var in WIFI_SSID FIREBASE_API_KEY FIREBASE_DB_URL FIREBASE_USER_EMAIL FIREBASE_USER_PASS; do
             if [ -z "${!var}" ]; then
               echo "::error::GitHub secret $var дутаж байна — Settings → Secrets → Actions-д нэмэх"
               exit 1
