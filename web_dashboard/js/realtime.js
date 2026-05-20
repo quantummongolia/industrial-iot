@@ -143,7 +143,7 @@ function initRealtime() {
   });
 
   // ── Teerem ────────────────────────────────────────────
-  db.ref("/teerem/weight_rate").on("value", s => {
+  db.ref("/realtime/teerem/weight_rate").on("value", s => {
     if (s.val() === null) return;
     const v = parseFloat(s.val()).toFixed(2);
     if (_el.teeremWeight)    _el.teeremWeight.textContent    = v;
@@ -151,7 +151,7 @@ function initRealtime() {
     _blinkLed(_el.teeremWeightLed);
     _blinkLed(_el.teeremWeightLedAct);
   });
-  db.ref("/teerem/cumulative_kg").on("value", s => {
+  db.ref("/realtime/teerem/cumulative_kg").on("value", s => {
     if (s.val() === null) return;
     const t = (parseInt(s.val(), 10) / 1000).toFixed(3);
     if (_el.teeremWeightTons)    _el.teeremWeightTons.textContent    = t;
@@ -266,7 +266,7 @@ function initRealtime() {
     const curC   = _el[key + "CurC"];
     const sumRow = summaryRows[key];
 
-    db.ref("/energy_meters/" + key + "/power_kw").on("value", s => {
+    db.ref("/realtime/energy_meters/" + key + "/power_kw").on("value", s => {
       if (s.val() === null) return;
       const v = parseFloat(s.val());
       if (power) power.textContent = v.toFixed(2);
@@ -275,7 +275,7 @@ function initRealtime() {
       _recomputeTotalPower();
       _bumpMeter(key);
     });
-    db.ref("/energy_meters/" + key + "/total_energy_kwh").on("value", s => {
+    db.ref("/realtime/energy_meters/" + key + "/total_energy_kwh").on("value", s => {
       if (s.val() === null) return;
       const v = parseFloat(s.val()).toFixed(3);
       if (energy) energy.textContent = v;
@@ -283,15 +283,15 @@ function initRealtime() {
       _bumpMeter(key);
     });
     if (meta.hasCurrents) {
-      db.ref("/energy_meters/" + key + "/current_a").on("value", s => {
+      db.ref("/realtime/energy_meters/" + key + "/current_a").on("value", s => {
         if (s.val() === null) return;
         if (curA) curA.textContent = parseFloat(s.val()).toFixed(2);
       });
-      db.ref("/energy_meters/" + key + "/current_b").on("value", s => {
+      db.ref("/realtime/energy_meters/" + key + "/current_b").on("value", s => {
         if (s.val() === null) return;
         if (curB) curB.textContent = parseFloat(s.val()).toFixed(2);
       });
-      db.ref("/energy_meters/" + key + "/current_c").on("value", s => {
+      db.ref("/realtime/energy_meters/" + key + "/current_c").on("value", s => {
         if (s.val() === null) return;
         if (curC) curC.textContent = parseFloat(s.val()).toFixed(2);
       });
