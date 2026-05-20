@@ -6,6 +6,10 @@
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <esp_ota_ops.h>
+#include <esp_task_wdt.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/queue.h>
+#include <freertos/task.h>
 #include <mbedtls/md.h>
 #include <time.h>
 
@@ -20,31 +24,50 @@ const char* firmwareVersion = FIRMWARE_VERSION;
 
 namespace {
 
-constexpr uint32_t HEARTBEAT_MS = 30000;       // /devices/{id} тогтмол шинэчилнэ
+constexpr uint32_t HEARTBEAT_MS = 30000;
 constexpr uint32_t SELF_TEST_MIN_UPTIME_MS = 30000;
-constexpr uint8_t  SELF_TEST_PUBLISH_GOAL = 3; // Амжилттай Firebase upload-ын тоо
+constexpr uint8_t  SELF_TEST_PUBLISH_GOAL = 3;
+constexpr uint32_t OTA_TASK_STACK = 8192;
+constexpr uint8_t  OTA_RETRY_MAX = 1;       // network алдаанд нэг удаа дахин оролдох
 
-FirebaseData      streamFb;       // /commands/{id}/pending stream
+FirebaseData      streamFb;
 unsigned long     lastHeartbeat = 0;
 unsigned long     bootMs = 0;
 uint8_t           publishCounter = 0;
 bool              selfTestDone = false;
-String            currentCmdId;   // Дамжуулж байгаа команд (replay protection)
 
-// NTP синхронжсон бол жинхэнэ Unix timestamp буцаана, үгүй бол 0.
-// Firebase сан NTP-г default-аар идэвхжүүлдэг тул хэдхэн секундын дотор тогтворждог.
+// OTA task ↔ main loop хооронд солилцох state. Volatile тул main loop
+// нэмэлт sync хэрэггүйгээр read хийнэ.
+struct OtaProgress {
+  volatile bool     active        = false;   // task ажиллаж байна уу
+  volatile uint8_t  progressPct   = 0;       // 0..100
+  volatile uint32_t lastUpdateMs  = 0;       // main loop publish dedup
+  char              stage[32]     = "";      // "downloading" / "verifying" / ...
+  char              message[96]   = "";
+  char              cmdId[40]     = "";
+  char              targetVersion[24] = "";
+} progress;
+
+struct OtaJob {
+  char url[256];
+  char sha256[80];
+  char version[24];
+  char cmdId[40];
+};
+QueueHandle_t otaQueue = nullptr;
+TaskHandle_t  otaTaskHandle = nullptr;
+
 uint32_t unixNow() {
   time_t t = time(nullptr);
   return (t > 1700000000) ? (uint32_t)t : 0;
 }
 
-String basePath()                { return "/devices/" + deviceId; }
-String commandsPendingPath()     { return "/commands/" + deviceId + "/pending"; }
+String basePath()            { return "/devices/" + deviceId; }
+String commandsPendingPath() { return "/commands/" + deviceId + "/pending"; }
 String commandResultPath(const String& cmdId) {
   return "/commands/" + deviceId + "/result/" + cmdId;
 }
 
-// MAC-аас "teerem_xxxxxxxxxxxx" гаргана
 String deriveId() {
   uint8_t mac[6];
   WiFi.macAddress(mac);
@@ -54,19 +77,19 @@ String deriveId() {
   return String(buf);
 }
 
-void writeStage(FirebaseData* fb, const String& stage, int progress,
-                const String& message) {
+void writeStageDirect(FirebaseData* fb, const char* stage, int pct,
+                      const char* message, const char* cmdId) {
   FirebaseJson j;
   j.set("stage", stage);
-  j.set("progress", progress);
+  j.set("progress", pct);
   j.set("message", message);
   j.set("ts", (int)unixNow());
-  j.set("cmd_id", currentCmdId);
+  j.set("cmd_id", cmdId);
   Firebase.RTDB.updateNodeSilent(fb, (basePath() + "/ota_status").c_str(), &j);
 }
 
-void writeResult(FirebaseData* fb, const String& cmdId, const String& status,
-                 const String& message) {
+void writeResultDirect(FirebaseData* fb, const String& cmdId, const String& status,
+                       const String& message) {
   FirebaseJson j;
   j.set("status", status);
   j.set("message", message);
@@ -76,7 +99,6 @@ void writeResult(FirebaseData* fb, const String& cmdId, const String& status,
 }
 
 void publishBootState(FirebaseData* fb) {
-  // Reset reason → веб дээр "яагаад reboot хийсэн" гэдэг ойлгомжтой
   esp_reset_reason_t rr = esp_reset_reason();
   const char* rrStr = "unknown";
   switch (rr) {
@@ -91,7 +113,6 @@ void publishBootState(FirebaseData* fb) {
     default: break;
   }
 
-  // OTA-ийн дараа rolled_back болсон уу гэдгийг bootloader-ийн төлвөөс шалгана
   String status = "running";
   esp_ota_img_states_t state;
   const esp_partition_t* running = esp_ota_get_running_partition();
@@ -123,78 +144,109 @@ void writeHeartbeat(FirebaseData* fb) {
   Firebase.RTDB.updateNodeSilent(fb, basePath().c_str(), &j);
 }
 
-// sha256 hex (64 chars) → бинарь буфер (32 bytes)
-bool hexToBytes(const String& hex, uint8_t* out, size_t outLen) {
-  if (hex.length() != outLen * 2) return false;
-  for (size_t i = 0; i < outLen; ++i) {
-    char c1 = hex[i*2], c2 = hex[i*2 + 1];
-    auto nib = [](char c) -> int {
-      if (c >= '0' && c <= '9') return c - '0';
-      if (c >= 'a' && c <= 'f') return 10 + (c - 'a');
-      if (c >= 'A' && c <= 'F') return 10 + (c - 'A');
-      return -1;
-    };
-    int a = nib(c1), b = nib(c2);
-    if (a < 0 || b < 0) return false;
-    out[i] = (a << 4) | b;
-  }
-  return true;
-}
-
-// HTTPUpdate progress callback → RTDB-руу progress %
+// OTA task callback — HTTPUpdate-аас бүх 1-2KB block-ын дараа дуудагдана.
+// Зөвхөн volatile state шинэчилнэ; жинхэнэ RTDB бичилт main loop-аар хийгдэнэ.
 void onUpdateProgress(int cur, int total) {
-  static int lastReported = -10;
-  int pct = total > 0 ? (cur * 100) / total : 0;
-  if (pct - lastReported >= 5 || pct >= 100) {  // 5% алхамтайгаар
-    lastReported = pct;
-    Serial.printf("[OTA] Downloading %d%% (%d/%d)\n", pct, cur, total);
+  if (total <= 0) return;
+  uint8_t pct = (uint8_t)((cur * 100) / total);
+  if (pct != progress.progressPct) {
+    progress.progressPct = pct;
+  }
+  // Task-ийн өөрийнхөө WDT нэмж буцаан өгөх хэрэгцээгүй — task өөрөө WDT-д ороогүй.
+}
+
+// FreeRTOS task — Core 0 дээр ажиллана. Main loop (Core 1) хөндөгдөхгүй.
+void otaTask(void* param) {
+  OtaJob job;
+  for (;;) {
+    if (xQueueReceive(otaQueue, &job, portMAX_DELAY) != pdTRUE) continue;
+
+    progress.active = true;
+    progress.progressPct = 0;
+    strncpy(progress.cmdId, job.cmdId, sizeof(progress.cmdId) - 1);
+    strncpy(progress.targetVersion, job.version, sizeof(progress.targetVersion) - 1);
+    snprintf(progress.stage, sizeof(progress.stage), "downloading");
+    snprintf(progress.message, sizeof(progress.message),
+             "Татаж байна: %s", job.version);
+
+    Serial.printf("[OTA-Task] Start: %s -> %s\n", firmwareVersion, job.version);
+
+    HTTPUpdateResult res = HTTP_UPDATE_FAILED;
+    for (uint8_t attempt = 0; attempt <= OTA_RETRY_MAX; ++attempt) {
+      if (attempt > 0) {
+        Serial.printf("[OTA-Task] Retry %u/%u\n", attempt, OTA_RETRY_MAX);
+        snprintf(progress.message, sizeof(progress.message), "Дахин оролдож байна (%u/%u)", attempt, OTA_RETRY_MAX);
+        progress.progressPct = 0;
+        vTaskDelay(pdMS_TO_TICKS(2000));
+      }
+
+      WiFiClientSecure client;
+      client.setInsecure();
+      client.setTimeout(15);  // секунд
+
+      httpUpdate.rebootOnUpdate(false);
+      httpUpdate.onProgress(onUpdateProgress);
+      httpUpdate.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
+
+      res = httpUpdate.update(client, job.url, firmwareVersion);
+      if (res == HTTP_UPDATE_OK) break;
+    }
+
+    if (res == HTTP_UPDATE_FAILED) {
+      snprintf(progress.stage, sizeof(progress.stage), "failed");
+      snprintf(progress.message, sizeof(progress.message), "Татах амжилтгүй: %s",
+               httpUpdate.getLastErrorString().c_str());
+      Serial.printf("[OTA-Task] %s\n", progress.message);
+      progress.active = false;
+      progress.progressPct = 0;
+      continue;
+    }
+
+    if (res == HTTP_UPDATE_NO_UPDATES) {
+      snprintf(progress.stage, sizeof(progress.stage), "skipped");
+      snprintf(progress.message, sizeof(progress.message), "Шинэчлэлт хэрэггүй");
+      progress.active = false;
+      continue;
+    }
+
+    snprintf(progress.stage, sizeof(progress.stage), "rebooting");
+    progress.progressPct = 100;
+    snprintf(progress.message, sizeof(progress.message), "Шинэ firmware бичигдлээ — restart...");
+    Serial.println("[OTA-Task] Reboot pending...");
+
+    // Main loop progress publish хийх боломж олгох
+    vTaskDelay(pdMS_TO_TICKS(2000));
+    ESP.restart();
   }
 }
 
-void performOta(FirebaseData* fb, const String& url, const String& expectedSha256,
-                const String& targetVersion, const String& cmdId) {
-  currentCmdId = cmdId;
-  Serial.printf("[OTA] Start: %s -> %s\n", firmwareVersion, targetVersion.c_str());
-  writeStage(fb, "downloading", 0, "Татаж байна: " + targetVersion);
+// Main loop OTA progress өөрчлөгдөхөд RTDB-руу publish хийнэ.
+void publishProgressIfChanged(FirebaseData* fb) {
+  static uint8_t lastPublishedPct = 255;
+  static char lastPublishedStage[32] = "";
 
-  WiFiClientSecure client;
-  client.setInsecure();  // GitHub release URL TLS pin шаардлагагүй (md5/sha verify бий)
+  if (!progress.active && strlen(progress.stage) == 0) return;  // юу ч идэвхгүй
 
-  httpUpdate.rebootOnUpdate(false);  // restart-ыг бид өөрсдөө хяналттай хийнэ
-  httpUpdate.onProgress(onUpdateProgress);
-  // GitHub releases-ийн asset URL нь release-assets.githubusercontent.com рүү
-  // 302 redirect өгдөг — заавал дагах ёстой.
-  httpUpdate.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
+  bool stageChanged = strcmp(progress.stage, lastPublishedStage) != 0;
+  bool pctChanged = (progress.progressPct >= lastPublishedPct + 5) ||
+                    progress.progressPct == 100 ||
+                    progress.progressPct == 0;
 
-  // Streamер нь sha256-г бичих явцад шалгахаар Update.setMD5 ашигладаг —
-  // sha256 hash-ыг "expected"-ээр өгөөд update() дотор stream бичигдсэний дараа
-  // esp_partition_get_sha256-ыг ESP32 өөрөө шалгана. Хэрэв таарахгүй бол
-  // partition-ыг абортлоно. TODO: ирээдүйд expectedSha256-г Update.onProgress-д
-  // streaming sha256 верификаци руу шилжүүлэх.
-  (void)expectedSha256;
+  if (!stageChanged && !pctChanged) return;
 
-  HTTPUpdateResult res = httpUpdate.update(client, url, firmwareVersion);
+  writeStageDirect(fb, progress.stage, progress.progressPct, progress.message, progress.cmdId);
 
-  if (res == HTTP_UPDATE_FAILED) {
-    String err = String("Татах амжилтгүй: ") + httpUpdate.getLastErrorString();
-    Serial.println("[OTA] " + err);
-    writeStage(fb, "failed", 0, err);
-    writeResult(fb, cmdId, "failed", err);
-    currentCmdId = "";
-    return;
+  lastPublishedPct = progress.progressPct;
+  strncpy(lastPublishedStage, progress.stage, sizeof(lastPublishedStage) - 1);
+
+  // Stage "failed" эсвэл "skipped" болсон бол command result-руу бичнэ
+  if (strcmp(progress.stage, "failed") == 0) {
+    writeResultDirect(fb, progress.cmdId, "failed", progress.message);
+    progress.stage[0] = '\0';  // дахин publish хийхгүй
+  } else if (strcmp(progress.stage, "skipped") == 0) {
+    writeResultDirect(fb, progress.cmdId, "skipped", progress.message);
+    progress.stage[0] = '\0';
   }
-  if (res == HTTP_UPDATE_NO_UPDATES) {
-    Serial.println("[OTA] Шинэчлэлт хэрэггүй (server: no update)");
-    writeResult(fb, cmdId, "skipped", "no_update");
-    currentCmdId = "";
-    return;
-  }
-
-  // OK → app1 (эсвэл app0)-д бичигдсэн, дараагийн boot шинэ firmware
-  writeStage(fb, "rebooting", 100, "Шинэ firmware бичигдлээ — restart...");
-  writeResult(fb, cmdId, "in_progress", "downloaded_pending_reboot");
-  delay(500);
-  ESP.restart();
 }
 
 void handleCommand(FirebaseData* fb, const String& payload) {
@@ -207,10 +259,8 @@ void handleCommand(FirebaseData* fb, const String& payload) {
 
   const char* cmdId  = doc["id"]     | "";
   const char* action = doc["action"] | "";
-
   if (strlen(cmdId) == 0 || strlen(action) == 0) return;
 
-  // Replay protection — NVS-д сүүлийн команд хадгална
   Preferences prefs;
   prefs.begin("ota", false);
   String lastCmd = prefs.getString("last_cmd", "");
@@ -223,34 +273,48 @@ void handleCommand(FirebaseData* fb, const String& payload) {
   prefs.end();
 
   Serial.printf("[CMD] %s = %s\n", cmdId, action);
-  writeResult(fb, cmdId, "received", String(action));
+  writeResultDirect(fb, cmdId, "received", String(action));
 
   if (strcmp(action, "ping") == 0) {
     String info = String("v") + firmwareVersion + ", uptime=" +
                   String(millis() / 1000) + "s, heap=" + String(ESP.getFreeHeap());
-    writeResult(fb, cmdId, "completed", info);
+    writeResultDirect(fb, cmdId, "completed", info);
   }
   else if (strcmp(action, "reboot") == 0) {
-    writeResult(fb, cmdId, "completed", "reboot_now");
+    writeResultDirect(fb, cmdId, "completed", "reboot_now");
     delay(500);
     ESP.restart();
   }
   else if (strcmp(action, "update") == 0) {
-    const char* url        = doc["url"]     | "";
-    const char* sha        = doc["sha256"]  | "";
-    const char* targetVer  = doc["version"] | "?";
+    const char* url       = doc["url"]     | "";
+    const char* sha       = doc["sha256"]  | "";
+    const char* targetVer = doc["version"] | "?";
     if (strlen(url) == 0 || strlen(sha) != 64) {
-      writeResult(fb, cmdId, "failed", "missing_url_or_sha256");
+      writeResultDirect(fb, cmdId, "failed", "missing_url_or_sha256");
       return;
     }
     if (strcmp(targetVer, firmwareVersion) == 0) {
-      writeResult(fb, cmdId, "skipped", "already_on_target_version");
+      writeResultDirect(fb, cmdId, "skipped", "already_on_target_version");
       return;
     }
-    performOta(fb, url, sha, targetVer, cmdId);
+    if (progress.active) {
+      writeResultDirect(fb, cmdId, "rejected", "ota_already_in_progress");
+      return;
+    }
+
+    OtaJob job{};
+    strncpy(job.url, url, sizeof(job.url) - 1);
+    strncpy(job.sha256, sha, sizeof(job.sha256) - 1);
+    strncpy(job.version, targetVer, sizeof(job.version) - 1);
+    strncpy(job.cmdId, cmdId, sizeof(job.cmdId) - 1);
+    if (xQueueSend(otaQueue, &job, 0) != pdTRUE) {
+      writeResultDirect(fb, cmdId, "failed", "queue_full");
+      return;
+    }
+    writeResultDirect(fb, cmdId, "queued", "OTA task queued");
   }
   else {
-    writeResult(fb, cmdId, "failed", String("unknown_action:") + action);
+    writeResultDirect(fb, cmdId, "failed", String("unknown_action:") + action);
   }
 }
 
@@ -279,7 +343,6 @@ void selfTestIfReady() {
   if (state == ESP_OTA_IMG_PENDING_VERIFY) {
     esp_err_t err = esp_ota_mark_app_valid_cancel_rollback();
     Serial.printf("[OTA] Self-test OK → mark valid (err=%d)\n", err);
-    // RTDB-д статус шинэчилнэ
     FirebaseJson j;
     j.set("status", "running");
     j.set("validated_at", (int)unixNow());
@@ -298,6 +361,14 @@ void begin(FirebaseData* fbData) {
 
   publishBootState(fbData);
 
+  // OTA task + queue үүсгэх (нэг л удаа)
+  if (!otaQueue) {
+    otaQueue = xQueueCreate(2, sizeof(OtaJob));
+    xTaskCreatePinnedToCore(otaTask, "ota", OTA_TASK_STACK, nullptr,
+                            1 /* priority */, &otaTaskHandle, 0 /* Core 0 */);
+    Serial.println("[OTA] Background task spawned on Core 0");
+  }
+
   // Command stream
   streamFb.setBSSLBufferSize(2048, 2048);
   if (!Firebase.RTDB.beginStream(&streamFb, commandsPendingPath().c_str())) {
@@ -311,7 +382,10 @@ void begin(FirebaseData* fbData) {
 }
 
 void loop(FirebaseData* fbData, bool firebaseUploadOk) {
-  if (firebaseUploadOk) noteSuccessfulPublish();
+  if (firebaseUploadOk && publishCounter < 255) publishCounter++;
+
+  // OTA progress publish — main loop-аас бичих учир Firebase нь нэг л task-аас хандана
+  publishProgressIfChanged(fbData);
 
   unsigned long now = millis();
   if (now - lastHeartbeat >= HEARTBEAT_MS) {
@@ -322,8 +396,8 @@ void loop(FirebaseData* fbData, bool firebaseUploadOk) {
   selfTestIfReady();
 }
 
-void noteSuccessfulPublish() {
-  if (publishCounter < 255) publishCounter++;
+bool isUpdating() {
+  return progress.active;
 }
 
 } // namespace ota

@@ -1,14 +1,14 @@
 /*
  * ota.h — Remote firmware management for teerem ESP32.
  *
- * Responsibilities:
- *   1) Derive a stable DEVICE_ID from the WiFi MAC.
- *   2) Mirror device state to RTDB /devices/{id}.
- *   3) Listen to RTDB /commands/{id}/pending for developer-issued commands.
- *   4) Execute OTA from GitHub releases with sha256 verification + rollback.
- *   5) Self-validate after boot, or fall back to the previous app via bootloader.
- *
- * Public surface kept minimal: begin() once after Firebase auth, loop() per cycle.
+ * Дизайн:
+ *   • DEVICE_ID-г WiFi MAC-аас гаргана (deviceId).
+ *   • /devices/{id} зам дээр boot state, heartbeat, OTA progress бичнэ.
+ *   • /commands/{id}/pending зам дээр RTDB stream сонсож developer command-ыг авна.
+ *   • OTA download нь Core 0 дээрх тусдаа FreeRTOS task-д явагдана —
+ *     main loop (Modbus, Firebase) огт блоклогдохгүй.
+ *   • Progress мэдээллийг volatile state-д хадгална, main loop унших.
+ *   • Boot self-test амжилттай бол esp_ota_mark_app_valid_cancel_rollback() дуудна.
  */
 #pragma once
 #include <Firebase_ESP_Client.h>
@@ -16,17 +16,17 @@
 
 namespace ota {
 
-extern String deviceId;         // "teerem_aabbccddeeff" (set in begin())
-extern const char* firmwareVersion;  // FIRMWARE_VERSION macro from build flags
+extern String deviceId;
+extern const char* firmwareVersion;
 
-/** Initialise: derive DEVICE_ID, publish boot state, open command stream.
- *  MUST be called after Firebase.ready() returns true. */
+/** OTA initialization — Firebase auth-ийн дараа нэг удаа дуудна. */
 void begin(FirebaseData* fbData);
 
-/** Per-loop tick: heartbeat publish + self-test gate. */
+/** Per-cycle tick — main loop-аас амжилттай Firebase upload бүрд дуудна. */
 void loop(FirebaseData* fbData, bool firebaseUploadOk);
 
-/** Called after every successful Firebase publish so self-test can count. */
-void noteSuccessfulPublish();
+/** OTA download/install идэвхтэй явагдаж байгаа эсэх. main loop үүнийг
+ *  шалгаад LED-ээ өөрчилж эсвэл sensor read-ийг хойшлуулах боломжтой. */
+bool isUpdating();
 
 } // namespace ota
