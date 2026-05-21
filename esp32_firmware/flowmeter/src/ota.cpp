@@ -73,7 +73,7 @@ String deriveId() {
   uint8_t mac[6];
   WiFi.macAddress(mac);
   char buf[24];
-  snprintf(buf, sizeof(buf), "teerem_%02x%02x%02x%02x%02x%02x",
+  snprintf(buf, sizeof(buf), "flowmeter_%02x%02x%02x%02x%02x%02x",
            mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
   return String(buf);
 }
@@ -125,7 +125,7 @@ void publishBootState(FirebaseData* fb) {
   }
 
   FirebaseJson j;
-  j.set("family", "teerem");
+  j.set("family", "flowmeter");
   j.set("firmware", firmwareVersion);
   j.set("reset_reason", rrStr);
   j.set("status", status);
@@ -161,7 +161,7 @@ void writeHeartbeat(FirebaseData* fb) {
   FirebaseJson j;
   // Firebase server timestamp (ms) — ESP32-ийн NTP синхрончлогдоогүй ч ажиллана.
   // Сервер бичих үеийн өөрийн цагийг автомат бөглөнө.
-  j.set("family", "teerem");
+  j.set("family", "flowmeter");
   j.set("last_heartbeat/.sv", "timestamp");
   j.set("uptime_s", (int)(millis() / 1000));
   j.set("free_heap", (int)ESP.getFreeHeap());

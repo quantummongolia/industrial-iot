@@ -20,10 +20,16 @@
  *   - Firebase Arduino Client Library by Mobizt
  *
  * Data flow:
- *   ESP32-S3 → RS485 bus → Flowmeters (Modbus RTU) → Parse float → Firebase RTDB
+ *   ESP32-S3 → RS485 bus → Flowmeters (Modbus RTU) → Modbus class → Firebase RTDB
+ *
+ * Remote OTA:
+ *   • ota::begin() устгана /devices/flowmeter_<mac> heartbeat + /commands stream
+ *   • Дашбоардаас Ping/Reboot/Update команд хүлээж авна
+ *   • Шинэ firmware-г GitHub releases-ээс татаж 2-slot OTA-р суулгана
  */
 
 #include "secrets.h" // WiFi and Firebase credentials (not tracked in git)
+#include "ota.h"     // Remote OTA + heartbeat (DEVICE_ID = flowmeter_<mac>)
 #include <Arduino.h> // Arduino core library for ESP32
 #include <Firebase_ESP_Client.h> // Firebase client library for ESP32
 #include <WiFi.h>                // WiFi connectivity library
@@ -43,7 +49,7 @@ constexpr uint8_t TX_PIN = 5; // MAX485 DI  (Serial1 TX)
 constexpr uint8_t FM1_SLAVE = 2;
 constexpr uint8_t FM2_SLAVE = 3;
 constexpr uint8_t FM3_SLAVE = 4;
-constexpr uint32_t BAUD = 9600;
+constexpr uint32_t BAUD = 19200;
 
 // Modbus holding register addresses
 constexpr uint16_t REG_FLOW_RATE = 0x0000; // Reg[00-01]: Flow rate (float BE)
@@ -54,6 +60,7 @@ constexpr uint32_t READ_INTERVAL_MS = 1000;        // Flow rate read interval
 constexpr uint32_t TOTALIZER_INTERVAL_MS = 300000; // 5 минут
 constexpr uint32_t WIFI_RETRY_MS = 10000;          // WiFi reconnect probe
 constexpr uint32_t WDT_TIMEOUT_S = 30;             // Watchdog timeout
+constexpr uint32_t RX_TMO = 100;                   // Modbus receive timeout (ms)
 
 // Auto-recovery thresholds
 constexpr uint8_t MAX_CONSECUTIVE_READ_FAILS = 10;
@@ -165,6 +172,115 @@ void ledTask(void *) {
   }
 }
 
+// ========================== MODBUS CLASS =========================
+// Teerem firmware-тэй ижил Modbus pattern. readFloat / readTotalizer нь
+// flowmeter-ийн ашигладаг хоёр гол функц. recover() нь UART buffer-ийг
+// цэвэрлэж Serial1-г restart хийдэг.
+class Modbus {
+public:
+  void begin() {
+    pinMode(cfg::DE_RE, OUTPUT);
+    digitalWrite(cfg::DE_RE, LOW);
+    Serial1.begin(cfg::BAUD, SERIAL_8N1, cfg::RX_PIN, cfg::TX_PIN);
+  }
+
+  void recover() {
+    while (Serial1.available())
+      Serial1.read();
+    Serial1.end();
+    delay(50);
+    Serial1.begin(cfg::BAUD, SERIAL_8N1, cfg::RX_PIN, cfg::TX_PIN);
+    digitalWrite(cfg::DE_RE, HIGH);
+    delay(5);
+    digitalWrite(cfg::DE_RE, LOW);
+  }
+
+  // Big-Endian 32-bit IEEE 754 float (flow rate)
+  bool readFloat(uint8_t slave, uint16_t addr, float &out) {
+    uint8_t rx[9];
+    if (!readRegs(slave, addr, 2, rx))
+      return false;
+    uint32_t raw = (uint32_t)rx[3] << 24 | (uint32_t)rx[4] << 16 |
+                   (uint32_t)rx[5] << 8 | rx[6];
+    memcpy(&out, &raw, 4);
+    return true;
+  }
+
+  // Урсгал хэмжигч totalizer — 4 register (8 byte):
+  // [0..3]  UINT32 BE = бүхэл хэсэг
+  // [4..7]  Float BE  = бутархай хэсэг
+  // Нийт нь: float (бүхэл + бутархай) cubic meter.
+  bool readTotalizer(uint8_t slave, uint16_t addr, float &out) {
+    uint8_t rx[13];
+    if (!readRegs(slave, addr, 4, rx))
+      return false;
+    uint32_t intPart = ((uint32_t)rx[3] << 24) | ((uint32_t)rx[4] << 16) |
+                       ((uint32_t)rx[5] << 8)  |  (uint32_t)rx[6];
+    uint32_t fracRaw = ((uint32_t)rx[7] << 24) | ((uint32_t)rx[8] << 16) |
+                       ((uint32_t)rx[9] << 8)  |  (uint32_t)rx[10];
+    float fracPart;
+    memcpy(&fracPart, &fracRaw, 4);
+    out = (float)((double)intPart + (double)fracPart);
+    return true;
+  }
+
+private:
+  bool readRegs(uint8_t slave, uint16_t addr, uint8_t regCnt, uint8_t *rx) {
+    while (Serial1.available())
+      Serial1.read();
+
+    uint8_t req[8] = {slave,        0x03,    uint8_t(addr >> 8),
+                      uint8_t(addr), 0,       regCnt,
+                      0,             0};
+    uint16_t c = crc16(req, 6);
+    req[6] = c & 0xFF;
+    req[7] = c >> 8;
+
+    send(req, sizeof(req));
+
+    const uint8_t respLen = 5 + regCnt * 2;
+    if (!receive(rx, respLen))
+      return false;
+    if (rx[0] != slave || rx[1] != 0x03 || rx[2] != regCnt * 2)
+      return false;
+    if (crc16(rx, respLen - 2) !=
+        uint16_t(rx[respLen - 2] | (rx[respLen - 1] << 8)))
+      return false;
+    return true;
+  }
+
+  static uint16_t crc16(const uint8_t *buf, size_t len) {
+    uint16_t c = 0xFFFF;
+    for (size_t i = 0; i < len; i++) {
+      c ^= buf[i];
+      for (int b = 0; b < 8; b++)
+        c = (c & 1) ? (c >> 1) ^ 0xA001 : c >> 1;
+    }
+    return c;
+  }
+
+  void send(const uint8_t *data, size_t len) {
+    digitalWrite(cfg::DE_RE, HIGH);
+    delayMicroseconds(100);
+    Serial1.write(data, len);
+    Serial1.flush();
+    delayMicroseconds(100);
+    digitalWrite(cfg::DE_RE, LOW);
+  }
+
+  bool receive(uint8_t *buf, size_t want) {
+    size_t got = 0;
+    unsigned long start = millis();
+    while (millis() - start < cfg::RX_TMO && got < want) {
+      if (Serial1.available())
+        buf[got++] = Serial1.read();
+    }
+    return got == want;
+  }
+};
+
+Modbus modbus;
+
 // ========================== GLOBAL OBJECTS ==========================
 
 FirebaseData fbData; // Firebase data object for storing request/response data
@@ -186,159 +302,8 @@ unsigned long fbNextAllowedAt = 0; // Next allowed upload timestamp
 unsigned int fbFailStreak = 0;     // Consecutive upload failure count
 
 // Modbus read failure recovery state
-unsigned int consecutiveReadFails =
-    0; // Straight failed read cycles (both FMs failed)
-unsigned int totalRecoveryAttempts =
-    0; // Recovery escalations since last success
-
-// ========================== CRC16 CHECKSUM ================================
-
-/*
- * Calculate Modbus CRC16 checksum for data integrity verification.
- * Uses the standard Modbus polynomial 0xA001.
- * @param buf  - pointer to data buffer
- * @param len  - number of bytes to process
- * @return     - 16-bit CRC checksum value
- */
-uint16_t crc16(uint8_t *buf, uint16_t len) {
-  uint16_t crc = 0xFFFF; // Initialize CRC with all bits set
-  for (uint16_t i = 0; i < len; i++) {
-    crc ^= buf[i];                    // XOR current byte into CRC
-    for (uint8_t j = 0; j < 8; j++) { // Process each bit
-      if (crc & 0x0001) {             // If least significant bit is set
-        crc >>= 1;                    // Shift right by 1
-        crc ^= 0xA001;                // XOR with Modbus polynomial
-      } else {
-        crc >>= 1; // Just shift right by 1
-      }
-    }
-  }
-  return crc; // Return calculated CRC16 value
-}
-
-// ========================== RAW MODBUS COMMUNICATION
-// ============================
-
-static uint8_t
-    rxbuf[64]; // Receive buffer for Modbus response data (max 64 bytes)
-
-/*
- * Send a Modbus RTU request and read the response from a slave device.
- * Constructs a Function Code 03 (Read Holding Registers) request frame.
- * @param slaveId - Modbus slave device address
- * @param reg     - Starting register address to read
- * @param count   - Number of registers to read
- * @return        - Number of bytes received in response
- */
-int sendAndRead(uint8_t slaveId, uint16_t reg, uint16_t count) {
-  uint8_t req[8];   // Modbus request frame buffer (8 bytes for FC03)
-  req[0] = slaveId; // Byte 0: Slave address
-  req[1] = 0x03;    // Byte 1: Function code 03 = Read Holding Registers
-  req[2] = (reg >> 8) & 0xFF;   // Byte 2: Register address high byte
-  req[3] = reg & 0xFF;          // Byte 3: Register address low byte
-  req[4] = (count >> 8) & 0xFF; // Byte 4: Number of registers high byte
-  req[5] = count & 0xFF;        // Byte 5: Number of registers low byte
-  uint16_t c = crc16(req, 6);   // Calculate CRC16 over first 6 bytes
-  req[6] = c & 0xFF;            // Byte 6: CRC low byte
-  req[7] = (c >> 8) & 0xFF;     // Byte 7: CRC high byte
-
-  // Flush any stale data from the serial receive buffer
-  while (Serial1.available())
-    Serial1.read();
-
-  // Switch MAX485 to transmit mode and send the request
-  digitalWrite(cfg::DE_RE, HIGH); // Enable RS485 transmitter (DE/RE pin HIGH)
-  delayMicroseconds(500);           // Small delay for transceiver to stabilize
-  Serial1.write(req, 8);            // Send 8-byte Modbus request frame
-  Serial1.flush();                  // Wait for all bytes to be transmitted
-  delayMicroseconds(500);           // Small delay before switching back
-  digitalWrite(cfg::DE_RE,
-               LOW); // Switch RS485 back to receive mode (DE/RE pin LOW)
-
-  // Debug: print transmitted request bytes to serial monitor
-  Serial.printf("[TX → Slave %d] ", slaveId);
-  for (int i = 0; i < 8; i++)
-    Serial.printf("%02X ", req[i]); // Print each byte in hexadecimal format
-  Serial.println();
-
-  // Read response bytes with 100ms timeout
-  int len = 0;                 // Number of received bytes
-  unsigned long t = millis();  // Record start time for timeout
-  while (millis() - t < 100) { // Keep reading until 100ms timeout
-    while (Serial1.available() &&
-           len < 64) { // While data available and buffer not full
-      rxbuf[len++] =
-          Serial1.read(); // Store received byte and increment counter
-      t = millis();       // Reset timeout on each byte received
-    }
-    delay(1); // Small delay to prevent tight loop
-  }
-
-  // Debug: print received response bytes to serial monitor
-  Serial.printf("[RX ← Slave %d] (%d bytes): ", slaveId, len);
-  for (int i = 0; i < len; i++)
-    Serial.printf("%02X ", rxbuf[i]); // Print each received byte in hexadecimal
-  Serial.println();
-
-  return len; // Return total number of bytes received
-}
-
-/*
- * Parse a 32-bit IEEE 754 float from 4 bytes in Big-Endian byte order.
- * Flowmeter sends data as: [MSB] [byte2] [byte3] [LSB]
- * @param data - pointer to 4-byte array containing the float
- * @return     - parsed float value
- */
-float parseFloatBE(uint8_t *data) {
-  union {
-    uint32_t u; // Unsigned 32-bit integer representation
-    float f;    // IEEE 754 float representation
-  } conv;       // Union allows reinterpreting the same memory as int or float
-  // Assemble 4 bytes into a 32-bit integer in Big-Endian order
-  conv.u = ((uint32_t)data[0] << 24) | ((uint32_t)data[1] << 16) |
-           ((uint32_t)data[2] << 8) | (uint32_t)data[3];
-  return conv.f; // Return the float interpretation of the assembled bytes
-}
-
-// Validate a Modbus response frame: slave ID, FC03, CRC, expected byte count.
-// Returns pointer to start of data bytes, or nullptr on failure.
-static uint8_t *validateFrame(uint8_t slaveId, int len, uint8_t expectBytes) {
-  for (int i = 0; i <= len - (int)(3 + expectBytes + 2); i++) {
-    if (rxbuf[i] != slaveId || rxbuf[i + 1] != 0x03)
-      continue;
-    if (rxbuf[i + 2] != expectBytes)
-      continue;
-    int frameLen = 3 + expectBytes + 2;
-    uint16_t recvCrc = rxbuf[i + frameLen - 2] | (rxbuf[i + frameLen - 1] << 8);
-    if (recvCrc == crc16(&rxbuf[i], frameLen - 2))
-      return &rxbuf[i + 3]; // pointer to first data byte
-  }
-  return nullptr;
-}
-
-// Read flow rate (Reg[00-01], 4 bytes, Big-Endian float) from a slave.
-bool readFlowRate(uint8_t slaveId, float &outFlow) {
-  int len = sendAndRead(slaveId, cfg::REG_FLOW_RATE, 2);
-  uint8_t *data = validateFrame(slaveId, len, 4);
-  if (!data)
-    return false;
-  outFlow = parseFloatBE(data);
-  return true;
-}
-
-// Read totalizer (Reg[03-06], 14 bytes) from a slave.
-// Layout: Reg[03-04] = int32 integer part, Reg[05-06] = float fractional part.
-bool readTotalizer(uint8_t slaveId, float &outTotal) {
-  int len = sendAndRead(slaveId, cfg::REG_TOTALIZER, 4); // 4 registers = 8 bytes raw
-  uint8_t *data = validateFrame(slaveId, len, 8);
-  if (!data)
-    return false;
-  uint32_t intPart = ((uint32_t)data[0] << 24) | ((uint32_t)data[1] << 16) |
-                     ((uint32_t)data[2] << 8) | (uint32_t)data[3];
-  float fracPart = parseFloatBE(&data[4]);
-  outTotal = (float)((double)intPart + (double)fracPart);
-  return true;
-}
+unsigned int consecutiveReadFails = 0; // Straight failed read cycles
+unsigned int totalRecoveryAttempts = 0; // Recovery escalations since last success
 
 // ========================== WI-FI CONNECTION =========================
 
@@ -419,21 +384,6 @@ void firebaseInit() {
   Serial.println("[Firebase] Initialized — authenticating...");
 }
 
-/*
- * Check if Firebase is ready for database operations.
- * Prints a one-time "ready" message when authentication completes.
- * @return - true if Firebase is authenticated and ready, false otherwise
- */
-bool ensureFirebase() {
-  if (!Firebase.ready())
-    return false;
-  if (!firebaseReady) {
-    firebaseReady = true;
-    Serial.println("[Firebase] Ready");
-  }
-  return true;
-}
-
 // Exponential backoff: 2s → 4s → 8s → 16s → ... → 5min cap.
 // Called after any Firebase.RTDB.set*() returns false.
 void fbOnFailure() {
@@ -460,9 +410,8 @@ bool fbCanUpload() { return (long)(millis() - fbNextAllowedAt) >= 0; }
 
 /*
  * Escalating recovery when Modbus reads fail repeatedly:
- *   Level 1: flush UART + re-initialize Serial1 (most common fix — stuck buffer
- * / noise) Level 2: toggle MAX485 DE/RE pin (reset transceiver state) Level 3:
- * hardware reboot via watchdog (last resort)
+ *   Level 1: modbus.recover() (UART restart + DE/RE toggle) — most common fix
+ *   Level 2: hardware reboot via watchdog (last resort)
  */
 void recoverModbusBus() {
   totalRecoveryAttempts++;
@@ -476,19 +425,7 @@ void recoverModbusBus() {
     } // Let watchdog reset the chip cleanly
   }
 
-  // Level 1: drain and restart the UART
-  while (Serial1.available())
-    Serial1.read();
-  Serial1.end();
-  delay(50);
-  Serial1.begin(cfg::BAUD, SERIAL_8N1, cfg::RX_PIN, cfg::TX_PIN);
-
-  // Level 2: cycle the MAX485 driver enable pin to reset transceiver state
-  digitalWrite(cfg::DE_RE, HIGH);
-  delay(5);
-  digitalWrite(cfg::DE_RE, LOW);
-  delay(5);
-
+  modbus.recover();
   consecutiveReadFails = 0; // Give the bus a fresh chance
   Serial.println("[Recovery] RS485 bus re-initialized");
 }
@@ -511,13 +448,8 @@ void setup() {
   // on core 1 (Arduino loop) never freeze the blink animation.
   xTaskCreatePinnedToCore(ledTask, "ledTask", 2048, nullptr, 1, nullptr, 0);
 
-  // Configure MAX485 RS485 transceiver pins
-  pinMode(cfg::DE_RE,
-          OUTPUT); // Set DE/RE pin as output to control transmit/receive
-  digitalWrite(cfg::DE_RE, LOW); // Start in receive mode (LOW = listening)
-
-  // Initialize RS485 serial port (Serial1) for Modbus communication
-  Serial1.begin(cfg::BAUD, SERIAL_8N1, cfg::RX_PIN, cfg::TX_PIN);
+  // Modbus class дотор pinMode + digitalWrite + Serial1.begin бүгдийг хийнэ
+  modbus.begin();
   Serial.printf(
       "[Modbus] Initialized — Flowmeter 1: Slave %d, Flowmeter 2: Slave %d, "
       "Flowmeter 3: Slave %d\n",
@@ -574,12 +506,12 @@ void loop() {
   // Дараагийн cycle-д дахин оролдоно. Bus noise зөвхөн нэг cycle-д утга
   // тасрахад л хүргэнэ, дашбоард дараагийн уншилтаар сэргэнэ.
   float flow1 = 0.0, total1 = 0.0;
-  bool okFlow1 = readFlowRate(cfg::FM1_SLAVE, flow1);
+  bool okFlow1 = modbus.readFloat(cfg::FM1_SLAVE, cfg::REG_FLOW_RATE, flow1);
   bool okTotal1 = false;
 
   if (doTotalizer) {
     delay(50);
-    okTotal1 = readTotalizer(cfg::FM1_SLAVE, total1);
+    okTotal1 = modbus.readTotalizer(cfg::FM1_SLAVE, cfg::REG_TOTALIZER, total1);
     if (okTotal1) {
       lastTotal1 = total1;
       hasTotal1 = true;
@@ -598,12 +530,12 @@ void loop() {
 
   // ---- Read Flowmeter 2 (Slave ID 3: Баян уусмал) ----
   float flow2 = 0.0, total2 = 0.0;
-  bool okFlow2 = readFlowRate(cfg::FM2_SLAVE, flow2);
+  bool okFlow2 = modbus.readFloat(cfg::FM2_SLAVE, cfg::REG_FLOW_RATE, flow2);
   bool okTotal2 = false;
 
   if (doTotalizer) {
     delay(50);
-    okTotal2 = readTotalizer(cfg::FM2_SLAVE, total2);
+    okTotal2 = modbus.readTotalizer(cfg::FM2_SLAVE, cfg::REG_TOTALIZER, total2);
     if (okTotal2) {
       lastTotal2 = total2;
       hasTotal2 = true;
@@ -622,12 +554,12 @@ void loop() {
 
   // ---- Read Flowmeter 3 (Slave ID 4: Суларсан уусмал 2) ----
   float flow3 = 0.0, total3 = 0.0;
-  bool okFlow3 = readFlowRate(cfg::FM3_SLAVE, flow3);
+  bool okFlow3 = modbus.readFloat(cfg::FM3_SLAVE, cfg::REG_FLOW_RATE, flow3);
   bool okTotal3 = false;
 
   if (doTotalizer) {
     delay(50);
-    okTotal3 = readTotalizer(cfg::FM3_SLAVE, total3);
+    okTotal3 = modbus.readTotalizer(cfg::FM3_SLAVE, cfg::REG_TOTALIZER, total3);
     if (okTotal3) {
       lastTotal3 = total3;
       hasTotal3 = true;
@@ -668,9 +600,14 @@ void loop() {
     led::setMode(led::SLOW_RED);
     return;
   }
-  if (!ensureFirebase()) {
+  if (!Firebase.ready()) {
     led::setMode(led::SLOW_RED);
     return;
+  }
+  if (!firebaseReady) {
+    firebaseReady = true;
+    Serial.println("[Firebase] Ready");
+    ota::begin(&fbData); // DEVICE_ID register + командын stream нээх
   }
 
   FirebaseJson json;
@@ -684,22 +621,28 @@ void loop() {
   if (doTotalizer && okTotal2) { json.set("flowmeter2/totalizer", total2); anyWrite = true; }
   if (doTotalizer && okTotal3) { json.set("flowmeter3/totalizer", total3); anyWrite = true; }
 
+  bool uploadOk = false;
   if (!anyWrite) {
     // Modbus бүх 3 sensor энэ cycle-д хариу өгсөнгүй → улаан
     led::setMode(led::SLOW_RED);
-    return;
-  }
-
-  json.set("last_updated", (int)(millis() / 1000));
-
-  if (Firebase.RTDB.updateNode(&fbData, "/flow_system", &json)) {
-    Serial.println("[Firebase] Updated");
-    fbOnSuccess();
-    led::setMode(led::OFF);
-    led::pulse(); // upload бүрд нэг ногоон импульс — terminal-той synchron
   } else {
-    Serial.printf("[Firebase] update ERROR: %s\n", fbData.errorReason().c_str());
-    fbOnFailure();
-    led::setMode(led::SLOW_RED);
+    json.set("last_updated", (int)(millis() / 1000));
+
+    if (Firebase.RTDB.updateNode(&fbData, "/flow_system", &json)) {
+      Serial.println("[Firebase] Updated");
+      fbOnSuccess();
+      led::setMode(led::OFF);
+      led::pulse(); // upload бүрд нэг ногоон импульс — terminal-той synchron
+      uploadOk = true;
+    } else {
+      Serial.printf("[Firebase] update ERROR: %s\n", fbData.errorReason().c_str());
+      fbOnFailure();
+      led::setMode(led::SLOW_RED);
+    }
   }
+
+  // OTA heartbeat + progress publish + command stream tick.
+  // Firebase ready болсон бөгөөд upload амжилттай эсэхийг дамжуулна —
+  // self-test шалгуурт ашиглана.
+  ota::loop(&fbData, uploadOk);
 }

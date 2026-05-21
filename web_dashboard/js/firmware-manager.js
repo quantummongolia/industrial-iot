@@ -2,17 +2,24 @@
 //  FIRMWARE MANAGER — Remote OTA dashboard
 //
 //  Reads:
-//    /firmware/teerem/latest  → release info written by GitHub Actions
-//    /devices/{deviceId}      → per-device heartbeat + OTA status
+//    /firmware/teerem/latest    → release info written by teerem CI
+//    /firmware/flowmeter/latest → release info written by flowmeter CI
+//    /devices/{deviceId}        → per-device heartbeat + OTA status
 //
 //  Writes:
 //    /commands/{deviceId}/pending → triggers ESP32 command stream
+//
+//  Multi-family logic:
+//    Device бүр `family` талбартай heartbeat бичнэ ("teerem" эсвэл "flowmeter").
+//    Хуучин heartbeat-уудтай (family-гүй) тохиолдолд deviceId prefix-аас гаргана.
+//    Дашбоард device бүрд яг өөрийн family-ийн latest release-тэй харьцуулна.
 // ============================================================
 
 (function () {
   const STALE_AFTER_SEC = 90;       // last_heartbeat хэдэн секундээс хойш "offline"
+  const KNOWN_FAMILIES = ["teerem", "flowmeter"];
   const _devices = {};              // deviceId -> latest data
-  let _latestRelease = null;
+  const _latestReleases = { teerem: null, flowmeter: null };
 
   function _now() { return Math.floor(Date.now() / 1000); }
 
@@ -32,6 +39,18 @@
     if (d < 3600)    return Math.floor(d/60) + "m ago";
     if (d < 86400)   return Math.floor(d/3600) + "h ago";
     return Math.floor(d/86400) + "d ago";
+  }
+
+  // Device-ийн family-г заавал баталгаажуулна:
+  //   1) heartbeat-д `family` field байгаа бол түүнийг
+  //   2) Эс бөгөөс deviceId prefix-аас (teerem_xxx / flowmeter_xxx)
+  //   3) Аль нь ч таарахгүй бол null (release-тэй харьцуулахгүй)
+  function _resolveFamily(deviceId, dev) {
+    if (dev && KNOWN_FAMILIES.includes(dev.family)) return dev.family;
+    for (const fam of KNOWN_FAMILIES) {
+      if (deviceId.startsWith(fam + "_")) return fam;
+    }
+    return null;
   }
 
   function _statusColor(dev) {
@@ -71,15 +90,20 @@
 
   function _deviceCard(deviceId, dev) {
     const st = _statusColor(dev);
-    const isLatest = _latestRelease && dev.firmware === _latestRelease.version;
+    const family = _resolveFamily(deviceId, dev);
+    const release = family ? _latestReleases[family] : null;
+    const isLatest = release && dev.firmware === release.version;
     // Offline шалгалтыг хийхгүй — команд /pending-д хадгалагдана, device онлайн
     // болсон даруйд (эсвэл аль хэдийн онлайн байгаа бол шууд) татаж авна.
-    const canUpdate = _latestRelease && !isLatest;
+    const canUpdate = release && !isLatest;
+    const familyChip = family
+      ? `<span class="text-[10px] text-text-dim font-medium uppercase tracking-wider ml-1">${family}</span>`
+      : "";
     return `
       <div class="glass-card rounded-DEFAULT p-5" data-device="${deviceId}">
         <div class="flex items-start justify-between gap-3 mb-3">
           <div class="min-w-0">
-            <div class="text-[11px] text-text-dim font-mono truncate">${deviceId}</div>
+            <div class="text-[11px] text-text-dim font-mono truncate">${deviceId}${familyChip}</div>
             <div class="text-[18px] font-bold text-text-primary tabular-nums mt-0.5">
               v${dev.firmware || "?"}
               ${isLatest ? '<span class="text-[11px] text-success ml-1 font-medium">latest</span>' : ""}
@@ -123,6 +147,27 @@
       </div>`;
   }
 
+  // Header release card — хоёр family-ийн latest version-ыг нэг card-д харуулна.
+  function _renderHeader() {
+    const verEl  = document.getElementById("fwLatestVersion");
+    const metaEl = document.getElementById("fwLatestMeta");
+    if (!verEl || !metaEl) return;
+
+    const parts = [];
+    const metaParts = [];
+    for (const fam of KNOWN_FAMILIES) {
+      const r = _latestReleases[fam];
+      if (r) {
+        parts.push(`<span class="capitalize">${fam}</span> <span class="text-accent">v${r.version}</span>`);
+        metaParts.push(`${fam}: ${_relTime(r.published_at)} · ${Math.round((r.size || 0)/1024)} KB`);
+      } else {
+        parts.push(`<span class="capitalize text-text-dim">${fam}</span> <span class="text-text-dim">—</span>`);
+      }
+    }
+    verEl.innerHTML = parts.join('<span class="text-text-dim mx-2">·</span>');
+    metaEl.textContent = metaParts.length ? metaParts.join("  ·  ") : "Release үүсээгүй байна (GitHub-д tag push хий)";
+  }
+
   function _render() {
     const container = document.getElementById("fwDeviceList");
     if (!container) return;
@@ -137,21 +182,15 @@
         .join("");
     }
 
-    // Latest version header
-    const verEl  = document.getElementById("fwLatestVersion");
-    const metaEl = document.getElementById("fwLatestMeta");
-    if (_latestRelease) {
-      verEl.textContent = "v" + _latestRelease.version;
-      metaEl.textContent = `${_relTime(_latestRelease.published_at)} · ${Math.round((_latestRelease.size || 0)/1024)} KB`;
-    } else {
-      verEl.textContent = "—";
-      metaEl.textContent = "Release үүсээгүй байна (GitHub-д tag push хий)";
-    }
+    _renderHeader();
 
-    // On-latest counter
-    const onLatest = _latestRelease
-      ? entries.filter(([, d]) => d.firmware === _latestRelease.version).length
-      : 0;
+    // On-latest counter — device бүрд өөрийн family-ийн latest-тай тулгана.
+    let onLatest = 0;
+    for (const [id, d] of entries) {
+      const fam = _resolveFamily(id, d);
+      const release = fam ? _latestReleases[fam] : null;
+      if (release && d.firmware === release.version) onLatest++;
+    }
     document.getElementById("fwDeviceOnLatest").textContent = onLatest;
     document.getElementById("fwDeviceTotal").textContent    = entries.length;
   }
@@ -164,17 +203,20 @@
       const btn = e.target.closest("button[data-device]");
       if (!btn) return;
       const id = btn.dataset.device;
+      const dev = _devices[id];
       if (btn.classList.contains("fw-btn-ping"))   _pushCommand(id, "ping");
       if (btn.classList.contains("fw-btn-reboot")) {
         if (confirm(`${id} reboot хийх үү?`)) _pushCommand(id, "reboot");
       }
       if (btn.classList.contains("fw-btn-update")) {
-        if (!_latestRelease) return;
-        if (confirm(`${id} → v${_latestRelease.version} update хийх үү?`))
+        const fam = _resolveFamily(id, dev);
+        const release = fam ? _latestReleases[fam] : null;
+        if (!release) return;
+        if (confirm(`${id} → v${release.version} update хийх үү?`))
           _pushCommand(id, "update", {
-            version: _latestRelease.version,
-            url:     _latestRelease.url,
-            sha256:  _latestRelease.sha256,
+            version: release.version,
+            url:     release.url,
+            sha256:  release.sha256,
           });
       }
     });
@@ -205,10 +247,13 @@
     if (typeof firebase === "undefined" || !firebase.apps?.length) return;
     const db = firebase.database();
 
-    db.ref("/firmware/teerem/latest").on("value", (snap) => {
-      _latestRelease = snap.val();
-      _render();
-    });
+    // Хоёр family-ийн release feed-ийг тус бүрд нь сонсоно.
+    for (const fam of KNOWN_FAMILIES) {
+      db.ref(`/firmware/${fam}/latest`).on("value", (snap) => {
+        _latestReleases[fam] = snap.val();
+        _render();
+      });
+    }
 
     db.ref("/devices").on("value", (snap) => {
       const val = snap.val() || {};
