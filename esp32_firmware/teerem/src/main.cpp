@@ -9,9 +9,11 @@
  *    Slave 3 : SPM33 — Нунтаглах хэсэг ХС          (P, E)
  *    Slave 4 : SPM33 — Бөмбөлөгт тээрэм 1          (P, E, Ia/Ib/Ic)
  *    Slave 5 : SPM33 — Бөмбөлөгт тээрэм 2          (P, E, Ia/Ib/Ic)
+ *    Slave 6 : Тээрмийн тэжээлийн ус (flowmeter)   (flow rate + totalizer)
  *
  *  Firebase RTDB:
  *    /teerem/weight_rate, /teerem/cumulative_kg, /teerem/last_updated
+ *    /teerem/feed_water/{flow_rate,totalizer}
  *    /energy_meters/em01/{power_kw,total_energy_kwh}
  *    /energy_meters/em02/{power_kw,total_energy_kwh}
  *    /energy_meters/em04/{power_kw,total_energy_kwh,current_a,current_b,current_c}
@@ -45,10 +47,15 @@ constexpr uint8_t EM01_SLAVE = 2;  // Боловсруулах үйлдвэр Х
 constexpr uint8_t EM02_SLAVE = 3;  // Нунтаглах хэсэг ХС
 constexpr uint8_t EM04_SLAVE = 4;  // Бөмбөлөгт тээрэм 1
 constexpr uint8_t EM05_SLAVE = 5;  // Бөмбөлөгт тээрэм 2
+constexpr uint8_t FLOW_SLAVE = 6;  // Тээрмийн тэжээлийн ус (flowmeter)
 
 // Тэжээлийн жин (одоо байгаа сенсор)
 constexpr uint16_t REG_FLOW = 0;     // 40001: Flow Rate (Float, t/h)
 constexpr uint16_t REG_WEIGHT_T = 6; // 40007: Cumulative weight (Double, t)
+
+// Тээрмийн тэжээлийн ус (flowmeter project-той ижил registers)
+constexpr uint16_t FLOW_REG_RATE = 0x0000;  // [0..1] Flow rate float BE
+constexpr uint16_t FLOW_REG_TOTAL = 0x0003; // [3..6] uint32 int + float frac
 
 // SPM33 register addresses (4xxxx - 40001 = Modbus address)
 constexpr uint16_t SPM33_REG_IA = 6;     // 40007: Phase A current (UINT16, ×0.001 A)
@@ -233,6 +240,24 @@ public:
     if (!readU32LowFirst(slave, addr, raw))
       return false;
     out = (int32_t)raw;
+    return true;
+  }
+
+  // Урсгал хэмжигч (flowmeter) totalizer — 4 register (8 byte):
+  // [0..3]  UINT32 BE = бүхэл хэсэг
+  // [4..7]  Float BE  = бутархай хэсэг
+  // Нийт нь: float (бүхэл + бутархай) cubic meter.
+  bool readTotalizer(uint8_t slave, uint16_t addr, float &out) {
+    uint8_t rx[13];
+    if (!readRegs(slave, addr, 4, rx))
+      return false;
+    uint32_t intPart = ((uint32_t)rx[3] << 24) | ((uint32_t)rx[4] << 16) |
+                       ((uint32_t)rx[5] << 8)  |  (uint32_t)rx[6];
+    uint32_t fracRaw = ((uint32_t)rx[7] << 24) | ((uint32_t)rx[8] << 16) |
+                       ((uint32_t)rx[9] << 8)  |  (uint32_t)rx[10];
+    float fracPart;
+    memcpy(&fracPart, &fracRaw, 4);
+    out = (float)((double)intPart + (double)fracPart);
     return true;
   }
 
@@ -566,6 +591,15 @@ void loop() {
   Spm33Reading em04 = Spm33_read(modbus, cfg::EM04_SLAVE, true);
   delay(cfg::FRAME_GAP_MS);
   Spm33Reading em05 = Spm33_read(modbus, cfg::EM05_SLAVE, true);
+  delay(cfg::FRAME_GAP_MS);
+
+  // ── 2b) Тээрмийн тэжээлийн ус (Slave 6) ───────────────────────────
+  float feedFlow = 0, feedTotal = 0;
+  bool feedFlowOk = withRetry(
+      [&] { return modbus.readFloat(cfg::FLOW_SLAVE, cfg::FLOW_REG_RATE, feedFlow); });
+  delay(cfg::FRAME_GAP_MS);
+  bool feedTotalOk = withRetry(
+      [&] { return modbus.readTotalizer(cfg::FLOW_SLAVE, cfg::FLOW_REG_TOTAL, feedTotal); });
 
   // ── 3) Уншилтын логийг товч ─────────────────────────────────────────
   Serial.printf("[Scale] flow:%s weight:%s\n",
@@ -586,12 +620,15 @@ void loop() {
   logEm("EM02", em02, false);
   logEm("EM04", em04, true);
   logEm("EM05", em05, true);
+  Serial.printf("[FeedWater] flow:%s total:%s\n",
+                feedFlowOk ? String(feedFlow, 2).c_str() : "#",
+                feedTotalOk ? String(feedTotal, 2).c_str() : "#");
 
   // ── 4) Алдаа escalate ──────────────────────────────────────────────
   bool anyOk = flowOk || weightOk || em01.powerOk || em01.energyOk ||
                em02.powerOk || em02.energyOk || em04.powerOk || em04.energyOk ||
                em04.currentsOk || em05.powerOk || em05.energyOk ||
-               em05.currentsOk;
+               em05.currentsOk || feedFlowOk || feedTotalOk;
   if (anyOk) {
     consecutiveReadFails = 0;
     totalRecoveryAttempts = 0;
@@ -626,6 +663,14 @@ void loop() {
     if (flowOk) { j.set("weight_rate", flow); teeremAny = true; }
     if (weightOk) {
       j.set("cumulative_kg", (int)(weightT * 1000.0));
+      teeremAny = true;
+    }
+    if (feedFlowOk) {
+      j.set("feed_water/flow_rate", feedFlow);
+      teeremAny = true;
+    }
+    if (feedTotalOk) {
+      j.set("feed_water/totalizer", feedTotal);
       teeremAny = true;
     }
     if (teeremAny) {

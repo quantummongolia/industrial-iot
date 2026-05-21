@@ -66,6 +66,13 @@ function initRealtime() {
     teeremWeight:     document.getElementById("teeremWeight"),
     teeremWeightTons: document.getElementById("teeremWeightTons"),
     teeremWeightLed:  document.getElementById("teeremWeightLed"),
+    // Тээрмийн тэжээлийн ус — Teerem tab + Activity tab дублицат
+    feedWaterFlow:       document.getElementById("feedWaterFlow"),
+    feedWaterTotal:      document.getElementById("feedWaterTotal"),
+    feedWaterLed:        document.getElementById("feedWaterLed"),
+    feedWaterFlowAct:    document.getElementById("feedWaterFlowAct"),
+    feedWaterTotalAct:   document.getElementById("feedWaterTotalAct"),
+    feedWaterLedAct:     document.getElementById("feedWaterLedAct"),
     // Teerem хуулбар (Activity tab)
     teeremWeightAct:     document.getElementById("teeremWeightAct"),
     teeremWeightTonsAct: document.getElementById("teeremWeightTonsAct"),
@@ -156,6 +163,22 @@ function initRealtime() {
     const t = (parseInt(s.val(), 10) / 1000).toFixed(3);
     if (_el.teeremWeightTons)    _el.teeremWeightTons.textContent    = t;
     if (_el.teeremWeightTonsAct) _el.teeremWeightTonsAct.textContent = t;
+  });
+
+  // ── Тээрмийн тэжээлийн ус (Slave 6 flowmeter) ────────
+  db.ref("/teerem/feed_water/flow_rate").on("value", s => {
+    if (s.val() === null) return;
+    const v = parseFloat(s.val()).toFixed(2);
+    if (_el.feedWaterFlow)    _el.feedWaterFlow.textContent    = v;
+    if (_el.feedWaterFlowAct) _el.feedWaterFlowAct.textContent = v;
+    _blinkLed(_el.feedWaterLed);
+    _blinkLed(_el.feedWaterLedAct);
+  });
+  db.ref("/teerem/feed_water/totalizer").on("value", s => {
+    if (s.val() === null) return;
+    const v = parseFloat(s.val()).toFixed(2);
+    if (_el.feedWaterTotal)    _el.feedWaterTotal.textContent    = v;
+    if (_el.feedWaterTotalAct) _el.feedWaterTotalAct.textContent = v;
   });
 
   // ── Butluur ───────────────────────────────────────────
