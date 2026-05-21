@@ -56,7 +56,7 @@ constexpr uint16_t REG_FLOW_RATE = 0x0000; // Reg[00-01]: Flow rate (float BE)
 constexpr uint16_t REG_TOTALIZER = 0x0003; // Reg[03-06]: int32 + float fraction
 
 // Timing
-constexpr uint32_t READ_INTERVAL_MS = 1000;        // Flow rate read interval
+constexpr uint32_t READ_INTERVAL_MS = 1500;        // Flow rate read interval
 constexpr uint32_t TOTALIZER_INTERVAL_MS = 300000; // 5 минут
 constexpr uint32_t WIFI_RETRY_MS = 10000;          // WiFi reconnect probe
 constexpr uint32_t WDT_TIMEOUT_S = 30;             // Watchdog timeout
