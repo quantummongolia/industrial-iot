@@ -5,7 +5,7 @@
 
     "flow_system": {
       ".read": "auth != null",
-      ".write": "auth != null && auth.token.email === 'mresource-flowmonitor@iot.com'",
+      ".write": "auth != null && auth.token.email === 'mresource-teerem@iot.com'",
       "flowmeter1": {
         "flow_rate":  { ".validate": "newData.isNumber()" },
         "totalizer":  { ".validate": "newData.isNumber()" }
@@ -70,7 +70,7 @@
     "devices": {
       ".read": "auth != null",
       "$deviceId": {
-        ".write": "auth != null && (auth.token.email === 'mresource-teerem@iot.com' || auth.token.email === 'mresource-flowmonitor@iot.com' || auth.token.email === 'mresource-butluur@iot.com')",
+        ".write": "auth != null && auth.token.email === 'mresource-teerem@iot.com'",
         "family":         { ".validate": "newData.isString()" },
         "firmware":       { ".validate": "newData.isString()" },
         "boot_time":      { ".validate": "newData.isNumber()" },
@@ -102,7 +102,7 @@
         },
         "result": {
           "$cmdId": {
-            ".write": "auth != null && (auth.token.email === 'mresource-teerem@iot.com' || auth.token.email === 'mresource-flowmonitor@iot.com' || auth.token.email === 'mresource-butluur@iot.com')"
+            ".write": "auth != null && auth.token.email === 'mresource-teerem@iot.com'"
           }
         }
       }

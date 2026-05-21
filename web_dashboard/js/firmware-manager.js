@@ -23,6 +23,15 @@
 
   function _now() { return Math.floor(Date.now() / 1000); }
 
+  // Device firmware string-ийг release version-той харьцуулахдаа `-g<sha>` суффиксийг хасна.
+  // CI release нь зөвхөн "MAJOR.MINOR.PATCH" (жишээ нь "0.0.1") бичдэг, харин ESP-ийн
+  // firmware string нь git describe-аас "0.0.1-gacb8bac" гэх мэт SHA-тай ирдэг.
+  function _baseVersion(s) {
+    if (!s) return "";
+    const i = s.indexOf("-g");
+    return i >= 0 ? s.slice(0, i) : s;
+  }
+
   // Firebase server timestamp нь millisecond, manual NTP-аас ирсэн нь second.
   // Зөв нэгжид auto-detect: ms бол > 1e12 (≈ 2001 он seconds-д = 1e9).
   function _toSeconds(unix) {
@@ -92,7 +101,7 @@
     const st = _statusColor(dev);
     const family = _resolveFamily(deviceId, dev);
     const release = family ? _latestReleases[family] : null;
-    const isLatest = release && dev.firmware === release.version;
+    const isLatest = release && _baseVersion(dev.firmware) === release.version;
     // Offline шалгалтыг хийхгүй — команд /pending-д хадгалагдана, device онлайн
     // болсон даруйд (эсвэл аль хэдийн онлайн байгаа бол шууд) татаж авна.
     const canUpdate = release && !isLatest;
@@ -189,7 +198,7 @@
     for (const [id, d] of entries) {
       const fam = _resolveFamily(id, d);
       const release = fam ? _latestReleases[fam] : null;
-      if (release && d.firmware === release.version) onLatest++;
+      if (release && _baseVersion(d.firmware) === release.version) onLatest++;
     }
     document.getElementById("fwDeviceOnLatest").textContent = onLatest;
     document.getElementById("fwDeviceTotal").textContent    = entries.length;
