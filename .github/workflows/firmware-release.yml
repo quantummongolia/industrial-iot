@@ -1,16 +1,13 @@
 name: Firmware Release
 
-# Хоёр төрлийн trigger:
-#   1) main branch-руу teerem firmware өөрчлөгдсөн push → автомат prerelease
-#   2) teerem-v* tag push → stable release
+# Зөвхөн main branch-руу teerem firmware-ийн өөрчлөлт push хийсэн үед ажиллана.
+# CI өөрөө сүүлчийн tag-аас patch number-ыг өсгөж шинэ release үүсгэнэ.
 on:
   push:
     branches: [main]
     paths:
       - 'esp32_firmware/teerem/**'
       - '.github/workflows/firmware-release.yml'
-    tags:
-      - 'teerem-v*'
 
 permissions:
   contents: write
@@ -70,28 +67,26 @@ jobs:
           EOF
           echo "secrets.h generated (credentials redacted from log)"
 
-      - name: Determine version + release type
+      - name: Auto-bump patch version + create tag
         id: ver
         run: |
-          if [[ "${GITHUB_REF}" == refs/tags/teerem-v* ]]; then
-            # Tag push → stable release
-            VER="${GITHUB_REF#refs/tags/teerem-v}"
-            TAG="${GITHUB_REF#refs/tags/}"
-            PRERELEASE=false
-            RELEASE_TYPE="stable"
-          else
-            # Main push → prerelease, version нь git describe-аас
-            DESC=$(git describe --tags --match 'teerem-v*' --always 2>/dev/null || git rev-parse --short HEAD)
-            VER="${DESC#teerem-v}"
-            TAG="teerem-v${VER}"
-            PRERELEASE=true
-            RELEASE_TYPE="prerelease"
-          fi
-          echo "version=$VER"             >> $GITHUB_OUTPUT
-          echo "tag=$TAG"                 >> $GITHUB_OUTPUT
-          echo "prerelease=$PRERELEASE"   >> $GITHUB_OUTPUT
-          echo "release_type=$RELEASE_TYPE" >> $GITHUB_OUTPUT
-          echo "Computed: $TAG ($RELEASE_TYPE)"
+          # Сүүлийн tag-ийг хайх (хэрэв байхгүй бол v0.0.0-аас эхэлнэ)
+          LAST_TAG=$(git describe --tags --abbrev=0 --match 'teerem-v*' 2>/dev/null || echo "teerem-v0.0.0")
+          LAST_VER="${LAST_TAG#teerem-v}"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$LAST_VER"
+          NEW_PATCH=$((PATCH + 1))
+          VER="${MAJOR}.${MINOR}.${NEW_PATCH}"
+          TAG="teerem-v${VER}"
+
+          # Tag-ийг үүсгээд remote руу push хийх
+          git config user.email "actions@github.com"
+          git config user.name  "github-actions"
+          git tag "$TAG"
+          git push origin "$TAG"
+
+          echo "version=$VER" >> $GITHUB_OUTPUT
+          echo "tag=$TAG"     >> $GITHUB_OUTPUT
+          echo "Auto-bumped: $LAST_TAG → $TAG"
 
       - name: Build firmware
         working-directory: esp32_firmware/teerem
@@ -111,15 +106,14 @@ jobs:
           echo "size=$SIZE"     >> $GITHUB_OUTPUT
           echo "Built $OUT ($SIZE bytes, sha256=$SHA)"
 
-      - name: Create or update GitHub Release
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name:   ${{ steps.ver.outputs.tag }}
-          name:       teerem ${{ steps.ver.outputs.tag }}
-          prerelease: ${{ steps.ver.outputs.prerelease }}
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name:     teerem ${{ steps.ver.outputs.tag }}
           files: esp32_firmware/teerem/${{ steps.artifact.outputs.binary }}
           body: |
-            ## teerem firmware ${{ steps.ver.outputs.tag }} (${{ steps.ver.outputs.release_type }})
+            ## teerem firmware ${{ steps.ver.outputs.tag }}
 
             - **Binary:** `${{ steps.artifact.outputs.binary }}`
             - **Size:** ${{ steps.artifact.outputs.size }} bytes
@@ -147,7 +141,6 @@ jobs:
               \"url\": \"${URL}\",
               \"sha256\": \"${SHA}\",
               \"size\": ${{ steps.artifact.outputs.size }},
-              \"prerelease\": ${{ steps.ver.outputs.prerelease }},
               \"published_at\": {\".sv\": \"timestamp\"}
             }"
           echo "Published /firmware/teerem/latest → ${TAG}"
