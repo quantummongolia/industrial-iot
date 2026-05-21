@@ -70,15 +70,32 @@ jobs:
       - name: Auto-bump patch version + create tag
         id: ver
         run: |
-          # Сүүлийн tag-ийг хайх (хэрэв байхгүй бол v0.0.0-аас эхэлнэ)
-          LAST_TAG=$(git describe --tags --abbrev=0 --match 'teerem-v*' 2>/dev/null || echo "teerem-v0.0.0")
-          LAST_VER="${LAST_TAG#teerem-v}"
+          # Tag format: teerem-vMAJOR.MINOR.PATCH-g<short-sha>
+          # Сүүлийн tag-аас patch number-ыг өсгөж, шинэ commit-ын sha хавсаргана.
+          LAST_TAG=$(git tag --list 'teerem-v*' --sort=-creatordate \
+                     | grep -E '^teerem-v[0-9]+\.[0-9]+\.[0-9]+(-g[0-9a-f]+)?$' \
+                     | head -1)
+          if [ -z "$LAST_TAG" ]; then
+            LAST_TAG="teerem-v0.0.0"
+          fi
+
+          # Зөвхөн MAJOR.MINOR.PATCH хэсгийг extract хийх (-g<sha> хэсгийг үл тоомсорлоно)
+          LAST_VER=$(echo "$LAST_TAG" | grep -oE '^teerem-v[0-9]+\.[0-9]+\.[0-9]+' \
+                                       | sed 's/^teerem-v//')
           IFS='.' read -r MAJOR MINOR PATCH <<< "$LAST_VER"
           NEW_PATCH=$((PATCH + 1))
           VER="${MAJOR}.${MINOR}.${NEW_PATCH}"
-          TAG="teerem-v${VER}"
 
-          # Tag-ийг үүсгээд remote руу push хийх
+          SHA_SHORT=$(git rev-parse --short HEAD)
+          TAG="teerem-v${VER}-g${SHA_SHORT}"
+
+          # Хэрэв ижил tag (хэзээ нэгэн цагт) байсан бол patch-ийг дахин өсгөнө
+          while git rev-parse "$TAG" >/dev/null 2>&1; do
+            NEW_PATCH=$((NEW_PATCH + 1))
+            VER="${MAJOR}.${MINOR}.${NEW_PATCH}"
+            TAG="teerem-v${VER}-g${SHA_SHORT}"
+          done
+
           git config user.email "actions@github.com"
           git config user.name  "github-actions"
           git tag "$TAG"
