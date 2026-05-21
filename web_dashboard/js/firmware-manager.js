@@ -16,12 +16,21 @@
 
   function _now() { return Math.floor(Date.now() / 1000); }
 
-  function _relTime(unixSec) {
-    if (!unixSec) return "—";
-    const d = _now() - unixSec;
-    if (d < 60)     return d + "s ago";
-    if (d < 3600)   return Math.floor(d/60) + "m ago";
-    if (d < 86400)  return Math.floor(d/3600) + "h ago";
+  // Firebase server timestamp нь millisecond, manual NTP-аас ирсэн нь second.
+  // Зөв нэгжид auto-detect: ms бол > 1e12 (≈ 2001 он seconds-д = 1e9).
+  function _toSeconds(unix) {
+    if (!unix) return 0;
+    return unix > 1e12 ? Math.floor(unix / 1000) : unix;
+  }
+
+  function _relTime(unix) {
+    const sec = _toSeconds(unix);
+    if (!sec) return "—";
+    const d = _now() - sec;
+    if (d < 0)       return "just now";  // server timestamp нь browser-аас илүү хурдан байж магадгүй
+    if (d < 60)      return d + "s ago";
+    if (d < 3600)    return Math.floor(d/60) + "m ago";
+    if (d < 86400)   return Math.floor(d/3600) + "h ago";
     return Math.floor(d/86400) + "d ago";
   }
 

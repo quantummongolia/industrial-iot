@@ -126,19 +126,41 @@ void publishBootState(FirebaseData* fb) {
 
   FirebaseJson j;
   j.set("firmware", firmwareVersion);
-  j.set("boot_time", (int)unixNow());
   j.set("reset_reason", rrStr);
   j.set("status", status);
   j.set("mac", WiFi.macAddress());
   j.set("ip", WiFi.localIP().toString());
   j.set("partition", running ? running->label : "?");
-  j.set("last_heartbeat", (int)unixNow());
+  // Firebase server timestamp — NTP-аас хамаардаггүй, корпорейт WiFi-д ч ажиллана
+  j.set("boot_time/.sv", "timestamp");
+  j.set("last_heartbeat/.sv", "timestamp");
   Firebase.RTDB.updateNodeSilent(fb, basePath().c_str(), &j);
+
+  // OTA state-machine cleanup — амжилттай boot хийсэн бол ota_status-ыг шинэчилнэ
+  FirebaseJson ota;
+  if (status == "validating") {
+    ota.set("stage", "validating");
+    ota.set("progress", 100);
+    ota.set("message", String("Validating ") + firmwareVersion);
+  } else if (status == "rolled_back") {
+    ota.set("stage", "rolled_back");
+    ota.set("progress", 0);
+    ota.set("message", String("Reverted to ") + firmwareVersion);
+  } else {
+    ota.set("stage", "idle");
+    ota.set("progress", 0);
+    ota.set("message", "");
+  }
+  ota.set("ts/.sv", "timestamp");
+  ota.set("cmd_id", "");
+  Firebase.RTDB.updateNodeSilent(fb, (basePath() + "/ota_status").c_str(), &ota);
 }
 
 void writeHeartbeat(FirebaseData* fb) {
   FirebaseJson j;
-  j.set("last_heartbeat", (int)unixNow());
+  // Firebase server timestamp (ms) — ESP32-ийн NTP синхрончлогдоогүй ч ажиллана.
+  // Сервер бичих үеийн өөрийн цагийг автомат бөглөнө.
+  j.set("last_heartbeat/.sv", "timestamp");
   j.set("uptime_s", (int)(millis() / 1000));
   j.set("free_heap", (int)ESP.getFreeHeap());
   j.set("rssi", WiFi.RSSI());
@@ -346,8 +368,17 @@ void selfTestIfReady() {
     Serial.printf("[OTA] Self-test OK → mark valid (err=%d)\n", err);
     FirebaseJson j;
     j.set("status", "running");
-    j.set("validated_at", (int)unixNow());
+    j.set("validated_at/.sv", "timestamp");  // Firebase server timestamp (NTP-аас хамаардаггүй)
     Firebase.RTDB.updateNodeSilent(&streamFb, basePath().c_str(), &j);
+
+    // OTA state-machine: validating → completed
+    FirebaseJson ota;
+    ota.set("stage", "completed");
+    ota.set("progress", 100);
+    ota.set("message", String("Updated to ") + firmwareVersion);
+    ota.set("ts/.sv", "timestamp");
+    ota.set("cmd_id", "");
+    Firebase.RTDB.updateNodeSilent(&streamFb, (basePath() + "/ota_status").c_str(), &ota);
   }
 
   // App-level boot counter цэвэрлэх — энэ boot self-test амжилттай давсан
