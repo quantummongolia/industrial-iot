@@ -56,8 +56,7 @@ constexpr uint16_t REG_FLOW_RATE = 0x0000; // Reg[00-01]: Flow rate (float BE)
 constexpr uint16_t REG_TOTALIZER = 0x0003; // Reg[03-06]: int32 + float fraction
 
 // Timing
-constexpr uint32_t READ_INTERVAL_MS = 1500;        // Flow rate read interval
-constexpr uint32_t TOTALIZER_INTERVAL_MS = 300000; // 5 минут
+constexpr uint32_t READ_INTERVAL_MS = 1500;        // Flow rate + totalizer read interval
 constexpr uint32_t WIFI_RETRY_MS = 10000;          // WiFi reconnect probe
 constexpr uint32_t WDT_TIMEOUT_S = 30;             // Watchdog timeout
 constexpr uint32_t RX_TMO = 100;                   // Modbus receive timeout (ms)
@@ -288,14 +287,8 @@ FirebaseAuth fbAuth; // Firebase authentication credentials holder
 FirebaseConfig fbConfig; // Firebase configuration settings holder
 
 unsigned long lastReadTime = 0;      // Timestamp of last flow rate reading (ms)
-unsigned long lastTotalizerRead = 0; // Timestamp of last totalizer reading (ms)
 unsigned long lastWifiCheck = 0;     // Timestamp of last WiFi check (ms)
 bool firebaseReady = false;          // Firebase auth complete flag
-
-// Cache last-good totalizer values so we keep uploading them between 5-min
-// reads
-float lastTotal1 = 0.0, lastTotal2 = 0.0, lastTotal3 = 0.0;
-bool hasTotal1 = false, hasTotal2 = false, hasTotal3 = false;
 
 // Firebase upload backoff — prevents auth rate-limit storms on failure
 unsigned long fbNextAllowedAt = 0; // Next allowed upload timestamp
@@ -490,16 +483,10 @@ void loop() {
     wifiConnect();
   }
 
-  // Rate limit: flow rate reads every cfg::READ_INTERVAL_MS
+  // Rate limit: flow rate + totalizer reads every cfg::READ_INTERVAL_MS
   if (now - lastReadTime < cfg::READ_INTERVAL_MS)
     return;
   lastReadTime = now;
-
-  // Decide whether this cycle also includes a totalizer read (every 5 min)
-  bool doTotalizer = (lastTotalizerRead == 0) ||
-                     (now - lastTotalizerRead >= cfg::TOTALIZER_INTERVAL_MS);
-  if (doTotalizer)
-    lastTotalizerRead = now;
 
   // ---- Read Flowmeter 1 (Slave ID 2: Суларсан уусмал) ----
   // Retry хийхгүй — sensor хариу өгөхгүй бол энэ cycle-д орхиод явна.
@@ -507,76 +494,43 @@ void loop() {
   // тасрахад л хүргэнэ, дашбоард дараагийн уншилтаар сэргэнэ.
   float flow1 = 0.0, total1 = 0.0;
   bool okFlow1 = modbus.readFloat(cfg::FM1_SLAVE, cfg::REG_FLOW_RATE, flow1);
-  bool okTotal1 = false;
+  delay(50);
+  bool okTotal1 = modbus.readTotalizer(cfg::FM1_SLAVE, cfg::REG_TOTALIZER, total1);
 
-  if (doTotalizer) {
-    delay(50);
-    okTotal1 = modbus.readTotalizer(cfg::FM1_SLAVE, cfg::REG_TOTALIZER, total1);
-    if (okTotal1) {
-      lastTotal1 = total1;
-      hasTotal1 = true;
-    }
-  }
-
-  if (okFlow1 && (!doTotalizer || okTotal1))
-    Serial.printf("[FM1] Flow: %.3f m3/h%s%.3f m3\n", flow1,
-                  doTotalizer ? " | Total: " : " (total cached: ",
-                  doTotalizer ? total1 : lastTotal1);
+  if (okFlow1 && okTotal1)
+    Serial.printf("[FM1] Flow: %.3f m3/h | Total: %.3f m3\n", flow1, total1);
   else
-    Serial.printf("[FM1] Read failed — flow:%d total:%d (doTotalizer=%d)\n",
-                  okFlow1, okTotal1, doTotalizer);
+    Serial.printf("[FM1] Read failed — flow:%d total:%d\n", okFlow1, okTotal1);
 
   delay(50);
 
   // ---- Read Flowmeter 2 (Slave ID 3: Баян уусмал) ----
   float flow2 = 0.0, total2 = 0.0;
   bool okFlow2 = modbus.readFloat(cfg::FM2_SLAVE, cfg::REG_FLOW_RATE, flow2);
-  bool okTotal2 = false;
+  delay(50);
+  bool okTotal2 = modbus.readTotalizer(cfg::FM2_SLAVE, cfg::REG_TOTALIZER, total2);
 
-  if (doTotalizer) {
-    delay(50);
-    okTotal2 = modbus.readTotalizer(cfg::FM2_SLAVE, cfg::REG_TOTALIZER, total2);
-    if (okTotal2) {
-      lastTotal2 = total2;
-      hasTotal2 = true;
-    }
-  }
-
-  if (okFlow2 && (!doTotalizer || okTotal2))
-    Serial.printf("[FM2] Flow: %.3f m3/h%s%.3f m3\n", flow2,
-                  doTotalizer ? " | Total: " : " (total cached: ",
-                  doTotalizer ? total2 : lastTotal2);
+  if (okFlow2 && okTotal2)
+    Serial.printf("[FM2] Flow: %.3f m3/h | Total: %.3f m3\n", flow2, total2);
   else
-    Serial.printf("[FM2] Read failed — flow:%d total:%d (doTotalizer=%d)\n",
-                  okFlow2, okTotal2, doTotalizer);
+    Serial.printf("[FM2] Read failed — flow:%d total:%d\n", okFlow2, okTotal2);
 
   delay(50);
 
   // ---- Read Flowmeter 3 (Slave ID 4: Суларсан уусмал 2) ----
   float flow3 = 0.0, total3 = 0.0;
   bool okFlow3 = modbus.readFloat(cfg::FM3_SLAVE, cfg::REG_FLOW_RATE, flow3);
-  bool okTotal3 = false;
+  delay(50);
+  bool okTotal3 = modbus.readTotalizer(cfg::FM3_SLAVE, cfg::REG_TOTALIZER, total3);
 
-  if (doTotalizer) {
-    delay(50);
-    okTotal3 = modbus.readTotalizer(cfg::FM3_SLAVE, cfg::REG_TOTALIZER, total3);
-    if (okTotal3) {
-      lastTotal3 = total3;
-      hasTotal3 = true;
-    }
-  }
-
-  if (okFlow3 && (!doTotalizer || okTotal3))
-    Serial.printf("[FM3] Flow: %.3f m3/h%s%.3f m3\n", flow3,
-                  doTotalizer ? " | Total: " : " (total cached: ",
-                  doTotalizer ? total3 : lastTotal3);
+  if (okFlow3 && okTotal3)
+    Serial.printf("[FM3] Flow: %.3f m3/h | Total: %.3f m3\n", flow3, total3);
   else
-    Serial.printf("[FM3] Read failed — flow:%d total:%d (doTotalizer=%d)\n",
-                  okFlow3, okTotal3, doTotalizer);
+    Serial.printf("[FM3] Read failed — flow:%d total:%d\n", okFlow3, okTotal3);
 
   // ---- Track read failures and escalate recovery if needed ----
   bool anyReadOk = okFlow1 || okFlow2 || okFlow3 ||
-                   (doTotalizer && (okTotal1 || okTotal2 || okTotal3));
+                   okTotal1 || okTotal2 || okTotal3;
   if (anyReadOk) {
     consecutiveReadFails = 0;
     totalRecoveryAttempts = 0;
@@ -616,10 +570,9 @@ void loop() {
   if (okFlow1) { json.set("flowmeter1/flow_rate", flow1); anyWrite = true; }
   if (okFlow2) { json.set("flowmeter2/flow_rate", flow2); anyWrite = true; }
   if (okFlow3) { json.set("flowmeter3/flow_rate", flow3); anyWrite = true; }
-  // Totalizer-ыг шинээр уншсан үед л бичинэ — өөрчлөгдөөгүй утгаар RTDB-г бөглөхгүй
-  if (doTotalizer && okTotal1) { json.set("flowmeter1/totalizer", total1); anyWrite = true; }
-  if (doTotalizer && okTotal2) { json.set("flowmeter2/totalizer", total2); anyWrite = true; }
-  if (doTotalizer && okTotal3) { json.set("flowmeter3/totalizer", total3); anyWrite = true; }
+  if (okTotal1) { json.set("flowmeter1/totalizer", total1); anyWrite = true; }
+  if (okTotal2) { json.set("flowmeter2/totalizer", total2); anyWrite = true; }
+  if (okTotal3) { json.set("flowmeter3/totalizer", total3); anyWrite = true; }
 
   bool uploadOk = false;
   if (!anyWrite) {
