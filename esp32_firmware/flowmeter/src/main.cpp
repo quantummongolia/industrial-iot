@@ -45,15 +45,17 @@ constexpr uint8_t DE_RE = 6;  // MAX485 RE+DE (HIGH = transmit, LOW = receive)
 constexpr uint8_t RX_PIN = 4; // MAX485 RO  (Serial1 RX)
 constexpr uint8_t TX_PIN = 5; // MAX485 DI  (Serial1 TX)
 
-// Modbus slave addresses (3 flowmeters)
+// Modbus slave addresses (3 flowmeters + 1 ultrasonic level transmitter)
 constexpr uint8_t FM1_SLAVE = 2;
 constexpr uint8_t FM2_SLAVE = 3;
 constexpr uint8_t FM3_SLAVE = 4;
+constexpr uint8_t ULS_SLAVE = 1;  // Supmea ultrasonic level transmitter
 constexpr uint32_t BAUD = 19200;
 
 // Modbus holding register addresses
 constexpr uint16_t REG_FLOW_RATE = 0x0000; // Reg[00-01]: Flow rate (float BE)
 constexpr uint16_t REG_TOTALIZER = 0x0003; // Reg[03-06]: int32 + float fraction
+constexpr uint16_t REG_ULS_LEVEL = 0x2002; // Ultrasonic Level instantaneous (raw/1000 = m)
 
 // Timing
 constexpr uint32_t READ_INTERVAL_MS = 1500;        // Flow rate + totalizer read interval
@@ -192,6 +194,15 @@ public:
     digitalWrite(cfg::DE_RE, HIGH);
     delay(5);
     digitalWrite(cfg::DE_RE, LOW);
+  }
+
+  // Big-Endian 16-bit unsigned register (ultrasonic level register 0x2002)
+  bool readShort(uint8_t slave, uint16_t addr, uint16_t &out) {
+    uint8_t rx[7];
+    if (!readRegs(slave, addr, 1, rx))
+      return false;
+    out = ((uint16_t)rx[3] << 8) | rx[4];
+    return true;
   }
 
   // Big-Endian 32-bit IEEE 754 float (flow rate)
@@ -528,9 +539,22 @@ void loop() {
   else
     Serial.printf("[FM3] Read failed — flow:%d total:%d\n", okFlow3, okTotal3);
 
+  delay(50);
+
+  // ---- Read Ultrasonic Level Transmitter (Slave ID 1: Суларсан уусмал савны түвшин) ----
+  // Register 0x2002 = Level instantaneous (uint16, decimal=3 → /1000 = m).
+  uint16_t levelRaw = 0;
+  bool okLevel = modbus.readShort(cfg::ULS_SLAVE, cfg::REG_ULS_LEVEL, levelRaw);
+  float ulsLevel = okLevel ? (levelRaw / 1000.0f) : 0.0f;
+
+  if (okLevel)
+    Serial.printf("[ULS] Level: %.3f m\n", ulsLevel);
+  else
+    Serial.println("[ULS] Read failed");
+
   // ---- Track read failures and escalate recovery if needed ----
   bool anyReadOk = okFlow1 || okFlow2 || okFlow3 ||
-                   okTotal1 || okTotal2 || okTotal3;
+                   okTotal1 || okTotal2 || okTotal3 || okLevel;
   if (anyReadOk) {
     consecutiveReadFails = 0;
     totalRecoveryAttempts = 0;
@@ -573,6 +597,7 @@ void loop() {
   if (okTotal1) { json.set("flowmeter1/totalizer", total1); anyWrite = true; }
   if (okTotal2) { json.set("flowmeter2/totalizer", total2); anyWrite = true; }
   if (okTotal3) { json.set("flowmeter3/totalizer", total3); anyWrite = true; }
+  if (okLevel)  { json.set("level_sensor/level", ulsLevel); anyWrite = true; }
 
   bool uploadOk = false;
   if (!anyWrite) {

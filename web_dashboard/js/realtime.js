@@ -58,6 +58,10 @@ function initRealtime() {
     dataLed1:     document.getElementById("dataLed1"),
     dataLed2:     document.getElementById("dataLed2"),
     dataLed3:     document.getElementById("dataLed3"),
+    // Ultrasonic level transmitter (Slave 1) — Суларсан уусмал савны түвшин
+    ulsLevel:     document.getElementById("ulsLevel"),
+    ulsLevelBar:  document.getElementById("ulsLevelBar"),
+    ulsLevelLed:  document.getElementById("ulsLevelLed"),
     statusLed:    document.getElementById("statusLed"),
     statusText:   document.getElementById("statusText"),
     readingCount: document.getElementById("readingCount"),
@@ -147,6 +151,20 @@ function initRealtime() {
   });
   db.ref("/flow_system/flowmeter3/totalizer").on("value", s => {
     if (s.val() !== null) _onTotalizer("fm3", s.val());
+  });
+
+  // Ultrasonic level transmitter — Суларсан уусмал савны түвшин (Slave ID 1)
+  // Bar дүүргэлт 0..2.20m хооронд, max-аас давсан бол 100%-аар clamp хийнэ.
+  const ULS_MAX_M = 2.20;
+  db.ref("/flow_system/level_sensor/level").on("value", s => {
+    if (s.val() === null) return;
+    const v = parseFloat(s.val());
+    if (_el.ulsLevel) _el.ulsLevel.textContent = v.toFixed(2);
+    if (_el.ulsLevelBar) {
+      const pct = Math.max(0, Math.min(100, (v / ULS_MAX_M) * 100));
+      _el.ulsLevelBar.style.width = pct + "%";
+    }
+    _blinkLed(_el.ulsLevelLed);
   });
 
   // ── Teerem ────────────────────────────────────────────
