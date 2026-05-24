@@ -204,7 +204,7 @@ function initRealtime() {
   });
 
   // ── Эргэлтийн усан сан — Ultrasonic Level (Teerem Slave 7) ─────────
-  const WATER_TANK_MAX_M = 2.20;
+  const WATER_TANK_MAX_M = 3.0;
   db.ref("/teerem/water_tank/level").on("value", s => {
     if (s.val() === null) return;
     const v = parseFloat(s.val());
