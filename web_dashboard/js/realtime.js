@@ -62,6 +62,10 @@ function initRealtime() {
     ulsLevel:     document.getElementById("ulsLevel"),
     ulsLevelBar:  document.getElementById("ulsLevelBar"),
     ulsLevelLed:  document.getElementById("ulsLevelLed"),
+    // Ultrasonic level (Teerem Slave 7) — Эргэлтийн усан сан
+    waterTankLevel:    document.getElementById("waterTankLevel"),
+    waterTankLevelBar: document.getElementById("waterTankLevelBar"),
+    waterTankLevelLed: document.getElementById("waterTankLevelLed"),
     statusLed:    document.getElementById("statusLed"),
     statusText:   document.getElementById("statusText"),
     readingCount: document.getElementById("readingCount"),
@@ -197,6 +201,19 @@ function initRealtime() {
     const v = parseFloat(s.val()).toFixed(2);
     if (_el.feedWaterTotal)    _el.feedWaterTotal.textContent    = v;
     if (_el.feedWaterTotalAct) _el.feedWaterTotalAct.textContent = v;
+  });
+
+  // ── Эргэлтийн усан сан — Ultrasonic Level (Teerem Slave 7) ─────────
+  const WATER_TANK_MAX_M = 2.20;
+  db.ref("/teerem/water_tank/level").on("value", s => {
+    if (s.val() === null) return;
+    const v = parseFloat(s.val());
+    if (_el.waterTankLevel) _el.waterTankLevel.textContent = v.toFixed(2);
+    if (_el.waterTankLevelBar) {
+      const pct = Math.max(0, Math.min(100, (v / WATER_TANK_MAX_M) * 100));
+      _el.waterTankLevelBar.style.width = pct + "%";
+    }
+    _blinkLed(_el.waterTankLevelLed);
   });
 
   // ── Butluur ───────────────────────────────────────────

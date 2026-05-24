@@ -48,6 +48,7 @@ constexpr uint8_t EM02_SLAVE = 3;  // Нунтаглах хэсэг ХС
 constexpr uint8_t EM04_SLAVE = 4;  // Бөмбөлөгт тээрэм 1
 constexpr uint8_t EM05_SLAVE = 5;  // Бөмбөлөгт тээрэм 2
 constexpr uint8_t FLOW_SLAVE = 6;  // Тээрмийн тэжээлийн ус (flowmeter)
+constexpr uint8_t ULS_SLAVE = 7;   // Supmea ultrasonic — Эргэлтийн усан сан
 
 // Тэжээлийн жин (одоо байгаа сенсор)
 constexpr uint16_t REG_FLOW = 0;     // 40001: Flow Rate (Float, t/h)
@@ -56,6 +57,9 @@ constexpr uint16_t REG_WEIGHT_T = 6; // 40007: Cumulative weight (Double, t)
 // Тээрмийн тэжээлийн ус (flowmeter project-той ижил registers)
 constexpr uint16_t FLOW_REG_RATE = 0x0000;  // [0..1] Flow rate float BE
 constexpr uint16_t FLOW_REG_TOTAL = 0x0003; // [3..6] uint32 int + float frac
+
+// Ultrasonic level transmitter — Level instantaneous (uint16, raw/1000 = m)
+constexpr uint16_t REG_ULS_LEVEL = 0x2002;
 
 // SPM33 register addresses (4xxxx - 40001 = Modbus address)
 constexpr uint16_t SPM33_REG_IA = 6;     // 40007: Phase A current (UINT16, ×0.001 A)
@@ -600,6 +604,14 @@ void loop() {
   delay(cfg::FRAME_GAP_MS);
   bool feedTotalOk = withRetry(
       [&] { return modbus.readTotalizer(cfg::FLOW_SLAVE, cfg::FLOW_REG_TOTAL, feedTotal); });
+  delay(cfg::FRAME_GAP_MS);
+
+  // ── 2c) Эргэлтийн усан сан — Ultrasonic Level (Slave 7) ───────────
+  // Register 0x2002 = Level instantaneous (uint16, decimal=3 → /1000 = m).
+  uint16_t ulsRaw = 0;
+  bool ulsLevelOk = withRetry(
+      [&] { return modbus.readU16(cfg::ULS_SLAVE, cfg::REG_ULS_LEVEL, ulsRaw); });
+  float ulsLevel = ulsLevelOk ? (ulsRaw / 1000.0f) : 0.0f;
 
   // ── 3) Уншилтын логийг товч ─────────────────────────────────────────
   Serial.printf("[Scale] flow:%s weight:%s\n",
@@ -623,12 +635,14 @@ void loop() {
   Serial.printf("[FeedWater] flow:%s total:%s\n",
                 feedFlowOk ? String(feedFlow, 2).c_str() : "#",
                 feedTotalOk ? String(feedTotal, 2).c_str() : "#");
+  Serial.printf("[WaterTank] level:%s\n",
+                ulsLevelOk ? String(ulsLevel, 3).c_str() : "#");
 
   // ── 4) Алдаа escalate ──────────────────────────────────────────────
   bool anyOk = flowOk || weightOk || em01.powerOk || em01.energyOk ||
                em02.powerOk || em02.energyOk || em04.powerOk || em04.energyOk ||
                em04.currentsOk || em05.powerOk || em05.energyOk ||
-               em05.currentsOk || feedFlowOk || feedTotalOk;
+               em05.currentsOk || feedFlowOk || feedTotalOk || ulsLevelOk;
   if (anyOk) {
     consecutiveReadFails = 0;
     totalRecoveryAttempts = 0;
@@ -671,6 +685,10 @@ void loop() {
     }
     if (feedTotalOk) {
       j.set("feed_water/totalizer", feedTotal);
+      teeremAny = true;
+    }
+    if (ulsLevelOk) {
+      j.set("water_tank/level", ulsLevel);
       teeremAny = true;
     }
     if (teeremAny) {
