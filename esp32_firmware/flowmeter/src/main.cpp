@@ -46,10 +46,10 @@ constexpr uint8_t RX_PIN = 4; // MAX485 RO  (Serial1 RX)
 constexpr uint8_t TX_PIN = 5; // MAX485 DI  (Serial1 TX)
 
 // Modbus slave addresses (3 flowmeters + 1 ultrasonic level transmitter)
-constexpr uint8_t FM1_SLAVE = 2;
-constexpr uint8_t FM2_SLAVE = 3;
-constexpr uint8_t FM3_SLAVE = 4;
-constexpr uint8_t ULS_SLAVE = 1;  // Supmea ultrasonic level transmitter
+constexpr uint8_t FM1_SLAVE = 2;  // Суларсан уусмал
+constexpr uint8_t FM2_SLAVE = 3;  // Баян уусмал
+constexpr uint8_t FM3_SLAVE = 4;  // Суларсан уусмал 2
+constexpr uint8_t ULS_SLAVE = 1;  // Supmea ultrasonic level transmitter (Суларсан уусмал савны түвшин)
 constexpr uint32_t BAUD = 9600;
 
 // Modbus holding register addresses
