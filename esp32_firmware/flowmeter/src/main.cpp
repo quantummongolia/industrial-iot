@@ -50,7 +50,7 @@ constexpr uint8_t FM1_SLAVE = 2;
 constexpr uint8_t FM2_SLAVE = 3;
 constexpr uint8_t FM3_SLAVE = 4;
 constexpr uint8_t ULS_SLAVE = 1;  // Supmea ultrasonic level transmitter
-constexpr uint32_t BAUD = 19200;
+constexpr uint32_t BAUD = 9600;
 
 // Modbus holding register addresses
 constexpr uint16_t REG_FLOW_RATE = 0x0000; // Reg[00-01]: Flow rate (float BE)
@@ -58,14 +58,23 @@ constexpr uint16_t REG_TOTALIZER = 0x0003; // Reg[03-06]: int32 + float fraction
 constexpr uint16_t REG_ULS_LEVEL = 0x2002; // Ultrasonic Level instantaneous (raw/1000 = m)
 
 // Timing
-constexpr uint32_t READ_INTERVAL_MS = 1500;        // Flow rate + totalizer read interval
+constexpr uint32_t READ_INTERVAL_MS = 2000;        // Flow rate read interval (also tick rate)
+constexpr uint32_t TOTALIZER_INTERVAL_MS = 60000;  // Totalizer уншилт — 1 минут тутамд
 constexpr uint32_t WIFI_RETRY_MS = 10000;          // WiFi reconnect probe
 constexpr uint32_t WDT_TIMEOUT_S = 30;             // Watchdog timeout
 constexpr uint32_t RX_TMO = 100;                   // Modbus receive timeout (ms)
+constexpr uint32_t MODBUS_RETRY_DELAY_MS = 50;     // Уншилт амжилтгүй болсон үед хүлээх хугацаа
 
 // Auto-recovery thresholds
 constexpr uint8_t MAX_CONSECUTIVE_READ_FAILS = 10;
 constexpr uint8_t MAX_TOTAL_RECOVERY_FAILS = 20;
+
+// Long-running stability:
+// - Heap free 20KB-аас доош унавал тогтворгүй болохын өмнөхөн соft restart хийнэ
+// - 24 цаг ажилласны дараа сэргэлтийн restart (heap fragmentation, TLS leak г.м.)
+constexpr uint32_t MIN_FREE_HEAP_BYTES = 20480;     // 20KB threshold
+constexpr uint32_t MAX_UPTIME_MS = 24UL * 60UL * 60UL * 1000UL;  // 24 цаг
+constexpr uint32_t HEAP_LOG_INTERVAL_MS = 5UL * 60UL * 1000UL;   // 5 минут тутамд heap log
 } // namespace cfg
 
 // Firebase Realtime Database paths (string literals — keep as macros)
@@ -186,14 +195,26 @@ public:
   }
 
   void recover() {
+    // 1. UART-ыг бүрэн салгах
+    Serial1.end();
+
+    // 2. MAX485-ийг хүчээр RX горимд оруулна — TX drive-аа тавих
+    pinMode(cfg::DE_RE, OUTPUT);
+    digitalWrite(cfg::DE_RE, LOW);
+    delay(100);
+
+    // 3. RX шугамыг түр INPUT_PULLUP болгож idle (logical high) болгоно.
+    //    Энэ нь зарим тохиолдолд "stuck" болсон transceiver-ийг сэргээдэг.
+    pinMode(cfg::RX_PIN, INPUT_PULLUP);
+    delay(50);
+
+    // 4. UART-г дахин эхлүүлэх
+    Serial1.begin(cfg::BAUD, SERIAL_8N1, cfg::RX_PIN, cfg::TX_PIN);
+    delay(20);
+
+    // 5. RX буфер цэвэрлэх
     while (Serial1.available())
       Serial1.read();
-    Serial1.end();
-    delay(50);
-    Serial1.begin(cfg::BAUD, SERIAL_8N1, cfg::RX_PIN, cfg::TX_PIN);
-    digitalWrite(cfg::DE_RE, HIGH);
-    delay(5);
-    digitalWrite(cfg::DE_RE, LOW);
   }
 
   // Big-Endian 16-bit unsigned register (ultrasonic level register 0x2002)
@@ -271,11 +292,15 @@ private:
 
   void send(const uint8_t *data, size_t len) {
     digitalWrite(cfg::DE_RE, HIGH);
-    delayMicroseconds(100);
+    delayMicroseconds(50);          // DE өндөр болсны дараа драйвер идэвхжих хугацаа
     Serial1.write(data, len);
-    Serial1.flush();
-    delayMicroseconds(100);
+    Serial1.flush();                // TX register-г бүрэн хоослох
+    // 9600 baud дээр нэг байт ≈ 1.04ms. flush() дууссаны дараа MAX485 шугам
+    // тогтворжих хүртэл хүлээж DE/RE-г салгана — өмнө нь 100µs нь хэт богино
+    // байсан тул сүүлийн bit таслагдаж slave хариу өгөхгүй болж байсан.
+    delayMicroseconds(1200);
     digitalWrite(cfg::DE_RE, LOW);
+    delayMicroseconds(200);         // RX горим идэвхжих, bus settle
   }
 
   bool receive(uint8_t *buf, size_t want) {
@@ -298,8 +323,16 @@ FirebaseAuth fbAuth; // Firebase authentication credentials holder
 FirebaseConfig fbConfig; // Firebase configuration settings holder
 
 unsigned long lastReadTime = 0;      // Timestamp of last flow rate reading (ms)
+unsigned long lastTotalizerReadTime = 0; // Сүүлд totalizer уншсан агшин (ms)
 unsigned long lastWifiCheck = 0;     // Timestamp of last WiFi check (ms)
+unsigned long lastHeapLogTime = 0;   // Сүүлд heap-н хэмжээг log хийсэн агшин
 bool firebaseReady = false;          // Firebase auth complete flag
+
+// Totalizer утга 1 минутад нэг л шинэчлэгдэх тул хооронд нь cache-д хадгална.
+// Анхны утга 0.0 нь Firebase upload-д орохгүй — `cachedTotal*Valid` flag
+// эхний амжилттай уншилтын дараа л true болж, шинэчлэлт эхэлнэ.
+float cachedTotal1 = 0.0f, cachedTotal2 = 0.0f, cachedTotal3 = 0.0f;
+bool  cachedTotal1Valid = false, cachedTotal2Valid = false, cachedTotal3Valid = false;
 
 // Firebase upload backoff — prevents auth rate-limit storms on failure
 unsigned long fbNextAllowedAt = 0; // Next allowed upload timestamp
@@ -410,6 +443,32 @@ void fbOnSuccess() {
 
 bool fbCanUpload() { return (long)(millis() - fbNextAllowedAt) >= 0; }
 
+// ========================== MODBUS READ WITH RETRY =========================
+// Slave түр хариу өгөхгүй байгаа тохиолдлыг (intermittent failure)
+// нэг удаагийн дахин оролдлогоор нөхнө. 9600 baud дээр нэг уншилт ~30ms тул
+// дахин оролдлого + 50ms delay = ~80ms нэмж зарцуулна. Bus contention багатай
+// үед энэ нь гол шалтгаан болж байгаа учир үр дүн өндөр.
+bool readFloatRetry(uint8_t slave, uint16_t reg, float &out) {
+  if (modbus.readFloat(slave, reg, out))
+    return true;
+  delay(cfg::MODBUS_RETRY_DELAY_MS);
+  return modbus.readFloat(slave, reg, out);
+}
+
+bool readTotalizerRetry(uint8_t slave, uint16_t reg, float &out) {
+  if (modbus.readTotalizer(slave, reg, out))
+    return true;
+  delay(cfg::MODBUS_RETRY_DELAY_MS);
+  return modbus.readTotalizer(slave, reg, out);
+}
+
+bool readShortRetry(uint8_t slave, uint16_t reg, uint16_t &out) {
+  if (modbus.readShort(slave, reg, out))
+    return true;
+  delay(cfg::MODBUS_RETRY_DELAY_MS);
+  return modbus.readShort(slave, reg, out);
+}
+
 // ========================== MODBUS RECOVERY =========================
 
 /*
@@ -486,6 +545,32 @@ void loop() {
   esp_task_wdt_reset();
   unsigned long now = millis();
 
+  // ---- Long-running stability watchdog ----
+  // Heap fragmentation (Firebase TLS буфер, FirebaseJson allocation г.м.) удаан
+  // ажиллах тусам хуримтлагдаж тогтворгүй болгож болзошгүй. 2 хамгаалалт:
+  //   1) 5 минут тутам free heap-г log хийнэ — graphana/serial monitor дээр
+  //      санах ой буурч буй эсэхийг харж болно.
+  //   2) Free heap нь босгоос (20KB) доош унавал, эсвэл uptime 24 цаг хэтэрвэл
+  //      cleaн restart хийж бүх ресурсыг чөлөөлнө. ESP.restart() нь
+  //      крашгүй perezagruz хийдэг — Firebase, ota::loop хувилбаруудаас
+  //      найдвартай. WiFi/Firebase setup() дээр дахин эхэлнэ.
+  if (now - lastHeapLogTime >= cfg::HEAP_LOG_INTERVAL_MS) {
+    lastHeapLogTime = now;
+    Serial.printf("[Heap] Free: %u bytes | Min ever: %u | Uptime: %lus\n",
+                  ESP.getFreeHeap(), ESP.getMinFreeHeap(), now / 1000);
+  }
+  if (ESP.getFreeHeap() < cfg::MIN_FREE_HEAP_BYTES) {
+    Serial.printf("[Stability] Free heap %u < %u — restarting\n",
+                  ESP.getFreeHeap(), cfg::MIN_FREE_HEAP_BYTES);
+    delay(200);
+    ESP.restart();
+  }
+  if (now >= cfg::MAX_UPTIME_MS) {
+    Serial.println("[Stability] Reached 24h uptime — scheduled restart");
+    delay(200);
+    ESP.restart();
+  }
+
   // Fallback WiFi polling — onWifiEvent/setAutoReconnect handle most cases,
   // but we retry manually if the connection has been down for cfg::WIFI_RETRY_MS.
   if (WiFi.status() != WL_CONNECTED &&
@@ -494,57 +579,62 @@ void loop() {
     wifiConnect();
   }
 
-  // Rate limit: flow rate + totalizer reads every cfg::READ_INTERVAL_MS
+  // Rate limit: 2 секунд тутамд нэг cycle (READ_INTERVAL_MS)
   if (now - lastReadTime < cfg::READ_INTERVAL_MS)
     return;
   lastReadTime = now;
 
-  // ---- Read Flowmeter 1 (Slave ID 2: Суларсан уусмал) ----
-  // Retry хийхгүй — sensor хариу өгөхгүй бол энэ cycle-д орхиод явна.
-  // Дараагийн cycle-д дахин оролдоно. Bus noise зөвхөн нэг cycle-д утга
-  // тасрахад л хүргэнэ, дашбоард дараагийн уншилтаар сэргэнэ.
-  float flow1 = 0.0, total1 = 0.0;
-  bool okFlow1 = modbus.readFloat(cfg::FM1_SLAVE, cfg::REG_FLOW_RATE, flow1);
-  delay(50);
-  bool okTotal1 = modbus.readTotalizer(cfg::FM1_SLAVE, cfg::REG_TOTALIZER, total1);
+  // Цикл бүрд flow-cycle эсвэл totalizer-cycle гэсэн 2 төрлийн нэг нь явна.
+  // Modbus bus-н ачааллыг бууруулж, "хоёуланг нь зэрэг уншихгүй" гэсэн
+  // шаардлагыг хангахын тулд totalizer-ийг тусад нь minute-тэй уншина.
+  // Boot-ийн дараа нэг удаа totalizer-ийг шууд уншиж cache-г бөглөнө.
+  bool totalizerCycle = (lastTotalizerReadTime == 0) ||
+                        (now - lastTotalizerReadTime >= cfg::TOTALIZER_INTERVAL_MS);
 
-  if (okFlow1 && okTotal1)
-    Serial.printf("[FM1] Flow: %.3f m3/h | Total: %.3f m3\n", flow1, total1);
-  else
-    Serial.printf("[FM1] Read failed — flow:%d total:%d\n", okFlow1, okTotal1);
+  // Энэ цикл-д Firebase upload руу очих утгууд
+  float flow1 = 0.0f, flow2 = 0.0f, flow3 = 0.0f;
+  float total1 = 0.0f, total2 = 0.0f, total3 = 0.0f;
+  bool okFlow1 = false, okFlow2 = false, okFlow3 = false;
+  bool okTotal1 = false, okTotal2 = false, okTotal3 = false;
 
-  delay(50);
+  if (totalizerCycle) {
+    // ---- Totalizer cycle: 3 flowmeter-ийн totalizer-ийг л унших ----
+    lastTotalizerReadTime = now;
+    Serial.println("[Cycle] Totalizer read (1 min interval)");
 
-  // ---- Read Flowmeter 2 (Slave ID 3: Баян уусмал) ----
-  float flow2 = 0.0, total2 = 0.0;
-  bool okFlow2 = modbus.readFloat(cfg::FM2_SLAVE, cfg::REG_FLOW_RATE, flow2);
-  delay(50);
-  bool okTotal2 = modbus.readTotalizer(cfg::FM2_SLAVE, cfg::REG_TOTALIZER, total2);
+    okTotal1 = readTotalizerRetry(cfg::FM1_SLAVE, cfg::REG_TOTALIZER, total1);
+    if (okTotal1) { cachedTotal1 = total1; cachedTotal1Valid = true; }
+    delay(50);
 
-  if (okFlow2 && okTotal2)
-    Serial.printf("[FM2] Flow: %.3f m3/h | Total: %.3f m3\n", flow2, total2);
-  else
-    Serial.printf("[FM2] Read failed — flow:%d total:%d\n", okFlow2, okTotal2);
+    okTotal2 = readTotalizerRetry(cfg::FM2_SLAVE, cfg::REG_TOTALIZER, total2);
+    if (okTotal2) { cachedTotal2 = total2; cachedTotal2Valid = true; }
+    delay(50);
 
-  delay(50);
+    okTotal3 = readTotalizerRetry(cfg::FM3_SLAVE, cfg::REG_TOTALIZER, total3);
+    if (okTotal3) { cachedTotal3 = total3; cachedTotal3Valid = true; }
+    delay(50);
 
-  // ---- Read Flowmeter 3 (Slave ID 4: Суларсан уусмал 2) ----
-  float flow3 = 0.0, total3 = 0.0;
-  bool okFlow3 = modbus.readFloat(cfg::FM3_SLAVE, cfg::REG_FLOW_RATE, flow3);
-  delay(50);
-  bool okTotal3 = modbus.readTotalizer(cfg::FM3_SLAVE, cfg::REG_TOTALIZER, total3);
+    Serial.printf("[Totalizer] FM1:%.3f(%d) FM2:%.3f(%d) FM3:%.3f(%d) m3\n",
+                  total1, okTotal1, total2, okTotal2, total3, okTotal3);
+  } else {
+    // ---- Flow cycle: 3 flowmeter-ийн flow rate-ийг л унших ----
+    okFlow1 = readFloatRetry(cfg::FM1_SLAVE, cfg::REG_FLOW_RATE, flow1);
+    delay(50);
+    okFlow2 = readFloatRetry(cfg::FM2_SLAVE, cfg::REG_FLOW_RATE, flow2);
+    delay(50);
+    okFlow3 = readFloatRetry(cfg::FM3_SLAVE, cfg::REG_FLOW_RATE, flow3);
+    delay(50);
 
-  if (okFlow3 && okTotal3)
-    Serial.printf("[FM3] Flow: %.3f m3/h | Total: %.3f m3\n", flow3, total3);
-  else
-    Serial.printf("[FM3] Read failed — flow:%d total:%d\n", okFlow3, okTotal3);
+    Serial.printf("[Flow] FM1:%.3f(%d) FM2:%.3f(%d) FM3:%.3f(%d) m3/h\n",
+                  flow1, okFlow1, flow2, okFlow2, flow3, okFlow3);
+  }
 
-  delay(50);
-
-  // ---- Read Ultrasonic Level Transmitter (Slave ID 1: Суларсан уусмал савны түвшин) ----
+  // ---- Read Ultrasonic Level Transmitter (Slave ID 1) ----
   // Register 0x2002 = Level instantaneous (uint16, decimal=3 → /1000 = m).
+  // Level нь нэг л register учир хоёр төрлийн цикл-д унших — bus-д бараг
+  // ачаалал өгөхгүй.
   uint16_t levelRaw = 0;
-  bool okLevel = modbus.readShort(cfg::ULS_SLAVE, cfg::REG_ULS_LEVEL, levelRaw);
+  bool okLevel = readShortRetry(cfg::ULS_SLAVE, cfg::REG_ULS_LEVEL, levelRaw);
   float ulsLevel = okLevel ? (levelRaw / 1000.0f) : 0.0f;
 
   if (okLevel)
@@ -591,12 +681,17 @@ void loop() {
   FirebaseJson json;
   bool anyWrite = false;
 
-  if (okFlow1) { json.set("flowmeter1/flow_rate", flow1); anyWrite = true; }
-  if (okFlow2) { json.set("flowmeter2/flow_rate", flow2); anyWrite = true; }
-  if (okFlow3) { json.set("flowmeter3/flow_rate", flow3); anyWrite = true; }
-  if (okTotal1) { json.set("flowmeter1/totalizer", total1); anyWrite = true; }
-  if (okTotal2) { json.set("flowmeter2/totalizer", total2); anyWrite = true; }
-  if (okTotal3) { json.set("flowmeter3/totalizer", total3); anyWrite = true; }
+  if (totalizerCycle) {
+    // Зөвхөн totalizer-уудыг шинэчилнэ. Амжилтгүй уншилт бол cache-ийг
+    // өмнөх утга дээр үлдээгээд бичихгүй (хуучин зөв утгыг 0-р дарж болохгүй).
+    if (okTotal1) { json.set("flowmeter1/totalizer", cachedTotal1); anyWrite = true; }
+    if (okTotal2) { json.set("flowmeter2/totalizer", cachedTotal2); anyWrite = true; }
+    if (okTotal3) { json.set("flowmeter3/totalizer", cachedTotal3); anyWrite = true; }
+  } else {
+    if (okFlow1) { json.set("flowmeter1/flow_rate", flow1); anyWrite = true; }
+    if (okFlow2) { json.set("flowmeter2/flow_rate", flow2); anyWrite = true; }
+    if (okFlow3) { json.set("flowmeter3/flow_rate", flow3); anyWrite = true; }
+  }
   if (okLevel)  { json.set("level_sensor/level", ulsLevel); anyWrite = true; }
 
   bool uploadOk = false;
