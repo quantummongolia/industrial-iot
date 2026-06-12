@@ -22,6 +22,7 @@ firebase-debug.log
 
 # Claude Code
 .claude/worktrees/
+.agents/
 
 # Нууц мэдээлэл — API key, нууц үг, тохиргоо
 secrets.h
