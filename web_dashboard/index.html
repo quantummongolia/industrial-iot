@@ -404,6 +404,31 @@
             </div>
           </div>
 
+          <!-- Баян уусмалын сан (Ultrasonic Level — pressfilter Bus C Slave 5) -->
+          <div
+            class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
+            <div class="flex items-center gap-2 text-[13px] text-text-soft mb-2 font-medium">
+              <div
+                class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
+                id="bayanLevelLed"></div>
+              Баян уусмалын сан
+            </div>
+            <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
+              <span id="bayanLevel">0.00</span>
+              <span class="text-base text-text-dim font-medium"> m</span>
+            </div>
+            <div class="mt-3">
+              <div class="flex justify-between mb-1.5 text-[11px] text-text-dim tabular-nums">
+                <span>0</span><span>2.20 m</span>
+              </div>
+              <div class="relative h-1.5 rounded-full overflow-hidden bg-white/[0.06]">
+                <div class="absolute inset-y-0 left-0 rounded-full transition-[width] duration-500 ease-out
+                  bg-gradient-to-r from-accent to-success"
+                  id="bayanLevelBar" style="width: 0%;"></div>
+              </div>
+            </div>
+          </div>
+
           <!-- 02-WT-02 Тээрмийн жин -->
           <div
             class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
@@ -602,6 +627,43 @@
               <span class="text-[11px] text-text-dim">Total Energy</span>
               <span class="text-[13px] font-semibold text-text-soft tabular-nums">
                 <span id="emEnergy02">0.000</span> kWh
+              </span>
+            </div>
+          </div>
+
+          <!-- 03 — Бутлуур ЕС -->
+          <div
+            class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
+            <div class="flex flex-col gap-1 mb-2">
+              <div class="flex items-center gap-2 text-[13px] text-text-soft font-medium">
+                <div
+                  class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
+                  id="emLed03"></div>
+                Бутлуур ЕС
+              </div>
+              <div class="flex gap-3 justify-start text-left tabular-nums">
+                <div>
+                  <div class="text-[11px] text-text-dim leading-none">A</div>
+                  <div class="text-[13px] font-semibold text-text-soft mt-1.5"><span id="emCurrentA03">0.00</span></div>
+                </div>
+                <div>
+                  <div class="text-[11px] text-text-dim leading-none">B</div>
+                  <div class="text-[13px] font-semibold text-text-soft mt-1.5"><span id="emCurrentB03">0.00</span></div>
+                </div>
+                <div>
+                  <div class="text-[11px] text-text-dim leading-none">C</div>
+                  <div class="text-[13px] font-semibold text-text-soft mt-1.5"><span id="emCurrentC03">0.00</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
+              <span id="emPower03">0.00</span>
+              <span class="text-base text-text-dim font-medium"> kW</span>
+            </div>
+            <div class="mt-3 pt-3 border-t border-border-base flex items-center justify-between">
+              <span class="text-[11px] text-text-dim">Total Energy</span>
+              <span class="text-[13px] font-semibold text-text-soft tabular-nums">
+                <span id="emEnergy03">0.000</span> kWh
               </span>
             </div>
           </div>
@@ -931,7 +993,7 @@
               <div
                 class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
                 id="butluurWeightLed"></div>
-              Бутлуурын тэжээлийн жин
+              01-WT-01 Бутлуурын жин
             </div>
             <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
               <span id="butluurWeight">0.00</span>

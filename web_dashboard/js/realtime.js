@@ -89,6 +89,10 @@ function initRealtime() {
     butluurWeight:     document.getElementById("butluurWeight"),
     butluurWeightTons: document.getElementById("butluurWeightTons"),
     butluurWeightLed:  document.getElementById("butluurWeightLed"),
+    // 01-WT-01 Бутлуурын жин (Activity tab card)
+    wt01Weight:     document.getElementById("wt01Weight"),
+    wt01WeightTons: document.getElementById("wt01WeightTons"),
+    wt01Led:        document.getElementById("wt01Led"),
     // Цахилгаан тоолуурууд (Slave ID → card)
     //   em01 ← Slave 2 (Боловсруулах үйлдвэр ХС)
     //   em02 ← Slave 3 (Нунтаглах хэсэг ХС)
@@ -100,6 +104,12 @@ function initRealtime() {
     em02Power:  document.getElementById("emPower02"),
     em02Energy: document.getElementById("emEnergy02"),
     em02Led:    document.getElementById("emLed02"),
+    em03Power:   document.getElementById("emPower03"),
+    em03Energy:  document.getElementById("emEnergy03"),
+    em03Led:     document.getElementById("emLed03"),
+    em03CurA:    document.getElementById("emCurrentA03"),
+    em03CurB:    document.getElementById("emCurrentB03"),
+    em03CurC:    document.getElementById("emCurrentC03"),
     em04Power:   document.getElementById("emPower04"),
     em04Energy:  document.getElementById("emEnergy04"),
     em04Led:     document.getElementById("emLed04"),
@@ -112,6 +122,36 @@ function initRealtime() {
     em05CurA:    document.getElementById("emCurrentA05"),
     em05CurB:    document.getElementById("emCurrentB05"),
     em05CurC:    document.getElementById("emCurrentC05"),
+    // ushg ESP32 — 2× SPM33
+    //   em06 ← Slave 1 (Өтгөрүүлэгч УС)
+    //   em07 ← Slave 2 (Уусгалтын ган УС)
+    em06Power:  document.getElementById("emPower06"),
+    em06Energy: document.getElementById("emEnergy06"),
+    em06Led:    document.getElementById("emLed06"),
+    em07Power:  document.getElementById("emPower07"),
+    em07Energy: document.getElementById("emEnergy07"),
+    em07Led:    document.getElementById("emLed07"),
+    // pressfilter ESP32 — 4× SPM33 (3 transceiver)
+    //   em08 ← Bus A Slave 2 (Шүүн шахах УС)
+    //   em09 ← Bus A Slave 1 (Десорбци ХС)
+    //   em10 ← Bus B Slave 3 (Нуруулдан уусгалт ХС)
+    //   em11 ← Bus B Slave 4 (Компрессор ХС)
+    em08Power:  document.getElementById("emPower08"),
+    em08Energy: document.getElementById("emEnergy08"),
+    em08Led:    document.getElementById("emLed08"),
+    em09Power:  document.getElementById("emPower09"),
+    em09Energy: document.getElementById("emEnergy09"),
+    em09Led:    document.getElementById("emLed09"),
+    em10Power:  document.getElementById("emPower10"),
+    em10Energy: document.getElementById("emEnergy10"),
+    em10Led:    document.getElementById("emLed10"),
+    em11Power:  document.getElementById("emPower11"),
+    em11Energy: document.getElementById("emEnergy11"),
+    em11Led:    document.getElementById("emLed11"),
+    // Баян уусмалын сан (Supmea ultrasonic — pressfilter Bus C Slave 5)
+    bayanLevel:    document.getElementById("bayanLevel"),
+    bayanLevelBar: document.getElementById("bayanLevelBar"),
+    bayanLevelLed: document.getElementById("bayanLevelLed"),
   };
 
   if (typeof firebase === "undefined" || !firebase.apps || !firebase.apps.length) {
@@ -171,6 +211,19 @@ function initRealtime() {
     _blinkLed(_el.ulsLevelLed);
   });
 
+  // Баян уусмалын сан (Supmea ultrasonic — pressfilter Bus C Slave 5)
+  // Суларсан уусмалын сантай яг адил төхөөрөмж, ижил bar хязгаар (0..2.20m).
+  db.ref("/pressfilter/bayan_tank/level").on("value", s => {
+    if (s.val() === null) return;
+    const v = parseFloat(s.val());
+    if (_el.bayanLevel) _el.bayanLevel.textContent = v.toFixed(2);
+    if (_el.bayanLevelBar) {
+      const pct = Math.max(0, Math.min(100, (v / ULS_MAX_M) * 100));
+      _el.bayanLevelBar.style.width = pct + "%";
+    }
+    _blinkLed(_el.bayanLevelLed);
+  });
+
   // ── Teerem ────────────────────────────────────────────
   db.ref("/teerem/weight_rate").on("value", s => {
     if (s.val() === null) return;
@@ -216,15 +269,21 @@ function initRealtime() {
     _blinkLed(_el.waterTankLevelLed);
   });
 
-  // ── Butluur ───────────────────────────────────────────
+  // ── Butluur (01-WT-01 Бутлуурын жин) ───────────────────
+  // weight_rate = t/h, cumulative_t = нийт тонн (t).
   db.ref("/butluur/weight_rate").on("value", s => {
     if (s.val() === null) return;
-    if (_el.butluurWeight) _el.butluurWeight.textContent = parseFloat(s.val()).toFixed(2);
+    const v = parseFloat(s.val()).toFixed(2);
+    if (_el.butluurWeight) _el.butluurWeight.textContent = v;
+    if (_el.wt01Weight)    _el.wt01Weight.textContent    = v;
     _blinkLed(_el.butluurWeightLed);
+    _blinkLed(_el.wt01Led);
   });
-  db.ref("/butluur/cumulative_kg").on("value", s => {
+  db.ref("/butluur/cumulative_t").on("value", s => {
     if (s.val() === null) return;
-    if (_el.butluurWeightTons) _el.butluurWeightTons.textContent = (parseInt(s.val(), 10) / 1000).toFixed(3);
+    const t = parseFloat(s.val()).toFixed(3);
+    if (_el.butluurWeightTons) _el.butluurWeightTons.textContent = t;
+    if (_el.wt01WeightTons)    _el.wt01WeightTons.textContent    = t;
   });
 
   // ── Цахилгаан тоолуурууд + Нийт эрчим хүч хураангуй ───────────────
@@ -233,6 +292,7 @@ function initRealtime() {
   const METERS = [
     { key: "em01", name: "Боловсруулах үйлдвэр ХС", hasCurrents: false },
     { key: "em02", name: "Нунтаглах хэсэг ХС",       hasCurrents: false },
+    { key: "em03", name: "Бутлуур ЕС",               hasCurrents: true  },
     { key: "em04", name: "Бөмбөлөгт тээрэм 1",       hasCurrents: true  },
     { key: "em05", name: "Бөмбөлөгт тээрэм 2",       hasCurrents: true  },
     { key: "em06", name: "Өтгөрүүлэгч УС",            hasCurrents: false },

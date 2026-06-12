@@ -17,9 +17,9 @@
 
 (function () {
   const STALE_AFTER_SEC = 90;       // last_heartbeat хэдэн секундээс хойш "offline"
-  const KNOWN_FAMILIES = ["teerem", "flowmeter"];
+  const KNOWN_FAMILIES = ["teerem", "flowmeter", "butluur", "ushg", "pressfilter"];
   const _devices = {};              // deviceId -> latest data
-  const _latestReleases = { teerem: null, flowmeter: null };
+  const _latestReleases = { teerem: null, flowmeter: null, butluur: null, ushg: null, pressfilter: null };
 
   function _now() { return Math.floor(Date.now() / 1000); }
 
