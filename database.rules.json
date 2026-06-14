@@ -18,6 +18,9 @@
         "flow_rate":  { ".validate": "newData.isNumber()" },
         "totalizer":  { ".validate": "newData.isNumber()" }
       },
+      "level_sensor": {
+        "level": { ".validate": "newData.isNumber()" }
+      },
       "last_updated": { ".validate": "newData.isNumber()" }
     },
 
@@ -26,13 +29,33 @@
       ".write": "auth != null && auth.token.email === 'mresource-teerem@iot.com'",
       "weight_rate":   { ".validate": "newData.isNumber()" },
       "cumulative_kg": { ".validate": "newData.isNumber()" },
+      "feed_water": {
+        "flow_rate": { ".validate": "newData.isNumber()" },
+        "totalizer": { ".validate": "newData.isNumber()" }
+      },
+      "water_tank": {
+        "level": { ".validate": "newData.isNumber()" }
+      },
       "last_updated":  { ".validate": "newData.isNumber()" }
     },
 
     "butluur": {
       ".read": "auth != null",
-      ".write": "auth != null && auth.token.email === 'mresource-butluur@iot.com'",
-      "weight_rate":  { ".validate": "newData.isNumber()" },
+      ".write": "auth != null && auth.token.email === 'mresource-teerem@iot.com'",
+      "weight_rate":   { ".validate": "newData.isNumber()" },
+      "cumulative_t":  { ".validate": "newData.isNumber()" },
+      "last_updated":  { ".validate": "newData.isNumber()" }
+    },
+
+    "pressfilter": {
+      ".read": "auth != null",
+      ".write": "auth != null && auth.token.email === 'mresource-teerem@iot.com'",
+      "bayan_tank": {
+        "level": { ".validate": "newData.isNumber()" }
+      },
+      "clean_water_tank": {
+        "level": { ".validate": "newData.isNumber()" }
+      },
       "last_updated": { ".validate": "newData.isNumber()" }
     },
 

@@ -1,32 +1,23 @@
 /*
  * ============================================================
- *  ESP32-S3-Zero Шүүн шахах (pressfilter) → Firebase RTDB
+ *  ESP32-S3-Zero Gen → Firebase Realtime Database
  * ============================================================
  *
- *  3 тусдаа MAX485 transceiver, 3 бие даасан RS485 шугам (Modbus RTU @ 9600bps).
- *  MAX485 модуль бүрийн RO/DI/DE+RE → ESP GPIO холболт (DE+RE хооронд нь холбоно):
- *
- *   Bus A (UART1) — MAX485 #1:
- *     RO → GPIO 1 (RX) · DI → GPIO 2 (TX) · DE+RE → GPIO 3 · A/B → RS485 шугам #1
- *     Slave 1 : SPM33 — Десорбци ХС        (P, E)  → em09
- *     Slave 2 : SPM33 — Шүүн шахах УС       (P, E)  → em08
- *
- *   Bus B (UART2) — MAX485 #2:
- *     RO → GPIO 4 (RX) · DI → GPIO 5 (TX) · DE+RE → GPIO 6 · A/B → RS485 шугам #2
- *     Slave 3 : SPM33 — Нуруулдан уусгалт ХС (P, E) → em10
- *     Slave 4 : SPM33 — Компрессор ХС        (P, E) → em11
- *
- *   Bus C (UART0) — MAX485 #3:
- *     RO → GPIO 7 (RX) · DI → GPIO 8 (TX) · DE+RE → GPIO 9 · A/B → RS485 шугам #3
- *     Slave 5 : Supmea ultrasonic — Баян уусмалын сан (level, m)
- *     Slave 6 : Supmea ultrasonic — Цэвэр усан сан (level, m)
- *
- *   MAX485 бүрийн VCC / GND → ESP 3V3 / GND.  GPIO 21 — WS2812 onboard RGB LED.
+ *  Нэг RS485 шугам дээр Modbus RTU @ 9600bps :
+ *    Slave 1 : SPM33 — Уурын зуух ХС        (P, E)  → em13
+ *    Slave 2 : SPM33 — Шатахуун түгээх ХС   (P, E)  → em12
  *
  *  Firebase RTDB:
- *    /energy_meters/em08..em11/{power_kw,total_energy_kwh}
- *    /pressfilter/bayan_tank/level, /pressfilter/clean_water_tank/level
- *    /pressfilter/last_updated
+ *    /energy_meters/em13/{power_kw,total_energy_kwh}
+ *    /energy_meters/em12/{power_kw,total_energy_kwh}
+ *
+ *  MAX485 модуль ↔ ESP32-S3-Zero холболт (1 transceiver):
+ *    MAX485 RO  (Receiver Out) → ESP GPIO 4   (UART RX)
+ *    MAX485 DI  (Driver In)    → ESP GPIO 5   (UART TX)
+ *    MAX485 DE + RE (хооронд нь холбоно) → ESP GPIO 6  (чиглэл удирдлага)
+ *    MAX485 A / B              → RS485 шугам (Slave 1 ба Slave 2 SPM33)
+ *    MAX485 VCC / GND          → ESP 3V3 / GND
+ *    GPIO 21 — WS2812 onboard RGB LED (статус)
  */
 
 #include "secrets.h"
@@ -40,31 +31,20 @@
 
 // ── Modbus тохиргоо ────────────────────────────────────────────────────
 namespace cfg {
+constexpr uint8_t RX_PIN = 4;
+constexpr uint8_t TX_PIN = 5;
+constexpr uint8_t DE_RE = 6;
 constexpr uint32_t BAUD = 9600;
 
-// Bus A пинүүд (UART1) — 2× SPM33
-constexpr uint8_t A_RX = 1, A_TX = 2, A_DE = 3;
-// Bus B пинүүд (UART2) — 2× SPM33
-constexpr uint8_t B_RX = 4, B_TX = 5, B_DE = 6;
-// Bus C пинүүд (UART0) — 1× ultrasonic level
-constexpr uint8_t C_RX = 7, C_TX = 8, C_DE = 9;
-
-// Slave IDs (тус тусын bus дээр)
-constexpr uint8_t EM09_SLAVE = 1; // Bus A — Десорбци ХС
-constexpr uint8_t EM08_SLAVE = 2; // Bus A — Шүүн шахах УС
-constexpr uint8_t EM10_SLAVE = 3; // Bus B — Нуруулдан уусгалт ХС
-constexpr uint8_t EM11_SLAVE = 4; // Bus B — Компрессор ХС
-constexpr uint8_t ULS_SLAVE = 5;  // Bus C — Баян уусмалын сан (Supmea ultrasonic)
-constexpr uint8_t ULS2_SLAVE = 6; // Bus C — Цэвэр усан сан (Supmea ultrasonic)
+// Slave IDs
+constexpr uint8_t EM13_SLAVE = 1;  // SPM33 — Уурын зуух ХС
+constexpr uint8_t EM12_SLAVE = 2;  // SPM33 — Шатахуун түгээх ХС
 
 // SPM33 register addresses (4xxxx - 40001 = Modbus address)
 constexpr uint16_t SPM33_REG_POWER = 10;   // 40011: Total active power LINT32, ×0.1 W
 constexpr uint16_t SPM33_REG_ENERGY = 25;  // 40026: Total active energy LUINT32, ×0.1 kWh
 constexpr uint16_t SPM33_REG_CT_PRI = 201; // 40202: CT primary side value (1..50000)
 constexpr uint8_t SPM33_CT_SEC = 5;        // SPM33 CT secondary side (5A typical)
-
-// Supmea ultrasonic level — Level instantaneous (uint16, raw/1000 = m)
-constexpr uint16_t REG_ULS_LEVEL = 0x2002;
 
 constexpr uint32_t POLL_MS = 2000;                // Flow cycle interval (tick rate)
 constexpr uint32_t TOTALIZER_INTERVAL_MS = 60000; // Totalizer cycle — 1 минут тутамд
@@ -84,8 +64,10 @@ constexpr uint32_t HEAP_LOG_INTERVAL_MS = 5UL * 60UL * 1000UL;   // 5 минут
 } // namespace cfg
 
 // ── RGB STATUS LED (WS2812 GPIO 21 — Waveshare ESP32-S3-Zero onboard) ──
-//   SLOW_RED — WiFi / Modbus / Firebase аль нэг нь алдсан үед удаан анивчина.
-//   pulse()  — Firebase-д амжилттай upload болгонд нэг богино ногоон импульс.
+//   SLOW_RED — WiFi / Modbus / Firebase аль нэг нь алдсан үед удаан анивчина
+//              (500ms on / 500ms off → 1 Hz).
+//   pulse()  — Firebase-д амжилттай upload болгонд нэг богино ногоон импульс
+//              (~120ms). Modbus poll-ийн 1 Hz ритмтэй синхрон.
 namespace led {
 constexpr uint8_t PIN = 21;
 constexpr uint8_t BRIGHTNESS = 60;
@@ -94,7 +76,8 @@ constexpr uint16_t SLOW_OFF_MS = 500;
 constexpr uint16_t PULSE_MS = 120;
 
 inline void writeRGB(uint8_t r, uint8_t g, uint8_t b) {
-  // Энэ board-ийн WS2812 чип нь R/G сувгуудыг солиод эмиттэр-лж байна.
+  // Энэ board-ийн WS2812 чип нь R/G сувгуудыг солиод эмиттэр-лж байна
+  // (rgbLedWrite-ийн GRB conversion нь зарим S3-Zero batch-д таарахгүй).
   // Тиймээс r ба g-г солиод дамжуулна — дуудлагын талд "red"/"green" хэвээр.
 #if defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 3)
   rgbLedWrite(PIN, g, r, b);
@@ -106,6 +89,8 @@ inline void writeRGB(uint8_t r, uint8_t g, uint8_t b) {
 inline uint8_t scale(uint8_t v) { return (uint16_t(v) * BRIGHTNESS) / 255; }
 
 enum Mode { OFF, SLOW_RED };
+// Boot үед өгөгдөл хараахан явуулаагүй учир улаан анивчиж эхэлнэ.
+// Эхний амжилттай upload-аас хойш OFF болж ногоон pulse-ээр л асна.
 Mode mode = SLOW_RED;
 unsigned long nextToggle = 0;
 unsigned long pulseOffAt = 0;
@@ -123,6 +108,7 @@ void setMode(Mode m) {
     writeRGB(0, 0, 0);
 }
 
+// One-shot green pulse — амжилттай upload болгонд дуудагдана.
 void pulse() {
   pulseOffAt = millis() + PULSE_MS;
   writeRGB(0, scale(255), 0);
@@ -165,37 +151,34 @@ void ledTask(void *) {
 }
 
 // ── Modbus ─────────────────────────────────────────────────────────────
-// Тус бүр өөрийн HardwareSerial (UART) болон DE/RE пинтэй — 3 bus-д 3 instance.
 class Modbus {
 public:
-  Modbus(HardwareSerial &serial, uint8_t rx, uint8_t tx, uint8_t de)
-      : _serial(serial), _rx(rx), _tx(tx), _de(de) {}
-
   void begin() {
-    pinMode(_de, OUTPUT);
-    digitalWrite(_de, LOW);
-    _serial.begin(cfg::BAUD, SERIAL_8N1, _rx, _tx);
+    pinMode(cfg::DE_RE, OUTPUT);
+    digitalWrite(cfg::DE_RE, LOW);
+    Serial1.begin(cfg::BAUD, SERIAL_8N1, cfg::RX_PIN, cfg::TX_PIN);
   }
 
   void recover() {
     // UART-ыг бүрэн салгаад MAX485-г RX горимд хүчээр оруулна.
-    _serial.end();
+    // "Stuck" transceiver-ийг сэргээх өргөтгөсөн хувилбар.
+    Serial1.end();
 
-    pinMode(_de, OUTPUT);
-    digitalWrite(_de, LOW);
+    pinMode(cfg::DE_RE, OUTPUT);
+    digitalWrite(cfg::DE_RE, LOW);
     delay(100);
 
-    pinMode(_rx, INPUT_PULLUP);
+    pinMode(cfg::RX_PIN, INPUT_PULLUP);
     delay(50);
 
-    _serial.begin(cfg::BAUD, SERIAL_8N1, _rx, _tx);
+    Serial1.begin(cfg::BAUD, SERIAL_8N1, cfg::RX_PIN, cfg::TX_PIN);
     delay(20);
 
-    while (_serial.available())
-      _serial.read();
+    while (Serial1.available())
+      Serial1.read();
   }
 
-  // SPM33 / Supmea — нэг UINT16 регистр
+  // SPM33 — нэг UINT16 регистр
   bool readU16(uint8_t slave, uint16_t addr, uint16_t &out) {
     uint8_t rx[7];
     if (!readRegs(slave, addr, 1, rx))
@@ -224,8 +207,8 @@ public:
 
 private:
   bool readRegs(uint8_t slave, uint16_t addr, uint8_t regCnt, uint8_t *rx) {
-    while (_serial.available())
-      _serial.read();
+    while (Serial1.available())
+      Serial1.read();
 
     uint8_t req[8] = {slave,        0x03,    uint8_t(addr >> 8),
                       uint8_t(addr), 0,       regCnt,
@@ -258,12 +241,14 @@ private:
   }
 
   void send(const uint8_t *data, size_t len) {
-    digitalWrite(_de, HIGH);
+    digitalWrite(cfg::DE_RE, HIGH);
     delayMicroseconds(50);          // DE өндөр болсны дараа драйвер идэвхжих хугацаа
-    _serial.write(data, len);
-    _serial.flush();                // TX register-г бүрэн хоослох
-    delayMicroseconds(1200);        // 9600 baud дээр шугам тогтворжих хүртэл
-    digitalWrite(_de, LOW);
+    Serial1.write(data, len);
+    Serial1.flush();                // TX register-г бүрэн хоослох
+    // 9600 baud дээр 1 байт ≈ 1.04ms. flush() дууссаны дараа RS485 шугам
+    // тогтворжих хүртэл хүлээж DE/RE-г салгана.
+    delayMicroseconds(1200);
+    digitalWrite(cfg::DE_RE, LOW);
     delayMicroseconds(200);         // RX горим идэвхжих, bus settle
   }
 
@@ -271,14 +256,11 @@ private:
     size_t got = 0;
     unsigned long start = millis();
     while (millis() - start < cfg::RX_TMO && got < want) {
-      if (_serial.available())
-        buf[got++] = _serial.read();
+      if (Serial1.available())
+        buf[got++] = Serial1.read();
     }
     return got == want;
   }
-
-  HardwareSerial &_serial;
-  uint8_t _rx, _tx, _de;
 };
 
 // ── SPM33 helper-үүд ───────────────────────────────────────────────────
@@ -302,9 +284,11 @@ static bool withRetry(F &&fn) {
 }
 
 // CT primary бол метр дээр гараар тохируулдаг тогтмол тоо (рег. 40202).
-// Boot үед уншиж кэшилнэ. Индекс нь slave ID (SPM33 хамгийн их slave = 4 тул [5]).
-static uint16_t ctPrimary[5] = {1, 1, 1, 1, 1};
-static bool ctPrimaryKnown[5] = {false, false, false, false, false};
+// Boot үед уншиж кэшилнэ. Бүтэлгүй бол loop() cycle бүрт амжилттай болтол дахин
+// оролдоно. Метр дээр CT-г өөрчилсөн бол ESP32-г restart хийхэд шинэ утга авна.
+// Индекс нь slave ID (хамгийн их slave = 2 тул [3] хангалттай).
+static uint16_t ctPrimary[3] = {1, 1, 1};
+static bool ctPrimaryKnown[3] = {false, false, false};
 
 bool Spm33_readCtPrimary(Modbus &mb, uint8_t slave) {
   uint16_t v = 0;
@@ -318,7 +302,7 @@ bool Spm33_readCtPrimary(Modbus &mb, uint8_t slave) {
   return false;
 }
 
-// Flow cycle (2с тутам) — зөвхөн power уншина.
+// Flow cycle (2с тутам) — зөвхөн power уншина. Energy уншихгүй.
 Spm33Reading Spm33_readPower(Modbus &mb, uint8_t slave) {
   Spm33Reading r;
 
@@ -326,6 +310,7 @@ Spm33Reading Spm33_readPower(Modbus &mb, uint8_t slave) {
   r.powerOk = withRetry(
       [&] { return mb.readI32LowFirst(slave, cfg::SPM33_REG_POWER, powerRaw); });
   if (r.powerOk) {
+    // Secondary side W (×0.1). To primary side: × (CT_pri / CT_sec).
     float secW = powerRaw * 0.1f;
     float priW = secW * (float)ctPrimary[slave] / (float)cfg::SPM33_CT_SEC;
     r.powerKW = priW / 1000.0f;
@@ -341,29 +326,24 @@ Spm33Reading Spm33_readEnergy(Modbus &mb, uint8_t slave) {
   uint32_t energyRaw = 0;
   r.energyOk = withRetry(
       [&] { return mb.readU32LowFirst(slave, cfg::SPM33_REG_ENERGY, energyRaw); });
-  if (r.energyOk)
+  if (r.energyOk) {
+    // 40026 нь primary side kWh-ийг ×0.1-ээр өгдөг (5.1 хүснэгт)
     r.energyKWh = energyRaw * 0.1f;
+  }
 
   return r;
 }
 
 // ── Глобал ─────────────────────────────────────────────────────────────
-// 3 bus = 3 Modbus instance (тус бүр өөрийн UART + DE/RE пин).
-// UART0-г RS485-д ашиглана — USB-CDC дебаг нь тусдаа `Serial` (HWCDC) тул
-// UART0 сул. `Serial0` global бүх core-д байдаггүй тул өөрсдөө instance үүсгэв.
-HardwareSerial busCSerial(0); // UART0
-Modbus busA(Serial1, cfg::A_RX, cfg::A_TX, cfg::A_DE);     // UART1 — 2× SPM33
-Modbus busB(Serial2, cfg::B_RX, cfg::B_TX, cfg::B_DE);     // UART2 — 2× SPM33
-Modbus busC(busCSerial, cfg::C_RX, cfg::C_TX, cfg::C_DE);  // UART0 — ultrasonic
-
+Modbus modbus;
 FirebaseData fbData;
 FirebaseAuth fbAuth;
 FirebaseConfig fbConfig;
 
 bool firebaseReady = false;
 unsigned long lastWifiCheck = 0;
-unsigned long lastTotalizerReadTime = 0;
-unsigned long lastHeapLogTime = 0;
+unsigned long lastTotalizerReadTime = 0; // Сүүлд totalizer уншсан агшин (ms)
+unsigned long lastHeapLogTime = 0;       // Сүүлд heap-н хэмжээг log хийсэн агшин
 
 unsigned int consecutiveReadFails = 0;
 unsigned int totalRecoveryAttempts = 0;
@@ -371,15 +351,14 @@ unsigned int totalRecoveryAttempts = 0;
 unsigned long fbNextAllowedAt = 0;
 unsigned int fbFailStreak = 0;
 
-// Energy (totalizer) утга 1 минутад нэг л шинэчлэгдэх тул cache-д хадгална.
-float cachedEm08EnergyKWh = 0.0f; bool cachedEm08EnergyValid = false;
-float cachedEm09EnergyKWh = 0.0f; bool cachedEm09EnergyValid = false;
-float cachedEm10EnergyKWh = 0.0f; bool cachedEm10EnergyValid = false;
-float cachedEm11EnergyKWh = 0.0f; bool cachedEm11EnergyValid = false;
+// Energy (totalizer) утга 1 минутад нэг л шинэчлэгдэх тул хооронд нь cache-д хадгална.
+float cachedEm13EnergyKWh = 0.0f; bool cachedEm13EnergyValid = false;
+float cachedEm12EnergyKWh = 0.0f; bool cachedEm12EnergyValid = false;
 
 void fbOnFailure() {
   fbFailStreak++;
-  unsigned long backoff = 2000UL * (1UL << min((unsigned int)8, fbFailStreak));
+  unsigned long backoff =
+      2000UL * (1UL << min((unsigned int)8, fbFailStreak));
   if (backoff > 300000UL)
     backoff = 300000UL;
   fbNextAllowedAt = millis() + backoff;
@@ -406,11 +385,9 @@ void recoverModbusBus() {
     while (true) {
     }
   }
-  busA.recover();
-  busB.recover();
-  busC.recover();
+  modbus.recover();
   consecutiveReadFails = 0;
-  Serial.println("[Recovery] All 3 RS485 buses re-initialized");
+  Serial.println("[Recovery] RS485 bus re-initialized");
 }
 
 void onWifiEvent(WiFiEvent_t event) {
@@ -470,24 +447,22 @@ void firebaseInit() {
 void setup() {
   Serial.begin(115200);
   delay(300);
-  Serial.println("\n========= pressfilter IoT (S3-Zero, 3-bus) =========");
+  Serial.println("\n========= Gen IoT (S3-Zero) =========");
 
   led::begin();
   xTaskCreatePinnedToCore(ledTask, "ledTask", 2048, nullptr, 1, nullptr, 0);
 
-  busA.begin();
-  busB.begin();
-  busC.begin();
+  modbus.begin();
 
-  // SPM33 CT primary утгыг боотлох үед тус бусын bus-аас уншиж кэшилнэ.
+  // SPM33 CT primary утгыг боотлох үед 2 slave-ээс уншиж кэшилнэ — P (40011)-г
+  // secondary→primary хөрвүүлэхэд хэрэглэнэ. Унших нь алдвал loop() cycle бүрт
+  // амжилттай болтол дахин оролдоно.
   delay(100);
-  Spm33_readCtPrimary(busA, cfg::EM09_SLAVE);
-  delay(cfg::FRAME_GAP_MS);
-  Spm33_readCtPrimary(busA, cfg::EM08_SLAVE);
-  delay(cfg::FRAME_GAP_MS);
-  Spm33_readCtPrimary(busB, cfg::EM10_SLAVE);
-  delay(cfg::FRAME_GAP_MS);
-  Spm33_readCtPrimary(busB, cfg::EM11_SLAVE);
+  const uint8_t spmSlaves[2] = {cfg::EM13_SLAVE, cfg::EM12_SLAVE};
+  for (uint8_t s : spmSlaves) {
+    Spm33_readCtPrimary(modbus, s);
+    delay(cfg::FRAME_GAP_MS);
+  }
 
   WiFi.onEvent(onWifiEvent);
   wifiConnect();
@@ -507,6 +482,10 @@ void loop() {
   unsigned long now = millis();
 
   // ── Long-running stability watchdog ────────────────────────────────
+  // Heap fragmentation (Firebase TLS буфер г.м.) удаан ажиллах тусам
+  // хуримтлагдаж тогтворгүй болгож болзошгүй. 5 минут тутамд heap-г log
+  // хийнэ. Free heap босгоос (20KB) доош унавал эсвэл uptime 24 цаг хэтэрвэл
+  // clean restart хийнэ.
   if (now - lastHeapLogTime >= cfg::HEAP_LOG_INTERVAL_MS) {
     lastHeapLogTime = now;
     Serial.printf("[Heap] Free: %u | Min ever: %u | Uptime: %lus\n",
@@ -543,81 +522,55 @@ void loop() {
   }
 
   // Boot үед уншиж чадаагүй CT primary-уудыг дахин оролдох — нэг slave/cycle.
-  if (!ctPrimaryKnown[cfg::EM09_SLAVE]) {
-    Spm33_readCtPrimary(busA, cfg::EM09_SLAVE);
-  } else if (!ctPrimaryKnown[cfg::EM08_SLAVE]) {
-    Spm33_readCtPrimary(busA, cfg::EM08_SLAVE);
-  } else if (!ctPrimaryKnown[cfg::EM10_SLAVE]) {
-    Spm33_readCtPrimary(busB, cfg::EM10_SLAVE);
-  } else if (!ctPrimaryKnown[cfg::EM11_SLAVE]) {
-    Spm33_readCtPrimary(busB, cfg::EM11_SLAVE);
+  {
+    static const uint8_t spmSlaves[2] = {cfg::EM13_SLAVE, cfg::EM12_SLAVE};
+    for (uint8_t s : spmSlaves) {
+      if (!ctPrimaryKnown[s]) {
+        Spm33_readCtPrimary(modbus, s);
+        delay(cfg::FRAME_GAP_MS);
+        break; // зөвхөн нэгийг л оролдоно
+      }
+    }
   }
 
+  // Цикл бүрд flow-cycle (power) эсвэл totalizer-cycle (energy) гэсэн 2 төрлийн
+  // нэг нь явна. RS485 bus-н ачааллыг бууруулж, energy-г тусад нь 1 минутын циклд
+  // уншина. Boot-ийн дараа нэг удаа energy-г шууд уншиж cache-г бөглөнө.
   bool totalizerCycle = (lastTotalizerReadTime == 0) ||
                         (now - lastTotalizerReadTime >= cfg::TOTALIZER_INTERVAL_MS);
 
-  Spm33Reading em08, em09, em10, em11;
-  uint16_t ulsRaw = 0;
-  bool ulsLevelOk = false;
-  float ulsLevel = 0.0f;
-  uint16_t uls2Raw = 0;
-  bool uls2LevelOk = false;
-  float uls2Level = 0.0f;
+  Spm33Reading em13, em12;
 
   if (totalizerCycle) {
-    // ── Totalizer cycle: 4× SPM33 энерги
+    // ── Totalizer cycle: EM13 + EM12 энерги
     lastTotalizerReadTime = now;
     Serial.println("[Cycle] Totalizer read (1 min interval)");
 
-    em09 = Spm33_readEnergy(busA, cfg::EM09_SLAVE);
-    if (em09.energyOk) { cachedEm09EnergyKWh = em09.energyKWh; cachedEm09EnergyValid = true; }
+    em13 = Spm33_readEnergy(modbus, cfg::EM13_SLAVE);
+    if (em13.energyOk) { cachedEm13EnergyKWh = em13.energyKWh; cachedEm13EnergyValid = true; }
     delay(cfg::FRAME_GAP_MS);
-    em08 = Spm33_readEnergy(busA, cfg::EM08_SLAVE);
-    if (em08.energyOk) { cachedEm08EnergyKWh = em08.energyKWh; cachedEm08EnergyValid = true; }
-    delay(cfg::FRAME_GAP_MS);
-    em10 = Spm33_readEnergy(busB, cfg::EM10_SLAVE);
-    if (em10.energyOk) { cachedEm10EnergyKWh = em10.energyKWh; cachedEm10EnergyValid = true; }
-    delay(cfg::FRAME_GAP_MS);
-    em11 = Spm33_readEnergy(busB, cfg::EM11_SLAVE);
-    if (em11.energyOk) { cachedEm11EnergyKWh = em11.energyKWh; cachedEm11EnergyValid = true; }
 
-    Serial.printf("[Totalizer] EM08:%s EM09:%s EM10:%s EM11:%s\n",
-                  em08.energyOk ? String(em08.energyKWh, 1).c_str() : "#",
-                  em09.energyOk ? String(em09.energyKWh, 1).c_str() : "#",
-                  em10.energyOk ? String(em10.energyKWh, 1).c_str() : "#",
-                  em11.energyOk ? String(em11.energyKWh, 1).c_str() : "#");
+    em12 = Spm33_readEnergy(modbus, cfg::EM12_SLAVE);
+    if (em12.energyOk) { cachedEm12EnergyKWh = em12.energyKWh; cachedEm12EnergyValid = true; }
+    delay(cfg::FRAME_GAP_MS);
+
+    Serial.printf("[Totalizer] EM13:%s EM12:%s\n",
+                  em13.energyOk ? String(em13.energyKWh, 1).c_str() : "#",
+                  em12.energyOk ? String(em12.energyKWh, 1).c_str() : "#");
   } else {
-    // ── Flow cycle: 4× SPM33 power + ultrasonic level
-    em09 = Spm33_readPower(busA, cfg::EM09_SLAVE);
+    // ── Flow cycle: EM13 + EM12 power
+    em13 = Spm33_readPower(modbus, cfg::EM13_SLAVE);
     delay(cfg::FRAME_GAP_MS);
-    em08 = Spm33_readPower(busA, cfg::EM08_SLAVE);
-    delay(cfg::FRAME_GAP_MS);
-    em10 = Spm33_readPower(busB, cfg::EM10_SLAVE);
-    delay(cfg::FRAME_GAP_MS);
-    em11 = Spm33_readPower(busB, cfg::EM11_SLAVE);
+    em12 = Spm33_readPower(modbus, cfg::EM12_SLAVE);
     delay(cfg::FRAME_GAP_MS);
 
-    ulsLevelOk = withRetry(
-        [&] { return busC.readU16(cfg::ULS_SLAVE, cfg::REG_ULS_LEVEL, ulsRaw); });
-    ulsLevel = ulsLevelOk ? (ulsRaw / 1000.0f) : 0.0f;
-    delay(cfg::FRAME_GAP_MS);
-    uls2LevelOk = withRetry(
-        [&] { return busC.readU16(cfg::ULS2_SLAVE, cfg::REG_ULS_LEVEL, uls2Raw); });
-    uls2Level = uls2LevelOk ? (uls2Raw / 1000.0f) : 0.0f;
-
-    Serial.printf("[Flow] EM08:%s EM09:%s EM10:%s EM11:%s Bayan:%s Tseever:%s\n",
-                  em08.powerOk ? String(em08.powerKW, 2).c_str() : "#",
-                  em09.powerOk ? String(em09.powerKW, 2).c_str() : "#",
-                  em10.powerOk ? String(em10.powerKW, 2).c_str() : "#",
-                  em11.powerOk ? String(em11.powerKW, 2).c_str() : "#",
-                  ulsLevelOk ? String(ulsLevel, 3).c_str() : "#",
-                  uls2LevelOk ? String(uls2Level, 3).c_str() : "#");
+    Serial.printf("[Flow] EM13:%s EM12:%s\n",
+                  em13.powerOk ? String(em13.powerKW, 2).c_str() : "#",
+                  em12.powerOk ? String(em12.powerKW, 2).c_str() : "#");
   }
 
   // ── Алдаа escalate ──────────────────────────────────────────────
-  bool anyOk = em08.powerOk || em08.energyOk || em09.powerOk || em09.energyOk ||
-               em10.powerOk || em10.energyOk || em11.powerOk || em11.energyOk ||
-               ulsLevelOk || uls2LevelOk;
+  bool anyOk = em13.powerOk || em13.energyOk || em12.powerOk || em12.energyOk;
   if (anyOk) {
     consecutiveReadFails = 0;
     totalRecoveryAttempts = 0;
@@ -627,7 +580,7 @@ void loop() {
       recoverModbusBus();
   }
 
-  // ── Firebase upload ────────────────────────────────────────────────
+  // ── Firebase upload — /energy_meters subtree-г жижиг updateNode-оор бичнэ.
   if (!fbCanUpload()) {
     led::setMode(led::SLOW_RED);
     return;
@@ -639,10 +592,12 @@ void loop() {
   if (!firebaseReady) {
     firebaseReady = true;
     Serial.println("[Firebase] ready");
-    ota::begin(&fbData);
+    ota::begin(&fbData);  // DEVICE_ID register + командын stream нээх
   }
 
-  // ─ Subtree 1: /energy_meters/{em08..em11} ──────────────────────────
+  // ─ /energy_meters/{em13,em12} ──────────────────────────────────────
+  // Flow cycle: power_kw (instantaneous)
+  // Totalizer cycle: total_energy_kwh (cumulative)
   bool emOk = true;
   bool emAny = false;
   {
@@ -661,10 +616,8 @@ void loop() {
         }
       }
     };
-    addEm("em08", em08);
-    addEm("em09", em09);
-    addEm("em10", em10);
-    addEm("em11", em11);
+    addEm("em13", em13);
+    addEm("em12", em12);
     if (emAny) {
       emOk = Firebase.RTDB.updateNodeSilent(&fbData, "/energy_meters", &j);
       if (!emOk)
@@ -673,30 +626,12 @@ void loop() {
     }
   }
 
-  // ─ Subtree 2: /pressfilter (ultrasonic level — flow cycle-д л) ──────
-  bool pfOk = true;
-  bool pfAny = false;
-  {
-    FirebaseJson j;
-    if (!totalizerCycle) {
-      if (ulsLevelOk)  { j.set("bayan_tank/level", ulsLevel);        pfAny = true; }
-      if (uls2LevelOk) { j.set("clean_water_tank/level", uls2Level); pfAny = true; }
-      if (pfAny) j.set("last_updated", (int)(millis() / 1000));
-    }
-    if (pfAny) {
-      pfOk = Firebase.RTDB.updateNodeSilent(&fbData, "/pressfilter", &j);
-      if (!pfOk)
-        Serial.printf("[Firebase] /pressfilter ERROR: %s\n",
-                      fbData.errorReason().c_str());
-    }
-  }
-
-  if (!emAny && !pfAny) {
+  if (!emAny) {
     led::setMode(led::SLOW_RED);
     return;
   }
 
-  if (emOk && pfOk) {
+  if (emOk) {
     Serial.println("[Firebase] Updated");
     fbOnSuccess();
     led::setMode(led::OFF);
@@ -706,5 +641,6 @@ void loop() {
     led::setMode(led::SLOW_RED);
   }
 
-  ota::loop(&fbData, emOk && pfOk);
+  // OTA heartbeat + self-test gate (амжилттай upload бүрд +1)
+  ota::loop(&fbData, emOk);
 }

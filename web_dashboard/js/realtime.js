@@ -148,10 +148,34 @@ function initRealtime() {
     em11Power:  document.getElementById("emPower11"),
     em11Energy: document.getElementById("emEnergy11"),
     em11Led:    document.getElementById("emLed11"),
+    // em12..em17 — gen / hothon / mech / lab цахилгаан тоолуурууд
+    em12Power:  document.getElementById("emPower12"),
+    em12Energy: document.getElementById("emEnergy12"),
+    em12Led:    document.getElementById("emLed12"),
+    em13Power:  document.getElementById("emPower13"),
+    em13Energy: document.getElementById("emEnergy13"),
+    em13Led:    document.getElementById("emLed13"),
+    em14Power:  document.getElementById("emPower14"),
+    em14Energy: document.getElementById("emEnergy14"),
+    em14Led:    document.getElementById("emLed14"),
+    em15Power:  document.getElementById("emPower15"),
+    em15Energy: document.getElementById("emEnergy15"),
+    em15Led:    document.getElementById("emLed15"),
+    em16Power:  document.getElementById("emPower16"),
+    em16Energy: document.getElementById("emEnergy16"),
+    em16Led:    document.getElementById("emLed16"),
+    em17Power:  document.getElementById("emPower17"),
+    em17Energy: document.getElementById("emEnergy17"),
+    em17Led:    document.getElementById("emLed17"),
     // Баян уусмалын сан (Supmea ultrasonic — pressfilter Bus C Slave 5)
     bayanLevel:    document.getElementById("bayanLevel"),
     bayanLevelBar: document.getElementById("bayanLevelBar"),
     bayanLevelLed: document.getElementById("bayanLevelLed"),
+    // Цэвэр усан сан (Supmea ultrasonic — pressfilter Bus C Slave 6)
+    cleanWaterLevel:    document.getElementById("cleanWaterLevel"),
+    cleanWaterLevelBar: document.getElementById("cleanWaterLevelBar"),
+    cleanWaterLevelLed: document.getElementById("cleanWaterLevelLed"),
+    cleanWaterMax:      document.getElementById("cleanWaterMax"),
   };
 
   if (typeof firebase === "undefined" || !firebase.apps || !firebase.apps.length) {
@@ -222,6 +246,21 @@ function initRealtime() {
       _el.bayanLevelBar.style.width = pct + "%";
     }
     _blinkLed(_el.bayanLevelLed);
+  });
+
+  // Цэвэр усан сан (Supmea ultrasonic — pressfilter Bus C Slave 6)
+  // Bar-ийн дээд хязгаарыг index.html дахь #cleanWaterLevelBar data-max-аас уншина.
+  db.ref("/pressfilter/clean_water_tank/level").on("value", s => {
+    if (s.val() === null) return;
+    const v = parseFloat(s.val());
+    if (_el.cleanWaterLevel) _el.cleanWaterLevel.textContent = v.toFixed(2);
+    if (_el.cleanWaterLevelBar) {
+      const max = parseFloat(_el.cleanWaterLevelBar.dataset.max) || ULS_MAX_M;
+      if (_el.cleanWaterMax) _el.cleanWaterMax.textContent = max.toFixed(2) + " m";
+      const pct = Math.max(0, Math.min(100, (v / max) * 100));
+      _el.cleanWaterLevelBar.style.width = pct + "%";
+    }
+    _blinkLed(_el.cleanWaterLevelLed);
   });
 
   // ── Teerem ────────────────────────────────────────────
@@ -304,6 +343,9 @@ function initRealtime() {
     { key: "em12", name: "Шатахуун түгээх ХС",        hasCurrents: false },
     { key: "em13", name: "Уурын зуух ХС",             hasCurrents: false },
     { key: "em14", name: "Хотхон ХС",                 hasCurrents: false },
+    { key: "em15", name: "Механик ХС",                hasCurrents: false },
+    { key: "em16", name: "Лаборатор ХС1",             hasCurrents: false },
+    { key: "em17", name: "Лаборатор ХС2",             hasCurrents: false },
   ];
 
   // Нийт эрчим хүч card-д самбарын мөрүүдийг render хийнэ.

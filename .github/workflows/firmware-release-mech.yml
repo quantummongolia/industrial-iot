@@ -1,0 +1,163 @@
+name: Firmware Release (mech)
+
+# Зөвхөн main branch-руу mech firmware-ийн өөрчлөлт push хийсэн үед ажиллана.
+# CI өөрөө сүүлчийн tag-аас patch number-ыг өсгөж шинэ release үүсгэнэ.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'esp32_firmware/mech/**'
+      - '.github/workflows/firmware-release-mech.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (with full history for git describe)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache PlatformIO + pip
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.platformio
+            ~/.cache/pip
+          key: ${{ runner.os }}-pio-${{ hashFiles('esp32_firmware/mech/platformio.ini') }}
+
+      - name: Install PlatformIO
+        run: pip install --upgrade platformio
+
+      - name: Generate secrets.h from GitHub Secrets
+        working-directory: esp32_firmware/mech/src
+        env:
+          WIFI_SSID:           ${{ secrets.WIFI_SSID }}
+          WIFI_PASSWORD:       ${{ secrets.WIFI_PASSWORD }}
+          FIREBASE_API_KEY:    ${{ secrets.FIREBASE_API_KEY }}
+          FIREBASE_DB_URL:     ${{ secrets.FIREBASE_DB_URL }}
+          FIREBASE_USER_EMAIL: ${{ secrets.FIREBASE_USER_EMAIL }}
+          FIREBASE_USER_PASS:  ${{ secrets.FIREBASE_USER_PASS }}
+        run: |
+          for var in WIFI_SSID FIREBASE_API_KEY FIREBASE_DB_URL FIREBASE_USER_EMAIL FIREBASE_USER_PASS; do
+            if [ -z "${!var}" ]; then
+              echo "::error::GitHub secret $var дутаж байна — Settings → Secrets → Actions-д нэмэх"
+              exit 1
+            fi
+          done
+          cat > secrets.h <<EOF
+          #ifndef SECRETS_H
+          #define SECRETS_H
+          #define WIFI_SSID           "${WIFI_SSID}"
+          #define WIFI_PASSWORD       "${WIFI_PASSWORD}"
+          #define FIREBASE_API_KEY    "${FIREBASE_API_KEY}"
+          #define FIREBASE_DB_URL     "${FIREBASE_DB_URL}"
+          #define FIREBASE_USER_EMAIL "${FIREBASE_USER_EMAIL}"
+          #define FIREBASE_USER_PASS  "${FIREBASE_USER_PASS}"
+          #endif
+          EOF
+          echo "secrets.h generated (credentials redacted from log)"
+
+      - name: Auto-bump patch version + create tag
+        id: ver
+        run: |
+          # Tag format: mech-vMAJOR.MINOR.PATCH-g<short-sha>
+          # Сүүлийн tag-аас patch number-ыг өсгөж, шинэ commit-ын sha хавсаргана.
+          LAST_TAG=$(git tag --list 'mech-v*' --sort=-creatordate \
+                     | grep -E '^mech-v[0-9]+\.[0-9]+\.[0-9]+(-g[0-9a-f]+)?$' \
+                     | head -1)
+          if [ -z "$LAST_TAG" ]; then
+            LAST_TAG="mech-v0.0.0"
+          fi
+
+          # Зөвхөн MAJOR.MINOR.PATCH хэсгийг extract хийх (-g<sha> хэсгийг үл тоомсорлоно)
+          LAST_VER=$(echo "$LAST_TAG" | grep -oE '^mech-v[0-9]+\.[0-9]+\.[0-9]+' \
+                                       | sed 's/^mech-v//')
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$LAST_VER"
+          NEW_PATCH=$((PATCH + 1))
+          VER="${MAJOR}.${MINOR}.${NEW_PATCH}"
+
+          SHA_SHORT=$(git rev-parse --short HEAD)
+          TAG="mech-v${VER}-g${SHA_SHORT}"
+
+          # Хэрэв ижил tag (хэзээ нэгэн цагт) байсан бол patch-ийг дахин өсгөнө
+          while git rev-parse "$TAG" >/dev/null 2>&1; do
+            NEW_PATCH=$((NEW_PATCH + 1))
+            VER="${MAJOR}.${MINOR}.${NEW_PATCH}"
+            TAG="mech-v${VER}-g${SHA_SHORT}"
+          done
+
+          git config user.email "actions@github.com"
+          git config user.name  "github-actions"
+          git tag "$TAG"
+          git push origin "$TAG"
+
+          echo "version=$VER" >> $GITHUB_OUTPUT
+          echo "tag=$TAG"     >> $GITHUB_OUTPUT
+          echo "Auto-bumped: $LAST_TAG → $TAG"
+
+      - name: Build firmware
+        working-directory: esp32_firmware/mech
+        run: pio run
+
+      - name: Compute sha256 + rename binary
+        id: artifact
+        working-directory: esp32_firmware/mech
+        run: |
+          VER="${{ steps.ver.outputs.version }}"
+          OUT="mech-${VER}.bin"
+          cp .pio/build/esp32-s3-zero/firmware.bin "$OUT"
+          SHA=$(sha256sum "$OUT" | awk '{print $1}')
+          SIZE=$(stat -c '%s' "$OUT")
+          echo "binary=$OUT"    >> $GITHUB_OUTPUT
+          echo "sha256=$SHA"    >> $GITHUB_OUTPUT
+          echo "size=$SIZE"     >> $GITHUB_OUTPUT
+          echo "Built $OUT ($SIZE bytes, sha256=$SHA)"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name:     mech ${{ steps.ver.outputs.tag }}
+          files: esp32_firmware/mech/${{ steps.artifact.outputs.binary }}
+          body: |
+            ## mech firmware ${{ steps.ver.outputs.tag }}
+
+            - **Binary:** `${{ steps.artifact.outputs.binary }}`
+            - **Size:** ${{ steps.artifact.outputs.size }} bytes
+            - **SHA-256:** `${{ steps.artifact.outputs.sha256 }}`
+            - **Commit:** ${{ github.sha }}
+
+            ### OTA шинэчлэлт
+            Веб дашбоардаас `Firmware → Update` товчоор device бүрд push хийнэ.
+
+      - name: Publish release metadata to RTDB
+        env:
+          FIREBASE_DB_URL: ${{ secrets.FIREBASE_DB_URL }}
+          FIREBASE_RTDB_SECRET: ${{ secrets.FIREBASE_RTDB_SECRET }}
+        run: |
+          VER="${{ steps.ver.outputs.version }}"
+          TAG="${{ steps.ver.outputs.tag }}"
+          SHA="${{ steps.artifact.outputs.sha256 }}"
+          BIN="${{ steps.artifact.outputs.binary }}"
+          URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/${BIN}"
+          curl -sf -X PUT \
+            "${FIREBASE_DB_URL}/firmware/mech/latest.json?auth=${FIREBASE_RTDB_SECRET}" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"version\": \"${VER}\",
+              \"url\": \"${URL}\",
+              \"sha256\": \"${SHA}\",
+              \"size\": ${{ steps.artifact.outputs.size }},
+              \"published_at\": {\".sv\": \"timestamp\"}
+            }"
+          echo "Published /firmware/mech/latest → ${TAG}"
