@@ -1,4 +1,4 @@
-# ESP32-S3-Zero (4MB flash) — OTA-тай хуваарь
+# ESP32-WROOM-32 (4MB flash) — OTA-тай хуваарь
 # 2 app slot × 1984KB (~1.93MB) + 64KB SPIFFS placeholder
 # Name,   Type, SubType,  Offset,    Size,      Flags
 nvs,      data, nvs,      0x9000,    0x5000,

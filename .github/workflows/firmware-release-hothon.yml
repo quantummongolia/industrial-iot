@@ -115,7 +115,7 @@ jobs:
         run: |
           VER="${{ steps.ver.outputs.version }}"
           OUT="hothon-${VER}.bin"
-          cp .pio/build/esp32-wroom/firmware.bin "$OUT"
+          cp .pio/build/esp32-s3-zero/firmware.bin "$OUT"
           SHA=$(sha256sum "$OUT" | awk '{print $1}')
           SIZE=$(stat -c '%s' "$OUT")
           echo "binary=$OUT"    >> $GITHUB_OUTPUT

@@ -1,6 +1,6 @@
 /*
  * ============================================================
- *  ESP32-WROOM Hothon → Firebase Realtime Database
+ *  ESP32-S3-Zero Hothon → Firebase Realtime Database
  * ============================================================
  *
  *  Нэг RS485 шугам дээр Modbus RTU @ 9600bps :
@@ -9,13 +9,13 @@
  *  Firebase RTDB:
  *    /energy_meters/em14/{power_kw,total_energy_kwh}
  *
- *  MAX485 модуль ↔ ESP32-WROOM холболт (1 transceiver, UART2):
- *    MAX485 RO  (Receiver Out) → ESP GPIO 16  (UART2 RX)
- *    MAX485 DI  (Driver In)    → ESP GPIO 17  (UART2 TX)
- *    MAX485 DE + RE (хооронд нь холбоно) → ESP GPIO 5  (чиглэл удирдлага)
+ *  MAX485 модуль ↔ ESP32-S3-Zero холболт (1 transceiver):
+ *    MAX485 RO  (Receiver Out) → ESP GPIO 4   (UART RX)
+ *    MAX485 DI  (Driver In)    → ESP GPIO 5   (UART TX)
+ *    MAX485 DE + RE (хооронд нь холбоно) → ESP GPIO 6  (чиглэл удирдлага)
  *    MAX485 A / B              → RS485 шугам (Slave 1 SPM33)
  *    MAX485 VCC / GND          → ESP 3V3 / GND
- *    GPIO 21 — WS2812 статус LED (заавал биш; WROOM-д onboard байхгүй)
+ *    GPIO 21 — WS2812 onboard RGB LED (статус)
  */
 
 #include "secrets.h"
@@ -29,9 +29,9 @@
 
 // ── Modbus тохиргоо ────────────────────────────────────────────────────
 namespace cfg {
-constexpr uint8_t RX_PIN = 16;
-constexpr uint8_t TX_PIN = 17;
-constexpr uint8_t DE_RE = 5;
+constexpr uint8_t RX_PIN = 4;
+constexpr uint8_t TX_PIN = 5;
+constexpr uint8_t DE_RE = 6;
 constexpr uint32_t BAUD = 9600;
 
 // Slave IDs
@@ -60,11 +60,11 @@ constexpr uint32_t MAX_UPTIME_MS = 24UL * 60UL * 60UL * 1000UL;  // 24 цаг
 constexpr uint32_t HEAP_LOG_INTERVAL_MS = 5UL * 60UL * 1000UL;   // 5 минут тутам log
 } // namespace cfg
 
-// ── RGB STATUS LED (WS2812 GPIO 21) ───────────────────────────────────
-//   ESP32-WROOM-д onboard RGB байхгүй ч rgbLedWrite(GPIO21) аюулгүй ажиллана
-//   (гадны WS2812 залгавал статус харагдана; үгүй бол нөлөөгүй).
-//   SLOW_RED — WiFi / Modbus / Firebase аль нэг нь алдсан үед удаан анивчина.
-//   pulse()  — Firebase-д амжилттай upload болгонд нэг богино ногоон импульс.
+// ── RGB STATUS LED (WS2812 GPIO 21 — Waveshare ESP32-S3-Zero onboard) ──
+//   SLOW_RED — WiFi / Modbus / Firebase аль нэг нь алдсан үед удаан анивчина
+//              (500ms on / 500ms off → 1 Hz).
+//   pulse()  — Firebase-д амжилттай upload болгонд нэг богино ногоон импульс
+//              (~120ms). Modbus poll-ийн 1 Hz ритмтэй синхрон.
 namespace led {
 constexpr uint8_t PIN = 21;
 constexpr uint8_t BRIGHTNESS = 60;
@@ -73,16 +73,21 @@ constexpr uint16_t SLOW_OFF_MS = 500;
 constexpr uint16_t PULSE_MS = 120;
 
 inline void writeRGB(uint8_t r, uint8_t g, uint8_t b) {
+  // Энэ board-ийн WS2812 чип нь R/G сувгуудыг солиод эмиттэр-лж байна
+  // (rgbLedWrite-ийн GRB conversion нь зарим S3-Zero batch-д таарахгүй).
+  // Тиймээс r ба g-г солиод дамжуулна — дуудлагын талд "red"/"green" хэвээр.
 #if defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 3)
-  rgbLedWrite(PIN, r, g, b);
+  rgbLedWrite(PIN, g, r, b);
 #else
-  neopixelWrite(PIN, r, g, b);
+  neopixelWrite(PIN, g, r, b);
 #endif
 }
 
 inline uint8_t scale(uint8_t v) { return (uint16_t(v) * BRIGHTNESS) / 255; }
 
 enum Mode { OFF, SLOW_RED };
+// Boot үед өгөгдөл хараахан явуулаагүй учир улаан анивчиж эхэлнэ.
+// Эхний амжилттай upload-аас хойш OFF болж ногоон pulse-ээр л асна.
 Mode mode = SLOW_RED;
 unsigned long nextToggle = 0;
 unsigned long pulseOffAt = 0;
@@ -142,19 +147,19 @@ void ledTask(void *) {
   }
 }
 
-// ── Modbus (ESP32-WROOM — UART2 / Serial2) ─────────────────────────────
+// ── Modbus ─────────────────────────────────────────────────────────────
 class Modbus {
 public:
   void begin() {
     pinMode(cfg::DE_RE, OUTPUT);
     digitalWrite(cfg::DE_RE, LOW);
-    Serial2.begin(cfg::BAUD, SERIAL_8N1, cfg::RX_PIN, cfg::TX_PIN);
+    Serial1.begin(cfg::BAUD, SERIAL_8N1, cfg::RX_PIN, cfg::TX_PIN);
   }
 
   void recover() {
     // UART-ыг бүрэн салгаад MAX485-г RX горимд хүчээр оруулна.
     // "Stuck" transceiver-ийг сэргээх өргөтгөсөн хувилбар.
-    Serial2.end();
+    Serial1.end();
 
     pinMode(cfg::DE_RE, OUTPUT);
     digitalWrite(cfg::DE_RE, LOW);
@@ -163,11 +168,11 @@ public:
     pinMode(cfg::RX_PIN, INPUT_PULLUP);
     delay(50);
 
-    Serial2.begin(cfg::BAUD, SERIAL_8N1, cfg::RX_PIN, cfg::TX_PIN);
+    Serial1.begin(cfg::BAUD, SERIAL_8N1, cfg::RX_PIN, cfg::TX_PIN);
     delay(20);
 
-    while (Serial2.available())
-      Serial2.read();
+    while (Serial1.available())
+      Serial1.read();
   }
 
   // SPM33 — нэг UINT16 регистр
@@ -199,8 +204,8 @@ public:
 
 private:
   bool readRegs(uint8_t slave, uint16_t addr, uint8_t regCnt, uint8_t *rx) {
-    while (Serial2.available())
-      Serial2.read();
+    while (Serial1.available())
+      Serial1.read();
 
     uint8_t req[8] = {slave,        0x03,    uint8_t(addr >> 8),
                       uint8_t(addr), 0,       regCnt,
@@ -235,8 +240,8 @@ private:
   void send(const uint8_t *data, size_t len) {
     digitalWrite(cfg::DE_RE, HIGH);
     delayMicroseconds(50);          // DE өндөр болсны дараа драйвер идэвхжих хугацаа
-    Serial2.write(data, len);
-    Serial2.flush();                // TX register-г бүрэн хоослох
+    Serial1.write(data, len);
+    Serial1.flush();                // TX register-г бүрэн хоослох
     // 9600 baud дээр 1 байт ≈ 1.04ms. flush() дууссаны дараа RS485 шугам
     // тогтворжих хүртэл хүлээж DE/RE-г салгана.
     delayMicroseconds(1200);
@@ -248,8 +253,8 @@ private:
     size_t got = 0;
     unsigned long start = millis();
     while (millis() - start < cfg::RX_TMO && got < want) {
-      if (Serial2.available())
-        buf[got++] = Serial2.read();
+      if (Serial1.available())
+        buf[got++] = Serial1.read();
     }
     return got == want;
   }
@@ -438,7 +443,7 @@ void firebaseInit() {
 void setup() {
   Serial.begin(115200);
   delay(300);
-  Serial.println("\n========= Hothon IoT (ESP32-WROOM) =========");
+  Serial.println("\n========= Hothon IoT (S3-Zero) =========");
 
   led::begin();
   xTaskCreatePinnedToCore(ledTask, "ledTask", 2048, nullptr, 1, nullptr, 0);
