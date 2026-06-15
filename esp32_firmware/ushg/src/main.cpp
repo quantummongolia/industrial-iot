@@ -6,16 +6,18 @@
  *  Нэг RS485 шугам дээр Modbus RTU @ 9600bps :
  *    Slave 1 : SPM33 — Өтгөрүүлэгч УС     (P, E)
  *    Slave 2 : SPM33 — Уусгалтын ган УС   (P, E)
+ *    Slave 3 : SPM33 — Компрессор ХС      (P, E)
  *
  *  Firebase RTDB:
  *    /energy_meters/em06/{power_kw,total_energy_kwh}
  *    /energy_meters/em07/{power_kw,total_energy_kwh}
+ *    /energy_meters/em11/{power_kw,total_energy_kwh}
  *
  *  MAX485 модуль ↔ ESP32-S3-Zero холболт (1 transceiver):
  *    MAX485 RO  (Receiver Out) → ESP GPIO 4   (UART RX)
  *    MAX485 DI  (Driver In)    → ESP GPIO 5   (UART TX)
  *    MAX485 DE + RE (хооронд нь холбоно) → ESP GPIO 6  (чиглэл удирдлага)
- *    MAX485 A / B              → RS485 шугам (Slave 1 ба Slave 2 SPM33)
+ *    MAX485 A / B              → RS485 шугам (Slave 1, 2, 3 SPM33)
  *    MAX485 VCC / GND          → ESP 3V3 / GND
  *    GPIO 21 — WS2812 onboard RGB LED (статус)
  */
@@ -39,6 +41,7 @@ constexpr uint32_t BAUD = 9600;
 // Slave IDs
 constexpr uint8_t EM06_SLAVE = 1;  // SPM33 — Өтгөрүүлэгч УС
 constexpr uint8_t EM07_SLAVE = 2;  // SPM33 — Уусгалтын ган УС
+constexpr uint8_t EM11_SLAVE = 3;  // SPM33 — Компрессор ХС
 
 // SPM33 register addresses (4xxxx - 40001 = Modbus address)
 constexpr uint16_t SPM33_REG_POWER = 10;   // 40011: Total active power LINT32, ×0.1 W
@@ -286,9 +289,9 @@ static bool withRetry(F &&fn) {
 // CT primary бол метр дээр гараар тохируулдаг тогтмол тоо (рег. 40202).
 // Boot үед уншиж кэшилнэ. Бүтэлгүй бол loop() cycle бүрт амжилттай болтол дахин
 // оролдоно. Метр дээр CT-г өөрчилсөн бол ESP32-г restart хийхэд шинэ утга авна.
-// Индекс нь slave ID (хамгийн их slave = 2 тул [3] хангалттай).
-static uint16_t ctPrimary[3] = {1, 1, 1};
-static bool ctPrimaryKnown[3] = {false, false, false};
+// Индекс нь slave ID (хамгийн их slave = 3 тул [4] хангалттай).
+static uint16_t ctPrimary[4] = {1, 1, 1, 1};
+static bool ctPrimaryKnown[4] = {false, false, false, false};
 
 bool Spm33_readCtPrimary(Modbus &mb, uint8_t slave) {
   uint16_t v = 0;
@@ -354,6 +357,7 @@ unsigned int fbFailStreak = 0;
 // Energy (totalizer) утга 1 минутад нэг л шинэчлэгдэх тул хооронд нь cache-д хадгална.
 float cachedEm06EnergyKWh = 0.0f; bool cachedEm06EnergyValid = false;
 float cachedEm07EnergyKWh = 0.0f; bool cachedEm07EnergyValid = false;
+float cachedEm11EnergyKWh = 0.0f; bool cachedEm11EnergyValid = false;
 
 void fbOnFailure() {
   fbFailStreak++;
@@ -458,7 +462,7 @@ void setup() {
   // secondary→primary хөрвүүлэхэд хэрэглэнэ. Унших нь алдвал loop() cycle бүрт
   // амжилттай болтол дахин оролдоно.
   delay(100);
-  const uint8_t spmSlaves[2] = {cfg::EM06_SLAVE, cfg::EM07_SLAVE};
+  const uint8_t spmSlaves[3] = {cfg::EM06_SLAVE, cfg::EM07_SLAVE, cfg::EM11_SLAVE};
   for (uint8_t s : spmSlaves) {
     Spm33_readCtPrimary(modbus, s);
     delay(cfg::FRAME_GAP_MS);
@@ -523,7 +527,7 @@ void loop() {
 
   // Boot үед уншиж чадаагүй CT primary-уудыг дахин оролдох — нэг slave/cycle.
   {
-    static const uint8_t spmSlaves[2] = {cfg::EM06_SLAVE, cfg::EM07_SLAVE};
+    static const uint8_t spmSlaves[3] = {cfg::EM06_SLAVE, cfg::EM07_SLAVE, cfg::EM11_SLAVE};
     for (uint8_t s : spmSlaves) {
       if (!ctPrimaryKnown[s]) {
         Spm33_readCtPrimary(modbus, s);
@@ -539,10 +543,10 @@ void loop() {
   bool totalizerCycle = (lastTotalizerReadTime == 0) ||
                         (now - lastTotalizerReadTime >= cfg::TOTALIZER_INTERVAL_MS);
 
-  Spm33Reading em06, em07;
+  Spm33Reading em06, em07, em11;
 
   if (totalizerCycle) {
-    // ── Totalizer cycle: EM06 + EM07 энерги
+    // ── Totalizer cycle: EM06 + EM07 + EM11 энерги
     lastTotalizerReadTime = now;
     Serial.println("[Cycle] Totalizer read (1 min interval)");
 
@@ -554,23 +558,32 @@ void loop() {
     if (em07.energyOk) { cachedEm07EnergyKWh = em07.energyKWh; cachedEm07EnergyValid = true; }
     delay(cfg::FRAME_GAP_MS);
 
-    Serial.printf("[Totalizer] EM06:%s EM07:%s\n",
+    em11 = Spm33_readEnergy(modbus, cfg::EM11_SLAVE);
+    if (em11.energyOk) { cachedEm11EnergyKWh = em11.energyKWh; cachedEm11EnergyValid = true; }
+    delay(cfg::FRAME_GAP_MS);
+
+    Serial.printf("[Totalizer] EM06:%s EM07:%s EM11:%s\n",
                   em06.energyOk ? String(em06.energyKWh, 1).c_str() : "#",
-                  em07.energyOk ? String(em07.energyKWh, 1).c_str() : "#");
+                  em07.energyOk ? String(em07.energyKWh, 1).c_str() : "#",
+                  em11.energyOk ? String(em11.energyKWh, 1).c_str() : "#");
   } else {
-    // ── Flow cycle: EM06 + EM07 power
+    // ── Flow cycle: EM06 + EM07 + EM11 power
     em06 = Spm33_readPower(modbus, cfg::EM06_SLAVE);
     delay(cfg::FRAME_GAP_MS);
     em07 = Spm33_readPower(modbus, cfg::EM07_SLAVE);
     delay(cfg::FRAME_GAP_MS);
+    em11 = Spm33_readPower(modbus, cfg::EM11_SLAVE);
+    delay(cfg::FRAME_GAP_MS);
 
-    Serial.printf("[Flow] EM06:%s EM07:%s\n",
+    Serial.printf("[Flow] EM06:%s EM07:%s EM11:%s\n",
                   em06.powerOk ? String(em06.powerKW, 2).c_str() : "#",
-                  em07.powerOk ? String(em07.powerKW, 2).c_str() : "#");
+                  em07.powerOk ? String(em07.powerKW, 2).c_str() : "#",
+                  em11.powerOk ? String(em11.powerKW, 2).c_str() : "#");
   }
 
   // ── Алдаа escalate ──────────────────────────────────────────────
-  bool anyOk = em06.powerOk || em06.energyOk || em07.powerOk || em07.energyOk;
+  bool anyOk = em06.powerOk || em06.energyOk || em07.powerOk || em07.energyOk ||
+               em11.powerOk || em11.energyOk;
   if (anyOk) {
     consecutiveReadFails = 0;
     totalRecoveryAttempts = 0;
@@ -618,6 +631,7 @@ void loop() {
     };
     addEm("em06", em06);
     addEm("em07", em07);
+    addEm("em11", em11);
     if (emAny) {
       emOk = Firebase.RTDB.updateNodeSilent(&fbData, "/energy_meters", &j);
       if (!emOk)

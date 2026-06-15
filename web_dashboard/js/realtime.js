@@ -19,6 +19,16 @@ function _blinkLed(ledEl) {
   setTimeout(function () { ledEl.classList.remove("data-led-active"); }, 400);
 }
 
+// Усны савны card — түвшинг (метр) .wl-card[data-max]-тай харьцуулж усыг дүүргэнэ.
+// Бодит савны өндрийг мэдэхгүй бол data-max default нь 4 м.
+function _setTankLevel(waterEl, v) {
+  if (!waterEl) return;
+  const card = waterEl.closest(".wl-card");
+  const max = (card && parseFloat(card.dataset.max)) || 4;
+  const pct = Math.max(0, Math.min(100, (v / max) * 100));
+  waterEl.style.setProperty("--level", pct.toFixed(2) + "%");
+}
+
 function _onFlowRate(key, val) {
   _readingCount++;
   const flow = parseFloat(val).toFixed(2);
@@ -175,8 +185,15 @@ function initRealtime() {
     cleanWaterLevel:    document.getElementById("cleanWaterLevel"),
     cleanWaterLevelBar: document.getElementById("cleanWaterLevelBar"),
     cleanWaterLevelLed: document.getElementById("cleanWaterLevelLed"),
-    cleanWaterMax:      document.getElementById("cleanWaterMax"),
   };
+
+  // Усны савны card бүрийн харагдах дээд хэмжээг (метр) data-max-аас тааруулна —
+  // ингэснээр зөвхөн index.html дээр data-max-г өөрчлөхөд хангалттай.
+  document.querySelectorAll(".wl-card").forEach(card => {
+    const max = parseFloat(card.dataset.max);
+    const maxEl = card.querySelector(".wl-max");
+    if (maxEl && !isNaN(max)) maxEl.textContent = max.toFixed(2);
+  });
 
   if (typeof firebase === "undefined" || !firebase.apps || !firebase.apps.length) {
     console.info("[realtime] Firebase skipped (SDK or app not initialized)");
@@ -222,16 +239,12 @@ function initRealtime() {
   });
 
   // Ultrasonic level transmitter — Суларсан уусмал савны түвшин (Slave ID 1)
-  // Bar дүүргэлт 0..2.20m хооронд, max-аас давсан бол 100%-аар clamp хийнэ.
-  const ULS_MAX_M = 2.20;
+  // Усны дүүргэлтийн дээд хязгаарыг index.html дахь .wl-card[data-max]-аас уншина.
   db.ref("/flow_system/level_sensor/level").on("value", s => {
     if (s.val() === null) return;
     const v = parseFloat(s.val());
     if (_el.ulsLevel) _el.ulsLevel.textContent = v.toFixed(2);
-    if (_el.ulsLevelBar) {
-      const pct = Math.max(0, Math.min(100, (v / ULS_MAX_M) * 100));
-      _el.ulsLevelBar.style.width = pct + "%";
-    }
+    _setTankLevel(_el.ulsLevelBar, v);
     _blinkLed(_el.ulsLevelLed);
   });
 
@@ -241,10 +254,7 @@ function initRealtime() {
     if (s.val() === null) return;
     const v = parseFloat(s.val());
     if (_el.bayanLevel) _el.bayanLevel.textContent = v.toFixed(2);
-    if (_el.bayanLevelBar) {
-      const pct = Math.max(0, Math.min(100, (v / ULS_MAX_M) * 100));
-      _el.bayanLevelBar.style.width = pct + "%";
-    }
+    _setTankLevel(_el.bayanLevelBar, v);
     _blinkLed(_el.bayanLevelLed);
   });
 
@@ -254,12 +264,7 @@ function initRealtime() {
     if (s.val() === null) return;
     const v = parseFloat(s.val());
     if (_el.cleanWaterLevel) _el.cleanWaterLevel.textContent = v.toFixed(2);
-    if (_el.cleanWaterLevelBar) {
-      const max = parseFloat(_el.cleanWaterLevelBar.dataset.max) || ULS_MAX_M;
-      if (_el.cleanWaterMax) _el.cleanWaterMax.textContent = max.toFixed(2) + " m";
-      const pct = Math.max(0, Math.min(100, (v / max) * 100));
-      _el.cleanWaterLevelBar.style.width = pct + "%";
-    }
+    _setTankLevel(_el.cleanWaterLevelBar, v);
     _blinkLed(_el.cleanWaterLevelLed);
   });
 
@@ -296,15 +301,11 @@ function initRealtime() {
   });
 
   // ── Эргэлтийн усан сан — Ultrasonic Level (Teerem Slave 7) ─────────
-  const WATER_TANK_MAX_M = 3.0;
   db.ref("/teerem/water_tank/level").on("value", s => {
     if (s.val() === null) return;
     const v = parseFloat(s.val());
     if (_el.waterTankLevel) _el.waterTankLevel.textContent = v.toFixed(2);
-    if (_el.waterTankLevelBar) {
-      const pct = Math.max(0, Math.min(100, (v / WATER_TANK_MAX_M) * 100));
-      _el.waterTankLevelBar.style.width = pct + "%";
-    }
+    _setTankLevel(_el.waterTankLevelBar, v);
     _blinkLed(_el.waterTankLevelLed);
   });
 

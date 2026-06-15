@@ -317,7 +317,7 @@
              энэ контейнерт оруулаад/устгахад л болно. Грид өөрөө дахин эрэмбэлнэ.
              - Desktop / Tablet (≥640px): 2 багана
              - PWA / Mobile (<640px):    1 багана -->
-        <div class="grid grid-cols-2 gap-4 mb-4 max-sm:grid-cols-1">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4 items-start">
 
           <!-- Flowmeter 2 -->
           <div
@@ -380,99 +380,130 @@
           </div>
 
           <!-- Суларсан уусмал савны түвшин (Ultrasonic Level — Slave ID 1) -->
-          <div
-            class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
-            <div class="flex items-center gap-2 text-[13px] text-text-soft mb-2 font-medium">
-              <div
-                class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
-                id="ulsLevelLed"></div>
-              Суларсан уусмалын сан
+          <!-- Савны бодит өндрийг (метр) data-max дээр өг — ус автоматаар тэр хэмжээгээр дүүрнэ. -->
+          <div class="wl-card glass-card rounded-DEFAULT transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]"
+               data-max="4">
+            <div class="wl-gridlines"></div>
+            <div class="wl-water" id="ulsLevelBar" style="--level: 0%;">
+              <svg class="wl-wave wl-wave-back" viewBox="0 0 1200 30" preserveAspectRatio="none">
+                <path d="M0,15 C100,3 200,3 300,15 C400,27 500,27 600,15 C700,3 800,3 900,15 C1000,27 1100,27 1200,15 L1200,30 L0,30 Z"></path>
+              </svg>
+              <svg class="wl-wave wl-wave-front" viewBox="0 0 1200 30" preserveAspectRatio="none">
+                <path d="M0,15 C100,27 200,27 300,15 C400,3 500,3 600,15 C700,27 800,27 900,15 C1000,3 1100,3 1200,15 L1200,30 L0,30 Z"></path>
+              </svg>
             </div>
-            <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
-              <span id="ulsLevel">0.00</span>
-              <span class="text-base text-text-dim font-medium"> m</span>
+            <div class="wl-bubbles">
+              <span class="wl-bubble"></span><span class="wl-bubble"></span><span class="wl-bubble"></span><span class="wl-bubble"></span><span class="wl-bubble"></span>
             </div>
-            <div class="mt-3">
-              <div class="flex justify-between mb-1.5 text-[11px] text-text-dim tabular-nums">
-                <span>0</span><span>2.20 m</span>
+            <div class="wl-scrim"></div>
+            <div class="wl-info">
+              <div class="wl-head">
+                <div class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
+                  id="ulsLevelLed"></div>
+                Суларсан уусмалын сан
               </div>
-              <div class="relative h-1.5 rounded-full overflow-hidden bg-white/[0.06]">
-                <div class="absolute inset-y-0 left-0 rounded-full transition-[width] duration-500 ease-out
-                  bg-gradient-to-r from-accent to-success"
-                  id="ulsLevelBar" style="width: 0%;"></div>
-              </div>
+            </div>
+            <div class="wl-readout">
+              <div class="wl-val"><span id="ulsLevel">0.00</span><span class="wl-unit">м</span></div>
+              <div class="wl-cap">/ <span class="wl-max">4.00</span> м</div>
             </div>
           </div>
 
           <!-- Баян уусмалын сан (Ultrasonic Level — pressfilter Bus C Slave 5) -->
-          <div
-            class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
-            <div class="flex items-center gap-2 text-[13px] text-text-soft mb-2 font-medium">
-              <div
-                class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
-                id="bayanLevelLed"></div>
-              Баян уусмалын сан
+          <div class="wl-card glass-card rounded-DEFAULT transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]"
+               data-max="4">
+            <div class="wl-gridlines"></div>
+            <div class="wl-water" id="bayanLevelBar" style="--level: 0%;">
+              <svg class="wl-wave wl-wave-back" viewBox="0 0 1200 30" preserveAspectRatio="none">
+                <path d="M0,15 C100,3 200,3 300,15 C400,27 500,27 600,15 C700,3 800,3 900,15 C1000,27 1100,27 1200,15 L1200,30 L0,30 Z"></path>
+              </svg>
+              <svg class="wl-wave wl-wave-front" viewBox="0 0 1200 30" preserveAspectRatio="none">
+                <path d="M0,15 C100,27 200,27 300,15 C400,3 500,3 600,15 C700,27 800,27 900,15 C1000,3 1100,3 1200,15 L1200,30 L0,30 Z"></path>
+              </svg>
             </div>
-            <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
-              <span id="bayanLevel">0.00</span>
-              <span class="text-base text-text-dim font-medium"> m</span>
+            <div class="wl-bubbles">
+              <span class="wl-bubble"></span><span class="wl-bubble"></span><span class="wl-bubble"></span><span class="wl-bubble"></span><span class="wl-bubble"></span>
             </div>
-            <div class="mt-3">
-              <div class="flex justify-between mb-1.5 text-[11px] text-text-dim tabular-nums">
-                <span>0</span><span>2.20 m</span>
+            <div class="wl-scrim"></div>
+            <div class="wl-info">
+              <div class="wl-head">
+                <div class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
+                  id="bayanLevelLed"></div>
+                Баян уусмалын сан
               </div>
-              <div class="relative h-1.5 rounded-full overflow-hidden bg-white/[0.06]">
-                <div class="absolute inset-y-0 left-0 rounded-full transition-[width] duration-500 ease-out
-                  bg-gradient-to-r from-accent to-success"
-                  id="bayanLevelBar" style="width: 0%;"></div>
-              </div>
+            </div>
+            <div class="wl-readout">
+              <div class="wl-val"><span id="bayanLevel">0.00</span><span class="wl-unit">м</span></div>
+              <div class="wl-cap">/ <span class="wl-max">4.00</span> м</div>
             </div>
           </div>
 
           <!-- Цэвэр усан сан (Ultrasonic Level — pressfilter Bus C Slave 6) -->
-          <!-- Bar-ийн дээд хязгаарыг өөрчлөхдөө доорх data-max утгыг засна (метр). -->
-          <div
-            class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
-            <div class="flex items-center gap-2 text-[13px] text-text-soft mb-2 font-medium">
-              <div
-                class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
-                id="cleanWaterLevelLed"></div>
-              Цэвэр усан сан
+          <!-- Савны дээд хязгаарыг (метр) data-max дээр засна. -->
+          <div class="wl-card glass-card rounded-DEFAULT transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]"
+               data-max="4">
+            <div class="wl-gridlines"></div>
+            <div class="wl-water" id="cleanWaterLevelBar" style="--level: 0%;">
+              <svg class="wl-wave wl-wave-back" viewBox="0 0 1200 30" preserveAspectRatio="none">
+                <path d="M0,15 C100,3 200,3 300,15 C400,27 500,27 600,15 C700,3 800,3 900,15 C1000,27 1100,27 1200,15 L1200,30 L0,30 Z"></path>
+              </svg>
+              <svg class="wl-wave wl-wave-front" viewBox="0 0 1200 30" preserveAspectRatio="none">
+                <path d="M0,15 C100,27 200,27 300,15 C400,3 500,3 600,15 C700,27 800,27 900,15 C1000,3 1100,3 1200,15 L1200,30 L0,30 Z"></path>
+              </svg>
             </div>
-            <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
-              <span id="cleanWaterLevel">0.00</span>
-              <span class="text-base text-text-dim font-medium"> m</span>
+            <div class="wl-bubbles">
+              <span class="wl-bubble"></span><span class="wl-bubble"></span><span class="wl-bubble"></span><span class="wl-bubble"></span><span class="wl-bubble"></span>
             </div>
-            <div class="mt-3">
-              <div class="flex justify-between mb-1.5 text-[11px] text-text-dim tabular-nums">
-                <span>0</span><span id="cleanWaterMax">2.20 m</span>
+            <div class="wl-scrim"></div>
+            <div class="wl-info">
+              <div class="wl-head">
+                <div class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
+                  id="cleanWaterLevelLed"></div>
+                Цэвэр усан сан
               </div>
-              <div class="relative h-1.5 rounded-full overflow-hidden bg-white/[0.06]">
-                <div class="absolute inset-y-0 left-0 rounded-full transition-[width] duration-500 ease-out
-                  bg-gradient-to-r from-accent to-success"
-                  id="cleanWaterLevelBar" data-max="2.20" style="width: 0%;"></div>
-              </div>
+            </div>
+            <div class="wl-readout">
+              <div class="wl-val"><span id="cleanWaterLevel">0.00</span><span class="wl-unit">м</span></div>
+              <div class="wl-cap">/ <span class="wl-max">4.00</span> м</div>
             </div>
           </div>
 
-          <!-- 02-WT-02 Тээрмийн жин -->
-          <div
-            class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
-            <div class="flex items-center gap-2 text-[13px] text-text-soft mb-2 font-medium">
-              <div
-                class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
-                id="teeremWeightLedAct"></div>
-              02-WT-02 Тээрмийн жин
+          <!-- 02-WT-02 Тээрмийн жин (линльүүрийн жингийн хэмжүүр) -->
+          <div class="cs-card glass-card rounded-DEFAULT transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
+            <div class="cs-floor"></div>
+            <div class="cs-scene">
+              <div class="cs-heap-clip">
+                <div class="cs-heap">
+                  <svg viewBox="0 0 1200 79" preserveAspectRatio="none">
+                    <defs>
+                      <linearGradient id="csSoil1" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0" stop-color="#a1887f"></stop>
+                        <stop offset="0.4" stop-color="#795548"></stop>
+                        <stop offset="1" stop-color="#4e342e"></stop>
+                      </linearGradient>
+                    </defs>
+                    <path fill="url(#csSoil1)" d="M0,52 C70,30 130,64 200,44 C270,24 320,58 400,40 C470,25 520,60 600,46 C670,33 720,62 800,42 C870,26 930,60 1000,44 C1070,30 1130,58 1200,46 L1200,79 L0,79 Z"></path>
+                  </svg>
+                </div>
+              </div>
+              <div class="cs-rocks">
+                <span class="cs-rock"></span><span class="cs-rock"></span><span class="cs-rock"></span><span class="cs-rock"></span><span class="cs-rock"></span><span class="cs-rock"></span><span class="cs-rock"></span>
+              </div>
+              <div class="cs-strand"><div class="cs-tread"></div></div>
+              <div class="cs-stand"></div>
+              <div class="cs-idler"><div class="cs-spoke"></div></div>
+              <div class="cs-base"></div>
             </div>
-            <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
-              <span id="teeremWeightAct">0.00</span>
-              <span class="text-base text-text-dim font-medium"> t/h</span>
+            <div class="cs-info">
+              <div class="cs-head">
+                <div class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
+                  id="teeremWeightLedAct"></div>
+                02-WT-02 Тээрмийн жин
+              </div>
             </div>
-            <div class="mt-3 pt-3 border-t border-border-base flex items-center justify-between">
-              <span class="text-[11px] text-text-dim">Cumulative</span>
-              <span class="text-[13px] font-semibold text-text-soft tabular-nums">
-                <span id="teeremWeightTonsAct">0.000</span> t
-              </span>
+            <div class="cs-readout">
+              <div class="cs-val"><span id="teeremWeightAct">0.00</span><span class="cs-unit">t/h</span></div>
+              <div class="cs-total"><span class="cs-k">Нийт</span> <span id="teeremWeightTonsAct">0.000</span> t</div>
             </div>
           </div>
 
@@ -498,48 +529,70 @@
           </div>
 
           <!-- Эргэлтийн усан сан (Ultrasonic Level — Teerem Slave 7) -->
-          <div
-            class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
-            <div class="flex items-center gap-2 text-[13px] text-text-soft mb-2 font-medium">
-              <div
-                class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
-                id="waterTankLevelLed"></div>
-              Эргэлтийн усан сан
+          <div class="wl-card glass-card rounded-DEFAULT transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]"
+               data-max="4">
+            <div class="wl-gridlines"></div>
+            <div class="wl-water" id="waterTankLevelBar" style="--level: 0%;">
+              <svg class="wl-wave wl-wave-back" viewBox="0 0 1200 30" preserveAspectRatio="none">
+                <path d="M0,15 C100,3 200,3 300,15 C400,27 500,27 600,15 C700,3 800,3 900,15 C1000,27 1100,27 1200,15 L1200,30 L0,30 Z"></path>
+              </svg>
+              <svg class="wl-wave wl-wave-front" viewBox="0 0 1200 30" preserveAspectRatio="none">
+                <path d="M0,15 C100,27 200,27 300,15 C400,3 500,3 600,15 C700,27 800,27 900,15 C1000,3 1100,3 1200,15 L1200,30 L0,30 Z"></path>
+              </svg>
             </div>
-            <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
-              <span id="waterTankLevel">0.00</span>
-              <span class="text-base text-text-dim font-medium"> m</span>
+            <div class="wl-bubbles">
+              <span class="wl-bubble"></span><span class="wl-bubble"></span><span class="wl-bubble"></span><span class="wl-bubble"></span><span class="wl-bubble"></span>
             </div>
-            <div class="mt-3">
-              <div class="flex justify-between mb-1.5 text-[11px] text-text-dim tabular-nums">
-                <span>0</span><span>3 m</span>
+            <div class="wl-scrim"></div>
+            <div class="wl-info">
+              <div class="wl-head">
+                <div class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
+                  id="waterTankLevelLed"></div>
+                Эргэлтийн усан сан
               </div>
-              <div class="relative h-1.5 rounded-full overflow-hidden bg-white/[0.06]">
-                <div class="absolute inset-y-0 left-0 rounded-full transition-[width] duration-500 ease-out
-                  bg-gradient-to-r from-accent to-success"
-                  id="waterTankLevelBar" style="width: 0%;"></div>
-              </div>
+            </div>
+            <div class="wl-readout">
+              <div class="wl-val"><span id="waterTankLevel">0.00</span><span class="wl-unit">м</span></div>
+              <div class="wl-cap">/ <span class="wl-max">4.00</span> м</div>
             </div>
           </div>
 
-          <!-- 01-WT-01 Бутлуурын жин (placeholder — төхөөрөмж суурилуулсны дараа холбоно) -->
-          <div
-            class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
-            <div class="flex items-center gap-2 text-[13px] text-text-soft mb-2 font-medium">
-              <div
-                class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
-                id="wt01Led"></div>
-              01-WT-01 Бутлуурын жин
+          <!-- 01-WT-01 Бутлуурын жин (линльүүрийн жингийн хэмжүүр; placeholder) -->
+          <div class="cs-card glass-card rounded-DEFAULT transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
+            <div class="cs-floor"></div>
+            <div class="cs-scene">
+              <div class="cs-heap-clip">
+                <div class="cs-heap">
+                  <svg viewBox="0 0 1200 79" preserveAspectRatio="none">
+                    <defs>
+                      <linearGradient id="csSoil2" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0" stop-color="#a1887f"></stop>
+                        <stop offset="0.4" stop-color="#795548"></stop>
+                        <stop offset="1" stop-color="#4e342e"></stop>
+                      </linearGradient>
+                    </defs>
+                    <path fill="url(#csSoil2)" d="M0,52 C70,30 130,64 200,44 C270,24 320,58 400,40 C470,25 520,60 600,46 C670,33 720,62 800,42 C870,26 930,60 1000,44 C1070,30 1130,58 1200,46 L1200,79 L0,79 Z"></path>
+                  </svg>
+                </div>
+              </div>
+              <div class="cs-rocks">
+                <span class="cs-rock"></span><span class="cs-rock"></span><span class="cs-rock"></span><span class="cs-rock"></span><span class="cs-rock"></span><span class="cs-rock"></span><span class="cs-rock"></span>
+              </div>
+              <div class="cs-strand"><div class="cs-tread"></div></div>
+              <div class="cs-stand"></div>
+              <div class="cs-idler"><div class="cs-spoke"></div></div>
+              <div class="cs-base"></div>
             </div>
-            <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
-              <span id="wt01Weight">0.00</span>
-              <span class="text-base text-text-dim font-medium"> t/h</span>
+            <div class="cs-info">
+              <div class="cs-head">
+                <div class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
+                  id="wt01Led"></div>
+                01-WT-01 Бутлуурын жин
+              </div>
             </div>
-            <div class="mt-3 pt-3 border-t border-border-base flex items-center justify-between">
-              <span class="text-[11px] text-text-dim">Cumulative</span>
-              <span class="text-[13px] font-semibold text-text-soft tabular-nums">
-                <span id="wt01WeightTons">0.000</span> t
-              </span>
+            <div class="cs-readout">
+              <div class="cs-val"><span id="wt01Weight">0.00</span><span class="cs-unit">t/h</span></div>
+              <div class="cs-total"><span class="cs-k">Нийт</span> <span id="wt01WeightTons">0.000</span> t</div>
             </div>
           </div>
 
@@ -613,7 +666,7 @@
         <!-- Цахилгаан тоолуурын card-ууд — auto-flow grid.
              Card нэмэх/хасахдаа зүгээр л дараах <div class="glass-card …">-ийг
              энэ контейнерт оруулаад/устгахад л болно. -->
-        <div class="grid grid-cols-2 gap-4 mb-4 max-sm:grid-cols-1">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4 items-start">
 
           <!-- 01 — Боловсруулах үйлдвэр ХС -->
           <div
@@ -1028,23 +1081,41 @@
            ========================================================== -->
       <div class="tab-panel animate-tab-in" id="tab-teerem" style="display:none">
         <div class="grid grid-cols-1 gap-4 mb-4 max-w-sm">
-          <div
-            class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
-            <div class="flex items-center gap-2 text-[13px] text-text-soft mb-2 font-medium">
-              <div
-                class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
-                id="teeremWeightLed"></div>
-              Тээрмийн тэжээлийн жин
+          <div class="cs-card glass-card rounded-DEFAULT transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
+            <div class="cs-floor"></div>
+            <div class="cs-scene">
+              <div class="cs-heap-clip">
+                <div class="cs-heap">
+                  <svg viewBox="0 0 1200 79" preserveAspectRatio="none">
+                    <defs>
+                      <linearGradient id="csSoil3" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0" stop-color="#a1887f"></stop>
+                        <stop offset="0.4" stop-color="#795548"></stop>
+                        <stop offset="1" stop-color="#4e342e"></stop>
+                      </linearGradient>
+                    </defs>
+                    <path fill="url(#csSoil3)" d="M0,52 C70,30 130,64 200,44 C270,24 320,58 400,40 C470,25 520,60 600,46 C670,33 720,62 800,42 C870,26 930,60 1000,44 C1070,30 1130,58 1200,46 L1200,79 L0,79 Z"></path>
+                  </svg>
+                </div>
+              </div>
+              <div class="cs-rocks">
+                <span class="cs-rock"></span><span class="cs-rock"></span><span class="cs-rock"></span><span class="cs-rock"></span><span class="cs-rock"></span><span class="cs-rock"></span><span class="cs-rock"></span>
+              </div>
+              <div class="cs-strand"><div class="cs-tread"></div></div>
+              <div class="cs-stand"></div>
+              <div class="cs-idler"><div class="cs-spoke"></div></div>
+              <div class="cs-base"></div>
             </div>
-            <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
-              <span id="teeremWeight">0.00</span>
-              <span class="text-base text-text-dim font-medium"> t/h</span>
+            <div class="cs-info">
+              <div class="cs-head">
+                <div class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
+                  id="teeremWeightLed"></div>
+                Тээрмийн тэжээлийн жин
+              </div>
             </div>
-            <div class="mt-3 pt-3 border-t border-border-base flex items-center justify-between">
-              <span class="text-[11px] text-text-dim">Cumulative</span>
-              <span class="text-[13px] font-semibold text-text-soft tabular-nums">
-                <span id="teeremWeightTons">0.000</span> t
-              </span>
+            <div class="cs-readout">
+              <div class="cs-val"><span id="teeremWeight">0.00</span><span class="cs-unit">t/h</span></div>
+              <div class="cs-total"><span class="cs-k">Нийт</span> <span id="teeremWeightTons">0.000</span> t</div>
             </div>
           </div>
 
@@ -1076,23 +1147,41 @@
            ========================================================== -->
       <div class="tab-panel animate-tab-in" id="tab-butluur" style="display:none">
         <div class="grid grid-cols-1 gap-4 mb-4 max-w-sm">
-          <div
-            class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
-            <div class="flex items-center gap-2 text-[13px] text-text-soft mb-2 font-medium">
-              <div
-                class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
-                id="butluurWeightLed"></div>
-              01-WT-01 Бутлуурын жин
+          <div class="cs-card glass-card rounded-DEFAULT transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
+            <div class="cs-floor"></div>
+            <div class="cs-scene">
+              <div class="cs-heap-clip">
+                <div class="cs-heap">
+                  <svg viewBox="0 0 1200 79" preserveAspectRatio="none">
+                    <defs>
+                      <linearGradient id="csSoil4" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0" stop-color="#a1887f"></stop>
+                        <stop offset="0.4" stop-color="#795548"></stop>
+                        <stop offset="1" stop-color="#4e342e"></stop>
+                      </linearGradient>
+                    </defs>
+                    <path fill="url(#csSoil4)" d="M0,52 C70,30 130,64 200,44 C270,24 320,58 400,40 C470,25 520,60 600,46 C670,33 720,62 800,42 C870,26 930,60 1000,44 C1070,30 1130,58 1200,46 L1200,79 L0,79 Z"></path>
+                  </svg>
+                </div>
+              </div>
+              <div class="cs-rocks">
+                <span class="cs-rock"></span><span class="cs-rock"></span><span class="cs-rock"></span><span class="cs-rock"></span><span class="cs-rock"></span><span class="cs-rock"></span><span class="cs-rock"></span>
+              </div>
+              <div class="cs-strand"><div class="cs-tread"></div></div>
+              <div class="cs-stand"></div>
+              <div class="cs-idler"><div class="cs-spoke"></div></div>
+              <div class="cs-base"></div>
             </div>
-            <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
-              <span id="butluurWeight">0.00</span>
-              <span class="text-base text-text-dim font-medium"> t/h</span>
+            <div class="cs-info">
+              <div class="cs-head">
+                <div class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
+                  id="butluurWeightLed"></div>
+                01-WT-01 Бутлуурын жин
+              </div>
             </div>
-            <div class="mt-3 pt-3 border-t border-border-base flex items-center justify-between">
-              <span class="text-[11px] text-text-dim">Cumulative</span>
-              <span class="text-[13px] font-semibold text-text-soft tabular-nums">
-                <span id="butluurWeightTons">0.000</span> t
-              </span>
+            <div class="cs-readout">
+              <div class="cs-val"><span id="butluurWeight">0.00</span><span class="cs-unit">t/h</span></div>
+              <div class="cs-total"><span class="cs-k">Нийт</span> <span id="butluurWeightTons">0.000</span> t</div>
             </div>
           </div>
         </div>

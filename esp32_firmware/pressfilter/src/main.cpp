@@ -14,7 +14,7 @@
  *   Bus B (UART2) — MAX485 #2:
  *     RO → GPIO 4 (RX) · DI → GPIO 5 (TX) · DE+RE → GPIO 6 · A/B → RS485 шугам #2
  *     Slave 3 : SPM33 — Нуруулдан уусгалт ХС (P, E) → em10
- *     Slave 4 : SPM33 — Компрессор ХС        (P, E) → em11
+ *     (Компрессор ХС / em11 нь ushg ESP рүү шилжсэн — slave 3 болсон)
  *
  *   Bus C (UART0) — MAX485 #3:
  *     RO → GPIO 7 (RX) · DI → GPIO 8 (TX) · DE+RE → GPIO 9 · A/B → RS485 шугам #3
@@ -24,7 +24,7 @@
  *   MAX485 бүрийн VCC / GND → ESP 3V3 / GND.  GPIO 21 — WS2812 onboard RGB LED.
  *
  *  Firebase RTDB:
- *    /energy_meters/em08..em11/{power_kw,total_energy_kwh}
+ *    /energy_meters/em08..em10/{power_kw,total_energy_kwh}
  *    /pressfilter/bayan_tank/level, /pressfilter/clean_water_tank/level
  *    /pressfilter/last_updated
  */
@@ -53,7 +53,6 @@ constexpr uint8_t C_RX = 7, C_TX = 8, C_DE = 9;
 constexpr uint8_t EM09_SLAVE = 1; // Bus A — Десорбци ХС
 constexpr uint8_t EM08_SLAVE = 2; // Bus A — Шүүн шахах УС
 constexpr uint8_t EM10_SLAVE = 3; // Bus B — Нуруулдан уусгалт ХС
-constexpr uint8_t EM11_SLAVE = 4; // Bus B — Компрессор ХС
 constexpr uint8_t ULS_SLAVE = 5;  // Bus C — Баян уусмалын сан (Supmea ultrasonic)
 constexpr uint8_t ULS2_SLAVE = 6; // Bus C — Цэвэр усан сан (Supmea ultrasonic)
 
@@ -302,9 +301,9 @@ static bool withRetry(F &&fn) {
 }
 
 // CT primary бол метр дээр гараар тохируулдаг тогтмол тоо (рег. 40202).
-// Boot үед уншиж кэшилнэ. Индекс нь slave ID (SPM33 хамгийн их slave = 4 тул [5]).
-static uint16_t ctPrimary[5] = {1, 1, 1, 1, 1};
-static bool ctPrimaryKnown[5] = {false, false, false, false, false};
+// Boot үед уншиж кэшилнэ. Индекс нь slave ID (SPM33 хамгийн их slave = 3 тул [4]).
+static uint16_t ctPrimary[4] = {1, 1, 1, 1};
+static bool ctPrimaryKnown[4] = {false, false, false, false};
 
 bool Spm33_readCtPrimary(Modbus &mb, uint8_t slave) {
   uint16_t v = 0;
@@ -375,7 +374,6 @@ unsigned int fbFailStreak = 0;
 float cachedEm08EnergyKWh = 0.0f; bool cachedEm08EnergyValid = false;
 float cachedEm09EnergyKWh = 0.0f; bool cachedEm09EnergyValid = false;
 float cachedEm10EnergyKWh = 0.0f; bool cachedEm10EnergyValid = false;
-float cachedEm11EnergyKWh = 0.0f; bool cachedEm11EnergyValid = false;
 
 void fbOnFailure() {
   fbFailStreak++;
@@ -486,8 +484,6 @@ void setup() {
   Spm33_readCtPrimary(busA, cfg::EM08_SLAVE);
   delay(cfg::FRAME_GAP_MS);
   Spm33_readCtPrimary(busB, cfg::EM10_SLAVE);
-  delay(cfg::FRAME_GAP_MS);
-  Spm33_readCtPrimary(busB, cfg::EM11_SLAVE);
 
   WiFi.onEvent(onWifiEvent);
   wifiConnect();
@@ -549,14 +545,12 @@ void loop() {
     Spm33_readCtPrimary(busA, cfg::EM08_SLAVE);
   } else if (!ctPrimaryKnown[cfg::EM10_SLAVE]) {
     Spm33_readCtPrimary(busB, cfg::EM10_SLAVE);
-  } else if (!ctPrimaryKnown[cfg::EM11_SLAVE]) {
-    Spm33_readCtPrimary(busB, cfg::EM11_SLAVE);
   }
 
   bool totalizerCycle = (lastTotalizerReadTime == 0) ||
                         (now - lastTotalizerReadTime >= cfg::TOTALIZER_INTERVAL_MS);
 
-  Spm33Reading em08, em09, em10, em11;
+  Spm33Reading em08, em09, em10;
   uint16_t ulsRaw = 0;
   bool ulsLevelOk = false;
   float ulsLevel = 0.0f;
@@ -565,7 +559,7 @@ void loop() {
   float uls2Level = 0.0f;
 
   if (totalizerCycle) {
-    // ── Totalizer cycle: 4× SPM33 энерги
+    // ── Totalizer cycle: 3× SPM33 энерги
     lastTotalizerReadTime = now;
     Serial.println("[Cycle] Totalizer read (1 min interval)");
 
@@ -577,24 +571,18 @@ void loop() {
     delay(cfg::FRAME_GAP_MS);
     em10 = Spm33_readEnergy(busB, cfg::EM10_SLAVE);
     if (em10.energyOk) { cachedEm10EnergyKWh = em10.energyKWh; cachedEm10EnergyValid = true; }
-    delay(cfg::FRAME_GAP_MS);
-    em11 = Spm33_readEnergy(busB, cfg::EM11_SLAVE);
-    if (em11.energyOk) { cachedEm11EnergyKWh = em11.energyKWh; cachedEm11EnergyValid = true; }
 
-    Serial.printf("[Totalizer] EM08:%s EM09:%s EM10:%s EM11:%s\n",
+    Serial.printf("[Totalizer] EM08:%s EM09:%s EM10:%s\n",
                   em08.energyOk ? String(em08.energyKWh, 1).c_str() : "#",
                   em09.energyOk ? String(em09.energyKWh, 1).c_str() : "#",
-                  em10.energyOk ? String(em10.energyKWh, 1).c_str() : "#",
-                  em11.energyOk ? String(em11.energyKWh, 1).c_str() : "#");
+                  em10.energyOk ? String(em10.energyKWh, 1).c_str() : "#");
   } else {
-    // ── Flow cycle: 4× SPM33 power + ultrasonic level
+    // ── Flow cycle: 3× SPM33 power + ultrasonic level
     em09 = Spm33_readPower(busA, cfg::EM09_SLAVE);
     delay(cfg::FRAME_GAP_MS);
     em08 = Spm33_readPower(busA, cfg::EM08_SLAVE);
     delay(cfg::FRAME_GAP_MS);
     em10 = Spm33_readPower(busB, cfg::EM10_SLAVE);
-    delay(cfg::FRAME_GAP_MS);
-    em11 = Spm33_readPower(busB, cfg::EM11_SLAVE);
     delay(cfg::FRAME_GAP_MS);
 
     ulsLevelOk = withRetry(
@@ -605,18 +593,17 @@ void loop() {
         [&] { return busC.readU16(cfg::ULS2_SLAVE, cfg::REG_ULS_LEVEL, uls2Raw); });
     uls2Level = uls2LevelOk ? (uls2Raw / 1000.0f) : 0.0f;
 
-    Serial.printf("[Flow] EM08:%s EM09:%s EM10:%s EM11:%s Bayan:%s Tseever:%s\n",
+    Serial.printf("[Flow] EM08:%s EM09:%s EM10:%s Bayan:%s Tseever:%s\n",
                   em08.powerOk ? String(em08.powerKW, 2).c_str() : "#",
                   em09.powerOk ? String(em09.powerKW, 2).c_str() : "#",
                   em10.powerOk ? String(em10.powerKW, 2).c_str() : "#",
-                  em11.powerOk ? String(em11.powerKW, 2).c_str() : "#",
                   ulsLevelOk ? String(ulsLevel, 3).c_str() : "#",
                   uls2LevelOk ? String(uls2Level, 3).c_str() : "#");
   }
 
   // ── Алдаа escalate ──────────────────────────────────────────────
   bool anyOk = em08.powerOk || em08.energyOk || em09.powerOk || em09.energyOk ||
-               em10.powerOk || em10.energyOk || em11.powerOk || em11.energyOk ||
+               em10.powerOk || em10.energyOk ||
                ulsLevelOk || uls2LevelOk;
   if (anyOk) {
     consecutiveReadFails = 0;
@@ -642,7 +629,7 @@ void loop() {
     ota::begin(&fbData);
   }
 
-  // ─ Subtree 1: /energy_meters/{em08..em11} ──────────────────────────
+  // ─ Subtree 1: /energy_meters/{em08..em10} ──────────────────────────
   bool emOk = true;
   bool emAny = false;
   {
@@ -664,7 +651,6 @@ void loop() {
     addEm("em08", em08);
     addEm("em09", em09);
     addEm("em10", em10);
-    addEm("em11", em11);
     if (emAny) {
       emOk = Firebase.RTDB.updateNodeSilent(&fbData, "/energy_meters", &j);
       if (!emOk)
