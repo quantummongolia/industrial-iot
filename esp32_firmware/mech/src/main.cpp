@@ -16,16 +16,24 @@
  *    MAX485 A / B              → RS485 шугам (Slave 1 SPM33)
  *    MAX485 VCC / GND          → ESP 3V3 / GND
  *    GPIO 21 — WS2812 onboard RGB LED (статус)
+ *
+ *  GC9A01 240×240 дугуй дэлгэц (SPI) — Serial логийг realtime харуулна:
+ *    SCL→G1, SDA→G2, DC→G3, CS→G7, RST→G8, VCC/GND→3V3/GND (display.cpp)
  */
 
 #include "secrets.h"
 #include "ota.h"
+#include "display.h"
 #include <Arduino.h>
 #include <Firebase_ESP_Client.h>
 #include <WiFi.h>
 #include <addons/RTDBHelper.h>
 #include <addons/TokenHelper.h>
 #include <esp_task_wdt.h>
+
+// Бүх `Serial.print*`-ийг USB + GC9A01 дэлгэц рүү давхар чиглүүлнэ.
+// `Serial1` (Modbus UART) өөр токен тул хөндөгдөхгүй. display.h-аас доош.
+#define Serial gLog
 
 // ── Modbus тохиргоо ────────────────────────────────────────────────────
 namespace cfg {
@@ -443,6 +451,8 @@ void firebaseInit() {
 void setup() {
   Serial.begin(115200);
   delay(300);
+  // GC9A01 дэлгэц + core 0 рендер task. Бүтэлгүй бол non-fatal (OTA-д аюулгүй).
+  disp::begin();
   Serial.println("\n========= Mech IoT (S3-Zero) =========");
 
   led::begin();
