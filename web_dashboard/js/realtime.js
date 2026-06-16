@@ -29,6 +29,18 @@ function _setTankLevel(waterEl, v) {
   waterEl.style.setProperty("--level", pct.toFixed(2) + "%");
 }
 
+// Савны нийт өндрийг (mount height, метр) ESP-ээс уншсан утгаар автоматаар
+// тохируулна — card-ын data-max ба харагдах "Өндөр" текстийг шинэчилнэ.
+// Ингэснээр HTML дээр гараар тохируулах шаардлагагүй.
+function _setTankMax(waterEl, mh) {
+  if (!waterEl || !(mh > 0)) return;
+  const card = waterEl.closest(".wl-card");
+  if (!card) return;
+  card.dataset.max = mh;
+  const maxEl = card.querySelector(".wl-max");
+  if (maxEl) maxEl.textContent = mh.toFixed(2);
+}
+
 function _onFlowRate(key, val) {
   _readingCount++;
   const flow = parseFloat(val).toFixed(2);
@@ -247,6 +259,10 @@ function initRealtime() {
     _setTankLevel(_el.ulsLevelBar, v);
     _blinkLed(_el.ulsLevelLed);
   });
+  // Mount height (савны нийт өндөр) — ESP boot дээр уншиж нэг удаа нийтэлдэг.
+  db.ref("/flow_system/level_sensor/mount_height").on("value", s => {
+    if (s.val() !== null) _setTankMax(_el.ulsLevelBar, parseFloat(s.val()));
+  });
 
   // Баян уусмалын сан (Supmea ultrasonic — pressfilter Bus C Slave 5)
   // Суларсан уусмалын сантай яг адил төхөөрөмж, ижил bar хязгаар (0..2.20m).
@@ -257,6 +273,9 @@ function initRealtime() {
     _setTankLevel(_el.bayanLevelBar, v);
     _blinkLed(_el.bayanLevelLed);
   });
+  db.ref("/pressfilter/bayan_tank/mount_height").on("value", s => {
+    if (s.val() !== null) _setTankMax(_el.bayanLevelBar, parseFloat(s.val()));
+  });
 
   // Цэвэр усан сан (Supmea ultrasonic — pressfilter Bus C Slave 6)
   // Bar-ийн дээд хязгаарыг index.html дахь #cleanWaterLevelBar data-max-аас уншина.
@@ -266,6 +285,9 @@ function initRealtime() {
     if (_el.cleanWaterLevel) _el.cleanWaterLevel.textContent = v.toFixed(2);
     _setTankLevel(_el.cleanWaterLevelBar, v);
     _blinkLed(_el.cleanWaterLevelLed);
+  });
+  db.ref("/pressfilter/clean_water_tank/mount_height").on("value", s => {
+    if (s.val() !== null) _setTankMax(_el.cleanWaterLevelBar, parseFloat(s.val()));
   });
 
   // ── Teerem ────────────────────────────────────────────
@@ -307,6 +329,9 @@ function initRealtime() {
     if (_el.waterTankLevel) _el.waterTankLevel.textContent = v.toFixed(2);
     _setTankLevel(_el.waterTankLevelBar, v);
     _blinkLed(_el.waterTankLevelLed);
+  });
+  db.ref("/teerem/water_tank/mount_height").on("value", s => {
+    if (s.val() !== null) _setTankMax(_el.waterTankLevelBar, parseFloat(s.val()));
   });
 
   // ── Butluur (01-WT-01 Бутлуурын жин) ───────────────────
@@ -419,19 +444,25 @@ function initRealtime() {
   // мөрийг (energy + led + stale + sum) бас энд хариуцна.
   function bindMeter(meta) {
     const key = meta.key;
-    const power  = _el[key + "Power"];
-    const energy = _el[key + "Energy"];
-    const led    = _el[key + "Led"];
-    const curA   = _el[key + "CurA"];
-    const curB   = _el[key + "CurB"];
-    const curC   = _el[key + "CurC"];
+    const n = key.slice(2); // "04"
+    // Анхдагч + "...T" дагавартай толин тусгал (өөр таб дээрх ижил card).
+    // Нэг тоолуурыг хэд хэдэн таб дээр харуулахын тулд хуулбарын id-д "T"
+    // дагавар өг (ж: emPower04T) — энд автоматаар хамт шинэчлэгдэнэ.
+    const pick = (base) =>
+      ["", "T"].map(sfx => document.getElementById(base + n + sfx)).filter(Boolean);
+    const powerEls  = pick("emPower");
+    const energyEls = pick("emEnergy");
+    const ledEls    = pick("emLed");
+    const curAEls   = pick("emCurrentA");
+    const curBEls   = pick("emCurrentB");
+    const curCEls   = pick("emCurrentC");
     const sumRow = summaryRows[key];
 
     db.ref("/energy_meters/" + key + "/power_kw").on("value", s => {
       if (s.val() === null) return;
       const v = parseFloat(s.val());
-      if (power) power.textContent = v.toFixed(2);
-      _blinkLed(led);
+      powerEls.forEach(el => el.textContent = v.toFixed(2));
+      ledEls.forEach(_blinkLed);
       currentPower[key] = v;
       _recomputeTotalPower();
       _bumpMeter(key);
@@ -439,22 +470,25 @@ function initRealtime() {
     db.ref("/energy_meters/" + key + "/total_energy_kwh").on("value", s => {
       if (s.val() === null) return;
       const v = parseFloat(s.val()).toFixed(3);
-      if (energy) energy.textContent = v;
+      energyEls.forEach(el => el.textContent = v);
       if (sumRow && sumRow.energy) sumRow.energy.textContent = v;
       _bumpMeter(key);
     });
     if (meta.hasCurrents) {
       db.ref("/energy_meters/" + key + "/current_a").on("value", s => {
         if (s.val() === null) return;
-        if (curA) curA.textContent = parseFloat(s.val()).toFixed(2);
+        const v = parseFloat(s.val()).toFixed(2);
+        curAEls.forEach(el => el.textContent = v);
       });
       db.ref("/energy_meters/" + key + "/current_b").on("value", s => {
         if (s.val() === null) return;
-        if (curB) curB.textContent = parseFloat(s.val()).toFixed(2);
+        const v = parseFloat(s.val()).toFixed(2);
+        curBEls.forEach(el => el.textContent = v);
       });
       db.ref("/energy_meters/" + key + "/current_c").on("value", s => {
         if (s.val() === null) return;
-        if (curC) curC.textContent = parseFloat(s.val()).toFixed(2);
+        const v = parseFloat(s.val()).toFixed(2);
+        curCEls.forEach(el => el.textContent = v);
       });
     }
   }

@@ -5,6 +5,11 @@
 //  card-ын баруун дээд буланд шар цэг гарч ирнэ. Утга шинэчлэгдмэгц
 //  цэг алга болно.
 //
+//  Анимэйшнтэй card-ууд (fm-card / cs-card / wl-card) дээр нэмж
+//  ".is-live" класс удирдана: өгөгдөл идэвхтэй ирж байгаа үед л
+//  хөдөлгөөн явна. Card ажиллаагүй (өгөгдөл хараахан аваагүй) эсвэл
+//  хуучирсан (шар тэмдэгтэй) үед хөдөлгөөн зогсоно.
+//
 //  Зөвхөн client-side: Firebase руу юу ч бичихгүй. Зөвхөн уг хэрэглэгчийн
 //  browser дээр харагдана.
 // ============================================================
@@ -17,9 +22,10 @@
 
   // Realtime-аар шинэчлэгддэг span ID-н pattern.
   // Шинэ metric нэмэгдэх үед энд таарах шинэ префикс нэмж болно.
-  var METRIC_ID_RE = /^(fm[0-9]+|teeremWeight|butluurWeight|wt[0-9]+|em(Power|Energy|CurrentA|CurrentB|CurrentC))/;
+  var METRIC_ID_RE = /^(fm[0-9]+|feedWater|teeremWeight|butluurWeight|wt[0-9]+|ulsLevel|bayanLevel|cleanWaterLevel|waterTankLevel|em(Power|Energy|CurrentA|CurrentB|CurrentC))/;
 
-  var lastUpdate = new WeakMap(); // card → timestamp
+  var lastUpdate = new WeakMap(); // card → сүүлийн бодит шинэчлэлийн timestamp (undefined = өгөгдөл аваагүй)
+  var initAt = new WeakMap();     // card → ажиглаж эхэлсэн агшин (badge grace-д хэрэглэнэ)
 
   function findMetricCards() {
     var cards = new Set();
@@ -53,6 +59,7 @@
       'justify-content:center',
       'color:var(--color-warning,#f59e0b)',
       'pointer-events:none',
+      'z-index:9',
       'transition:opacity 150ms ease',
     ].join(';');
     badge.innerHTML =
@@ -70,17 +77,32 @@
     badge.style.display = isStale ? 'flex' : 'none';
   }
 
+  // Анимэйшнтэй card дээр л нөлөөтэй — өгөгдөл идэвхтэй үед хөдөлгөөн.
+  function setLive(card, live) {
+    card.classList.toggle('is-live', !!live);
+  }
+
   function touch(card) {
     lastUpdate.set(card, Date.now());
     setStale(card, false);
+    setLive(card, true);
   }
 
   function check() {
     var now = Date.now();
     findMetricCards().forEach(function (card) {
       var ts = lastUpdate.get(card);
-      if (ts == null) return; // хараахан init болоогүй card
-      setStale(card, (now - ts) > STALE_AFTER_MS);
+      if (ts != null) {
+        // Өгөгдөл ирж байсан — хуучирвал шар тэмдэг + хөдөлгөөн зогсоно.
+        var stale = (now - ts) > STALE_AFTER_MS;
+        setStale(card, stale);
+        setLive(card, !stale);
+      } else {
+        // Өгөгдөл хараахан аваагүй — хөдөлгөөнгүй; grace өнгөрвөл шар тэмдэг.
+        setLive(card, false);
+        var t0 = initAt.get(card);
+        setStale(card, t0 != null && (now - t0) > STALE_AFTER_MS);
+      }
     });
   }
 
@@ -94,10 +116,11 @@
       obs.observe(span, { childList: true, characterData: true, subtree: true });
     });
 
-    // Init: page нээгдсэн агшинг "шинэчлэгдсэн" гэж тооцно,
-    // 10 секундын countdown эндээс эхэлнэ.
-    lastUpdate.set(card, Date.now());
+    // Init: badge-ийн 10 секундын grace эндээс эхэлнэ. Хөдөлгөөн нь
+    // зөвхөн анхны бодит өгөгдөл ирэхэд (touch) эхэлнэ — өмнө нь хөдлөхгүй.
+    initAt.set(card, Date.now());
     ensureBadge(card);
+    setLive(card, false);
   }
 
   function init() {

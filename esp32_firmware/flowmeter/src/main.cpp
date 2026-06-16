@@ -56,6 +56,7 @@ constexpr uint32_t BAUD = 9600;
 constexpr uint16_t REG_FLOW_RATE = 0x0000; // Reg[00-01]: Flow rate (float BE)
 constexpr uint16_t REG_TOTALIZER = 0x0003; // Reg[03-06]: int32 + float fraction
 constexpr uint16_t REG_ULS_LEVEL = 0x2002; // Ultrasonic Level instantaneous (raw/1000 = m)
+constexpr uint16_t REG_ULS_MOUNT = 0x2009; // Ultrasonic Mount Height — суурилуулалтын нийт өндөр (raw/1000 = m, W/R)
 
 // Timing
 constexpr uint32_t READ_INTERVAL_MS = 2000;        // Flow rate read interval (also tick rate)
@@ -333,6 +334,13 @@ bool firebaseReady = false;          // Firebase auth complete flag
 // эхний амжилттай уншилтын дараа л true болж, шинэчлэлт эхэлнэ.
 float cachedTotal1 = 0.0f, cachedTotal2 = 0.0f, cachedTotal3 = 0.0f;
 bool  cachedTotal1Valid = false, cachedTotal2Valid = false, cachedTotal3Valid = false;
+
+// Ultrasonic mount height (суурилуулалтын нийт өндөр, рег. 0x2009) — boot дээр
+// нэг л удаа уншиж, Firebase-д нэг удаа нийтэлнэ. Дашбоард савны дээд хязгаарт
+// (data-max) үүнийг ашиглана — HTML дээр гараар тохируулах шаардлагагүй.
+float ulsMountM = 0.0f;
+bool  ulsMountKnown = false;
+bool  ulsMountSent = false;
 
 // Firebase upload backoff — prevents auth rate-limit storms on failure
 unsigned long fbNextAllowedAt = 0; // Next allowed upload timestamp
@@ -642,6 +650,16 @@ void loop() {
   else
     Serial.println("[ULS] Read failed");
 
+  // Mount height-г нэг л удаа (амжилттай болтол cycle бүрт оролдоно) уншина.
+  if (!ulsMountKnown) {
+    uint16_t mountRaw = 0;
+    if (readShortRetry(cfg::ULS_SLAVE, cfg::REG_ULS_MOUNT, mountRaw) && mountRaw > 0) {
+      ulsMountM = mountRaw / 1000.0f;
+      ulsMountKnown = true;
+      Serial.printf("[ULS] Mount height: %.3f m\n", ulsMountM);
+    }
+  }
+
   // ---- Track read failures and escalate recovery if needed ----
   bool anyReadOk = okFlow1 || okFlow2 || okFlow3 ||
                    okTotal1 || okTotal2 || okTotal3 || okLevel;
@@ -693,6 +711,8 @@ void loop() {
     if (okFlow3) { json.set("flowmeter3/flow_rate", flow3); anyWrite = true; }
   }
   if (okLevel)  { json.set("level_sensor/level", ulsLevel); anyWrite = true; }
+  // Mount height-г нэг удаа нийтэлнэ (амжилттай upload болтол дахин оролдоно).
+  if (ulsMountKnown && !ulsMountSent) { json.set("level_sensor/mount_height", ulsMountM); anyWrite = true; }
 
   bool uploadOk = false;
   if (!anyWrite) {
@@ -707,6 +727,8 @@ void loop() {
       led::setMode(led::OFF);
       led::pulse(); // upload бүрд нэг ногоон импульс — terminal-той synchron
       uploadOk = true;
+      if (ulsMountKnown) ulsMountSent = true; // mount height нийтлэгдсэн
+
     } else {
       Serial.printf("[Firebase] update ERROR: %s\n", fbData.errorReason().c_str());
       fbOnFailure();

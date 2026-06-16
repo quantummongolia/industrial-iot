@@ -319,66 +319,122 @@
              - PWA / Mobile (<640px):    1 багана -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4 items-start">
 
-          <!-- Flowmeter 2 -->
-          <div
-            class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
-            <div class="flex items-center gap-2 text-[13px] text-text-soft mb-2 font-medium">
-              <div
-                class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
-                id="dataLed2"></div>
-              Баян уусмал
+          <!-- Flowmeter 2 — Баян уусмал (урсгал хэмжигч) -->
+          <div class="fm-card glass-card rounded-DEFAULT transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
+            <div class="fm-floor"></div>
+            <div class="fm-pipe">
+              <div class="fm-bore">
+                <div class="fm-streaks"></div>
+                <div class="fm-chev"><span>›</span><span>›</span><span>›</span><span>›</span><span>›</span></div>
+                <div class="fm-bubbles">
+                  <span class="fm-bubble"></span><span class="fm-bubble"></span><span class="fm-bubble"></span><span class="fm-bubble"></span><span class="fm-bubble"></span>
+                </div>
+              </div>
             </div>
-            <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
-              <span id="fm2Flow">0.00</span>
-              <span class="text-base text-text-dim font-medium"> m³/h</span>
+            <div class="fm-flange l"></div><div class="fm-flange r"></div>
+            <div class="fm-coil top"></div><div class="fm-coil bot"></div>
+            <div class="fm-chord"></div>
+            <div class="fm-electrode l"></div><div class="fm-electrode r"></div>
+            <div class="fm-info">
+              <div class="fm-head">
+                <div class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
+                  id="dataLed2"></div>
+                Баян уусмал
+              </div>
+              <div class="fm-total"><span class="fm-k">Нийт</span> <span id="fm2Total">0.00</span> m³</div>
             </div>
-            <div class="mt-3 pt-3 border-t border-border-base flex items-center justify-between">
-              <span class="text-[11px] text-text-dim">Totalizer</span>
-              <span class="text-[13px] font-semibold text-text-soft tabular-nums"><span id="fm2Total">0.00</span>
-                m³</span>
-            </div>
-          </div>
-
-          <!-- Flowmeter 3 -->
-          <div
-            class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
-            <div class="flex items-center gap-2 text-[13px] text-text-soft mb-2 font-medium">
-              <div
-                class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
-                id="dataLed3"></div>
-              Суларсан уусмал 1
-            </div>
-            <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
-              <span id="fm3Flow">0.00</span>
-              <span class="text-base text-text-dim font-medium"> m³/h</span>
-            </div>
-            <div class="mt-3 pt-3 border-t border-border-base flex items-center justify-between">
-              <span class="text-[11px] text-text-dim">Totalizer</span>
-              <span class="text-[13px] font-semibold text-text-soft tabular-nums"><span id="fm3Total">0.00</span>
-                m³</span>
+            <div class="fm-readout">
+              <div class="fm-val"><span id="fm2Flow">0.00</span><span class="fm-unit">m³/h</span></div>
             </div>
           </div>
 
-          <!-- Flowmeter 1 -->
-          <div
-            class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
-            <div class="flex items-center gap-2 text-[13px] text-text-soft mb-2 font-medium">
-              <div
-                class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
-                id="dataLed1"></div>
-              Суларсан уусмал 2
+          <!-- Flowmeter 3 — Суларсан уусмал 1 (урсгал хэмжигч) -->
+          <div class="fm-card glass-card rounded-DEFAULT transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
+            <div class="fm-floor"></div>
+            <div class="fm-pipe">
+              <div class="fm-bore">
+                <div class="fm-streaks"></div>
+                <div class="fm-chev"><span>›</span><span>›</span><span>›</span><span>›</span><span>›</span></div>
+                <div class="fm-bubbles">
+                  <span class="fm-bubble"></span><span class="fm-bubble"></span><span class="fm-bubble"></span><span class="fm-bubble"></span><span class="fm-bubble"></span>
+                </div>
+              </div>
             </div>
-            <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
-              <span id="fm1Flow">0.00</span>
-              <span class="text-base text-text-dim font-medium"> m³/h</span>
+            <div class="fm-flange l"></div><div class="fm-flange r"></div>
+            <div class="fm-coil top"></div><div class="fm-coil bot"></div>
+            <div class="fm-chord"></div>
+            <div class="fm-electrode l"></div><div class="fm-electrode r"></div>
+            <div class="fm-info">
+              <div class="fm-head">
+                <div class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
+                  id="dataLed3"></div>
+                Суларсан уусмал 1
+              </div>
+              <div class="fm-total"><span class="fm-k">Нийт</span> <span id="fm3Total">0.00</span> m³</div>
             </div>
-            <div class="mt-3 pt-3 border-t border-border-base flex items-center justify-between">
-              <span class="text-[11px] text-text-dim">Totalizer</span>
-              <span class="text-[13px] font-semibold text-text-soft tabular-nums"><span id="fm1Total">0.00</span>
-                m³</span>
+            <div class="fm-readout">
+              <div class="fm-val"><span id="fm3Flow">0.00</span><span class="fm-unit">m³/h</span></div>
             </div>
           </div>
 
+          <!-- Flowmeter 1 — Суларсан уусмал 2 (урсгал хэмжигч) -->
+          <div class="fm-card glass-card rounded-DEFAULT transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
+            <div class="fm-floor"></div>
+            <div class="fm-pipe">
+              <div class="fm-bore">
+                <div class="fm-streaks"></div>
+                <div class="fm-chev"><span>›</span><span>›</span><span>›</span><span>›</span><span>›</span></div>
+                <div class="fm-bubbles">
+                  <span class="fm-bubble"></span><span class="fm-bubble"></span><span class="fm-bubble"></span><span class="fm-bubble"></span><span class="fm-bubble"></span>
+                </div>
+              </div>
+            </div>
+            <div class="fm-flange l"></div><div class="fm-flange r"></div>
+            <div class="fm-coil top"></div><div class="fm-coil bot"></div>
+            <div class="fm-chord"></div>
+            <div class="fm-electrode l"></div><div class="fm-electrode r"></div>
+            <div class="fm-info">
+              <div class="fm-head">
+                <div class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
+                  id="dataLed1"></div>
+                Суларсан уусмал 2
+              </div>
+              <div class="fm-total"><span class="fm-k">Нийт</span> <span id="fm1Total">0.00</span> m³</div>
+            </div>
+            <div class="fm-readout">
+              <div class="fm-val"><span id="fm1Flow">0.00</span><span class="fm-unit">m³/h</span></div>
+            </div>
+          </div>
+
+          <!-- Тээрмийн тэжээлийн ус (урсгал хэмжигч; Activity tab дублицат) -->
+          <div class="fm-card glass-card rounded-DEFAULT transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
+            <div class="fm-floor"></div>
+            <div class="fm-pipe">
+              <div class="fm-bore">
+                <div class="fm-streaks"></div>
+                <div class="fm-chev"><span>›</span><span>›</span><span>›</span><span>›</span><span>›</span></div>
+                <div class="fm-bubbles">
+                  <span class="fm-bubble"></span><span class="fm-bubble"></span><span class="fm-bubble"></span><span class="fm-bubble"></span><span class="fm-bubble"></span>
+                </div>
+              </div>
+            </div>
+            <div class="fm-flange l"></div><div class="fm-flange r"></div>
+            <div class="fm-coil top"></div><div class="fm-coil bot"></div>
+            <div class="fm-chord"></div>
+            <div class="fm-electrode l"></div><div class="fm-electrode r"></div>
+            <div class="fm-info">
+              <div class="fm-head">
+                <div class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
+                  id="feedWaterLedAct"></div>
+                Тээрмийн тэжээлийн ус
+              </div>
+              <div class="fm-total"><span class="fm-k">Нийт</span> <span id="feedWaterTotalAct">0.00</span> m³</div>
+            </div>
+            <div class="fm-readout">
+              <div class="fm-val"><span id="feedWaterFlowAct">0.00</span><span class="fm-unit">m³/h</span></div>
+            </div>
+          </div>
+          
           <!-- Суларсан уусмал савны түвшин (Ultrasonic Level — Slave ID 1) -->
           <!-- Савны бодит өндрийг (метр) data-max дээр өг — ус автоматаар тэр хэмжээгээр дүүрнэ. -->
           <div class="wl-card glass-card rounded-DEFAULT transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]"
@@ -402,10 +458,10 @@
                   id="ulsLevelLed"></div>
                 Суларсан уусмалын сан
               </div>
+              <div class="wl-cap"><span class="wl-k">Өндөр</span> <span class="wl-max">4.00</span> метр</div>
             </div>
             <div class="wl-readout">
               <div class="wl-val"><span id="ulsLevel">0.00</span><span class="wl-unit">м</span></div>
-              <div class="wl-cap">/ <span class="wl-max">4.00</span> м</div>
             </div>
           </div>
 
@@ -431,10 +487,10 @@
                   id="bayanLevelLed"></div>
                 Баян уусмалын сан
               </div>
+              <div class="wl-cap"><span class="wl-k">Өндөр</span> <span class="wl-max">4.00</span> метр</div>
             </div>
             <div class="wl-readout">
               <div class="wl-val"><span id="bayanLevel">0.00</span><span class="wl-unit">м</span></div>
-              <div class="wl-cap">/ <span class="wl-max">4.00</span> м</div>
             </div>
           </div>
 
@@ -459,15 +515,44 @@
               <div class="wl-head">
                 <div class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
                   id="cleanWaterLevelLed"></div>
-                Цэвэр усан сан
+                Цэвэр усан сан 2
               </div>
+              <div class="wl-cap"><span class="wl-k">Өндөр</span> <span class="wl-max">4.00</span> метр</div>
             </div>
             <div class="wl-readout">
               <div class="wl-val"><span id="cleanWaterLevel">0.00</span><span class="wl-unit">м</span></div>
-              <div class="wl-cap">/ <span class="wl-max">4.00</span> м</div>
             </div>
           </div>
 
+          <!-- Эргэлтийн усан сан (Ultrasonic Level — Teerem Slave 7) -->
+          <div class="wl-card glass-card rounded-DEFAULT transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]"
+               data-max="4">
+            <div class="wl-gridlines"></div>
+            <div class="wl-water" id="waterTankLevelBar" style="--level: 0%;">
+              <svg class="wl-wave wl-wave-back" viewBox="0 0 1200 30" preserveAspectRatio="none">
+                <path d="M0,15 C100,3 200,3 300,15 C400,27 500,27 600,15 C700,3 800,3 900,15 C1000,27 1100,27 1200,15 L1200,30 L0,30 Z"></path>
+              </svg>
+              <svg class="wl-wave wl-wave-front" viewBox="0 0 1200 30" preserveAspectRatio="none">
+                <path d="M0,15 C100,27 200,27 300,15 C400,3 500,3 600,15 C700,27 800,27 900,15 C1000,3 1100,3 1200,15 L1200,30 L0,30 Z"></path>
+              </svg>
+            </div>
+            <div class="wl-bubbles">
+              <span class="wl-bubble"></span><span class="wl-bubble"></span><span class="wl-bubble"></span><span class="wl-bubble"></span><span class="wl-bubble"></span>
+            </div>
+            <div class="wl-scrim"></div>
+            <div class="wl-info">
+              <div class="wl-head">
+                <div class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
+                  id="waterTankLevelLed"></div>
+                Эргэлтийн усан сан
+              </div>
+              <div class="wl-cap"><span class="wl-k">Өндөр</span> <span class="wl-max">4.00</span> метр</div>
+            </div>
+            <div class="wl-readout">
+              <div class="wl-val"><span id="waterTankLevel">0.00</span><span class="wl-unit">м</span></div>
+            </div>
+          </div>
+          
           <!-- 02-WT-02 Тээрмийн жин (линльүүрийн жингийн хэмжүүр) -->
           <div class="cs-card glass-card rounded-DEFAULT transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
             <div class="cs-floor"></div>
@@ -500,62 +585,14 @@
                   id="teeremWeightLedAct"></div>
                 02-WT-02 Тээрмийн жин
               </div>
+              <div class="cs-total"><span class="cs-k">Нийт</span> <span id="teeremWeightTonsAct">0.000</span> t</div>
             </div>
             <div class="cs-readout">
               <div class="cs-val"><span id="teeremWeightAct">0.00</span><span class="cs-unit">t/h</span></div>
-              <div class="cs-total"><span class="cs-k">Нийт</span> <span id="teeremWeightTonsAct">0.000</span> t</div>
             </div>
           </div>
 
-          <!-- Тээрмийн тэжээлийн ус (Activity tab дублицат) -->
-          <div
-            class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
-            <div class="flex items-center gap-2 text-[13px] text-text-soft mb-2 font-medium">
-              <div
-                class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
-                id="feedWaterLedAct"></div>
-              Тээрмийн тэжээлийн ус
-            </div>
-            <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
-              <span id="feedWaterFlowAct">0.00</span>
-              <span class="text-base text-text-dim font-medium"> m³/h</span>
-            </div>
-            <div class="mt-3 pt-3 border-t border-border-base flex items-center justify-between">
-              <span class="text-[11px] text-text-dim">Cumulative</span>
-              <span class="text-[13px] font-semibold text-text-soft tabular-nums">
-                <span id="feedWaterTotalAct">0.00</span> m³
-              </span>
-            </div>
-          </div>
 
-          <!-- Эргэлтийн усан сан (Ultrasonic Level — Teerem Slave 7) -->
-          <div class="wl-card glass-card rounded-DEFAULT transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]"
-               data-max="4">
-            <div class="wl-gridlines"></div>
-            <div class="wl-water" id="waterTankLevelBar" style="--level: 0%;">
-              <svg class="wl-wave wl-wave-back" viewBox="0 0 1200 30" preserveAspectRatio="none">
-                <path d="M0,15 C100,3 200,3 300,15 C400,27 500,27 600,15 C700,3 800,3 900,15 C1000,27 1100,27 1200,15 L1200,30 L0,30 Z"></path>
-              </svg>
-              <svg class="wl-wave wl-wave-front" viewBox="0 0 1200 30" preserveAspectRatio="none">
-                <path d="M0,15 C100,27 200,27 300,15 C400,3 500,3 600,15 C700,27 800,27 900,15 C1000,3 1100,3 1200,15 L1200,30 L0,30 Z"></path>
-              </svg>
-            </div>
-            <div class="wl-bubbles">
-              <span class="wl-bubble"></span><span class="wl-bubble"></span><span class="wl-bubble"></span><span class="wl-bubble"></span><span class="wl-bubble"></span>
-            </div>
-            <div class="wl-scrim"></div>
-            <div class="wl-info">
-              <div class="wl-head">
-                <div class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
-                  id="waterTankLevelLed"></div>
-                Эргэлтийн усан сан
-              </div>
-            </div>
-            <div class="wl-readout">
-              <div class="wl-val"><span id="waterTankLevel">0.00</span><span class="wl-unit">м</span></div>
-              <div class="wl-cap">/ <span class="wl-max">4.00</span> м</div>
-            </div>
-          </div>
 
           <!-- 01-WT-01 Бутлуурын жин (линльүүрийн жингийн хэмжүүр; placeholder) -->
           <div class="cs-card glass-card rounded-DEFAULT transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
@@ -589,10 +626,10 @@
                   id="wt01Led"></div>
                 01-WT-01 Бутлуурын жин
               </div>
+              <div class="cs-total"><span class="cs-k">Нийт</span> <span id="wt01WeightTons">0.000</span> t</div>
             </div>
             <div class="cs-readout">
               <div class="cs-val"><span id="wt01Weight">0.00</span><span class="cs-unit">t/h</span></div>
-              <div class="cs-total"><span class="cs-k">Нийт</span> <span id="wt01WeightTons">0.000</span> t</div>
             </div>
           </div>
 
@@ -669,407 +706,362 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4 items-start">
 
           <!-- 01 — Боловсруулах үйлдвэр ХС -->
-          <div
-            class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
-            <div class="flex items-center gap-2 text-[13px] text-text-soft mb-2 font-medium">
-              <div
-                class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
-                id="emLed01"></div>
-              Боловсруулах үйлдвэр ХС
+          <div class="en-card glass-card rounded-DEFAULT transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
+            <div class="en-scope"></div>
+            <div class="en-pulses">
+              <span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span>
             </div>
-            <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
-              <span id="emPower01">0.00</span>
-              <span class="text-base text-text-dim font-medium"> kW</span>
+            <div class="en-phases"><span class="en-ph"></span><span class="en-ph"></span><span class="en-ph"></span></div>
+            <div class="en-floor"></div>
+            <div class="en-info">
+              <div class="en-head">
+                <div class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
+                  id="emLed01"></div>
+                Боловсруулах үйлдвэр ХС
+              </div>
+              <div class="en-total"><span class="en-k">Нийт</span> <span id="emEnergy01">0.000</span> kWh</div>
             </div>
-            <div class="mt-3 pt-3 border-t border-border-base flex items-center justify-between">
-              <span class="text-[11px] text-text-dim">Total Energy</span>
-              <span class="text-[13px] font-semibold text-text-soft tabular-nums">
-                <span id="emEnergy01">0.000</span> kWh
-              </span>
+            <div class="en-readout">
+              <div class="en-val"><span id="emPower01">0.00</span><span class="en-unit">kW</span></div>
             </div>
           </div>
 
           <!-- 02 — Нунтаглах хэсэг ХС -->
-          <div
-            class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
-            <div class="flex items-center gap-2 text-[13px] text-text-soft mb-2 font-medium">
-              <div
-                class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
-                id="emLed02"></div>
-              Нунтаглах хэсэг ХС
+          <div class="en-card glass-card rounded-DEFAULT transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
+            <div class="en-scope"></div>
+            <div class="en-pulses">
+              <span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span>
             </div>
-            <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
-              <span id="emPower02">0.00</span>
-              <span class="text-base text-text-dim font-medium"> kW</span>
+            <div class="en-phases"><span class="en-ph"></span><span class="en-ph"></span><span class="en-ph"></span></div>
+            <div class="en-floor"></div>
+            <div class="en-info">
+              <div class="en-head">
+                <div class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
+                  id="emLed02"></div>
+                Нунтаглах хэсэг ХС
+              </div>
+              <div class="en-total"><span class="en-k">Нийт</span> <span id="emEnergy02">0.000</span> kWh</div>
             </div>
-            <div class="mt-3 pt-3 border-t border-border-base flex items-center justify-between">
-              <span class="text-[11px] text-text-dim">Total Energy</span>
-              <span class="text-[13px] font-semibold text-text-soft tabular-nums">
-                <span id="emEnergy02">0.000</span> kWh
-              </span>
+            <div class="en-readout">
+              <div class="en-val"><span id="emPower02">0.00</span><span class="en-unit">kW</span></div>
             </div>
           </div>
 
           <!-- 03 — Бутлуур ЕС -->
-          <div
-            class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
-            <div class="flex flex-col gap-1 mb-2">
-              <div class="flex items-center gap-2 text-[13px] text-text-soft font-medium">
-                <div
-                  class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
+          <div class="en-card glass-card rounded-DEFAULT transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
+            <div class="en-scope"></div>
+            <div class="en-pulses">
+              <span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span>
+            </div>
+            <div class="en-phases"><span class="en-ph"></span><span class="en-ph"></span><span class="en-ph"></span></div>
+            <div class="en-floor"></div>
+            <div class="en-info">
+              <div class="en-head">
+                <div class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
                   id="emLed03"></div>
                 Бутлуур ЕС
               </div>
-              <div class="flex gap-3 justify-start text-left tabular-nums">
-                <div>
-                  <div class="text-[11px] text-text-dim leading-none">A</div>
-                  <div class="text-[13px] font-semibold text-text-soft mt-1.5"><span id="emCurrentA03">0.00</span></div>
-                </div>
-                <div>
-                  <div class="text-[11px] text-text-dim leading-none">B</div>
-                  <div class="text-[13px] font-semibold text-text-soft mt-1.5"><span id="emCurrentB03">0.00</span></div>
-                </div>
-                <div>
-                  <div class="text-[11px] text-text-dim leading-none">C</div>
-                  <div class="text-[13px] font-semibold text-text-soft mt-1.5"><span id="emCurrentC03">0.00</span></div>
-                </div>
-              </div>
+              <div class="en-total"><span class="en-k">Нийт</span> <span id="emEnergy03">0.000</span> kWh</div>
+              <div class="en-cur"><span><i>A</i><span id="emCurrentA03">0.00</span></span><span><i>B</i><span id="emCurrentB03">0.00</span></span><span><i>C</i><span id="emCurrentC03">0.00</span></span></div>
             </div>
-            <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
-              <span id="emPower03">0.00</span>
-              <span class="text-base text-text-dim font-medium"> kW</span>
-            </div>
-            <div class="mt-3 pt-3 border-t border-border-base flex items-center justify-between">
-              <span class="text-[11px] text-text-dim">Total Energy</span>
-              <span class="text-[13px] font-semibold text-text-soft tabular-nums">
-                <span id="emEnergy03">0.000</span> kWh
-              </span>
+            <div class="en-readout">
+              <div class="en-val"><span id="emPower03">0.00</span><span class="en-unit">kW</span></div>
             </div>
           </div>
 
           <!-- 04 — Бөмбөлөгт тээрэм 1 -->
-          <div
-            class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
-            <div class="flex flex-col gap-1 mb-2">
-              <div class="flex items-center gap-2 text-[13px] text-text-soft font-medium">
-                <div
-                  class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
+          <div class="en-card glass-card rounded-DEFAULT transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
+            <div class="en-scope"></div>
+            <div class="en-pulses">
+              <span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span>
+            </div>
+            <div class="en-phases"><span class="en-ph"></span><span class="en-ph"></span><span class="en-ph"></span></div>
+            <div class="en-floor"></div>
+            <div class="en-info">
+              <div class="en-head">
+                <div class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
                   id="emLed04"></div>
                 Бөмбөлөгт тээрэм 1
               </div>
-              <div class="flex gap-3 justify-start text-left tabular-nums">
-                <div>
-                  <div class="text-[11px] text-text-dim leading-none">A</div>
-                  <div class="text-[13px] font-semibold text-text-soft mt-1.5"><span id="emCurrentA04">0.00</span></div>
-                </div>
-                <div>
-                  <div class="text-[11px] text-text-dim leading-none">B</div>
-                  <div class="text-[13px] font-semibold text-text-soft mt-1.5"><span id="emCurrentB04">0.00</span></div>
-                </div>
-                <div>
-                  <div class="text-[11px] text-text-dim leading-none">C</div>
-                  <div class="text-[13px] font-semibold text-text-soft mt-1.5"><span id="emCurrentC04">0.00</span></div>
-                </div>
-              </div>
+              <div class="en-total"><span class="en-k">Нийт</span> <span id="emEnergy04">0.000</span> kWh</div>
+              <div class="en-cur"><span><i>A</i><span id="emCurrentA04">0.00</span></span><span><i>B</i><span id="emCurrentB04">0.00</span></span><span><i>C</i><span id="emCurrentC04">0.00</span></span></div>
             </div>
-            <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
-              <span id="emPower04">0.00</span>
-              <span class="text-base text-text-dim font-medium"> kW</span>
-            </div>
-            <div class="mt-3 pt-3 border-t border-border-base flex items-center justify-between">
-              <span class="text-[11px] text-text-dim">Total Energy</span>
-              <span class="text-[13px] font-semibold text-text-soft tabular-nums">
-                <span id="emEnergy04">0.000</span> kWh
-              </span>
+            <div class="en-readout">
+              <div class="en-val"><span id="emPower04">0.00</span><span class="en-unit">kW</span></div>
             </div>
           </div>
 
           <!-- 05 — Бөмбөлөгт тээрэм 2 -->
-          <div
-            class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
-            <div class="flex flex-col gap-1 mb-2">
-              <div class="flex items-center gap-2 text-[13px] text-text-soft font-medium">
-                <div
-                  class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
+          <div class="en-card glass-card rounded-DEFAULT transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
+            <div class="en-scope"></div>
+            <div class="en-pulses">
+              <span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span>
+            </div>
+            <div class="en-phases"><span class="en-ph"></span><span class="en-ph"></span><span class="en-ph"></span></div>
+            <div class="en-floor"></div>
+            <div class="en-info">
+              <div class="en-head">
+                <div class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
                   id="emLed05"></div>
                 Бөмбөлөгт тээрэм 2
               </div>
-              <div class="flex gap-3 justify-start text-left tabular-nums">
-                <div>
-                  <div class="text-[11px] text-text-dim leading-none">A</div>
-                  <div class="text-[13px] font-semibold text-text-soft mt-1.5"><span id="emCurrentA05">0.00</span></div>
-                </div>
-                <div>
-                  <div class="text-[11px] text-text-dim leading-none">B</div>
-                  <div class="text-[13px] font-semibold text-text-soft mt-1.5"><span id="emCurrentB05">0.00</span></div>
-                </div>
-                <div>
-                  <div class="text-[11px] text-text-dim leading-none">C</div>
-                  <div class="text-[13px] font-semibold text-text-soft mt-1.5"><span id="emCurrentC05">0.00</span></div>
-                </div>
-              </div>
+              <div class="en-total"><span class="en-k">Нийт</span> <span id="emEnergy05">0.000</span> kWh</div>
+              <div class="en-cur"><span><i>A</i><span id="emCurrentA05">0.00</span></span><span><i>B</i><span id="emCurrentB05">0.00</span></span><span><i>C</i><span id="emCurrentC05">0.00</span></span></div>
             </div>
-            <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
-              <span id="emPower05">0.00</span>
-              <span class="text-base text-text-dim font-medium"> kW</span>
-            </div>
-            <div class="mt-3 pt-3 border-t border-border-base flex items-center justify-between">
-              <span class="text-[11px] text-text-dim">Total Energy</span>
-              <span class="text-[13px] font-semibold text-text-soft tabular-nums">
-                <span id="emEnergy05">0.000</span> kWh
-              </span>
+            <div class="en-readout">
+              <div class="en-val"><span id="emPower05">0.00</span><span class="en-unit">kW</span></div>
             </div>
           </div>
 
           <!-- 06 — Өтгөрүүлэгч УС -->
-          <div
-            class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
-            <div class="flex items-center gap-2 text-[13px] text-text-soft mb-2 font-medium">
-              <div
-                class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
-                id="emLed06"></div>
-              Өтгөрүүлэгч УС
+          <div class="en-card glass-card rounded-DEFAULT transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
+            <div class="en-scope"></div>
+            <div class="en-pulses">
+              <span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span>
             </div>
-            <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
-              <span id="emPower06">0.00</span>
-              <span class="text-base text-text-dim font-medium"> kW</span>
+            <div class="en-phases"><span class="en-ph"></span><span class="en-ph"></span><span class="en-ph"></span></div>
+            <div class="en-floor"></div>
+            <div class="en-info">
+              <div class="en-head">
+                <div class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
+                  id="emLed06"></div>
+                Өтгөрүүлэгч УС
+              </div>
+              <div class="en-total"><span class="en-k">Нийт</span> <span id="emEnergy06">0.000</span> kWh</div>
             </div>
-            <div class="mt-3 pt-3 border-t border-border-base flex items-center justify-between">
-              <span class="text-[11px] text-text-dim">Total Energy</span>
-              <span class="text-[13px] font-semibold text-text-soft tabular-nums">
-                <span id="emEnergy06">0.000</span> kWh
-              </span>
+            <div class="en-readout">
+              <div class="en-val"><span id="emPower06">0.00</span><span class="en-unit">kW</span></div>
             </div>
           </div>
 
           <!-- 07 — Уусгалтын ган УС -->
-          <div
-            class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
-            <div class="flex items-center gap-2 text-[13px] text-text-soft mb-2 font-medium">
-              <div
-                class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
-                id="emLed07"></div>
-              Уусгалтын ган УС
+          <div class="en-card glass-card rounded-DEFAULT transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
+            <div class="en-scope"></div>
+            <div class="en-pulses">
+              <span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span>
             </div>
-            <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
-              <span id="emPower07">0.00</span>
-              <span class="text-base text-text-dim font-medium"> kW</span>
+            <div class="en-phases"><span class="en-ph"></span><span class="en-ph"></span><span class="en-ph"></span></div>
+            <div class="en-floor"></div>
+            <div class="en-info">
+              <div class="en-head">
+                <div class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
+                  id="emLed07"></div>
+                Уусгалтын ган УС
+              </div>
+              <div class="en-total"><span class="en-k">Нийт</span> <span id="emEnergy07">0.000</span> kWh</div>
             </div>
-            <div class="mt-3 pt-3 border-t border-border-base flex items-center justify-between">
-              <span class="text-[11px] text-text-dim">Total Energy</span>
-              <span class="text-[13px] font-semibold text-text-soft tabular-nums">
-                <span id="emEnergy07">0.000</span> kWh
-              </span>
+            <div class="en-readout">
+              <div class="en-val"><span id="emPower07">0.00</span><span class="en-unit">kW</span></div>
             </div>
           </div>
 
           <!-- 08 — Шүүн шахах УС -->
-          <div
-            class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
-            <div class="flex items-center gap-2 text-[13px] text-text-soft mb-2 font-medium">
-              <div
-                class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
-                id="emLed08"></div>
-              Шүүн шахах УС
+          <div class="en-card glass-card rounded-DEFAULT transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
+            <div class="en-scope"></div>
+            <div class="en-pulses">
+              <span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span>
             </div>
-            <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
-              <span id="emPower08">0.00</span>
-              <span class="text-base text-text-dim font-medium"> kW</span>
+            <div class="en-phases"><span class="en-ph"></span><span class="en-ph"></span><span class="en-ph"></span></div>
+            <div class="en-floor"></div>
+            <div class="en-info">
+              <div class="en-head">
+                <div class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
+                  id="emLed08"></div>
+                Шүүн шахах ХС
+              </div>
+              <div class="en-total"><span class="en-k">Нийт</span> <span id="emEnergy08">0.000</span> kWh</div>
             </div>
-            <div class="mt-3 pt-3 border-t border-border-base flex items-center justify-between">
-              <span class="text-[11px] text-text-dim">Total Energy</span>
-              <span class="text-[13px] font-semibold text-text-soft tabular-nums">
-                <span id="emEnergy08">0.000</span> kWh
-              </span>
+            <div class="en-readout">
+              <div class="en-val"><span id="emPower08">0.00</span><span class="en-unit">kW</span></div>
             </div>
           </div>
 
           <!-- 09 — Десорбци ХС -->
-          <div
-            class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
-            <div class="flex items-center gap-2 text-[13px] text-text-soft mb-2 font-medium">
-              <div
-                class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
-                id="emLed09"></div>
-              Десорбци ХС
+          <div class="en-card glass-card rounded-DEFAULT transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
+            <div class="en-scope"></div>
+            <div class="en-pulses">
+              <span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span>
             </div>
-            <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
-              <span id="emPower09">0.00</span>
-              <span class="text-base text-text-dim font-medium"> kW</span>
+            <div class="en-phases"><span class="en-ph"></span><span class="en-ph"></span><span class="en-ph"></span></div>
+            <div class="en-floor"></div>
+            <div class="en-info">
+              <div class="en-head">
+                <div class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
+                  id="emLed09"></div>
+                Десорбци ХС
+              </div>
+              <div class="en-total"><span class="en-k">Нийт</span> <span id="emEnergy09">0.000</span> kWh</div>
             </div>
-            <div class="mt-3 pt-3 border-t border-border-base flex items-center justify-between">
-              <span class="text-[11px] text-text-dim">Total Energy</span>
-              <span class="text-[13px] font-semibold text-text-soft tabular-nums">
-                <span id="emEnergy09">0.000</span> kWh
-              </span>
+            <div class="en-readout">
+              <div class="en-val"><span id="emPower09">0.00</span><span class="en-unit">kW</span></div>
             </div>
           </div>
 
           <!-- 10 — Нуруулдан уусгалт ХС -->
-          <div
-            class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
-            <div class="flex items-center gap-2 text-[13px] text-text-soft mb-2 font-medium">
-              <div
-                class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
-                id="emLed10"></div>
-              Нуруулдан уусгалт ХС
+          <div class="en-card glass-card rounded-DEFAULT transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
+            <div class="en-scope"></div>
+            <div class="en-pulses">
+              <span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span>
             </div>
-            <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
-              <span id="emPower10">0.00</span>
-              <span class="text-base text-text-dim font-medium"> kW</span>
+            <div class="en-phases"><span class="en-ph"></span><span class="en-ph"></span><span class="en-ph"></span></div>
+            <div class="en-floor"></div>
+            <div class="en-info">
+              <div class="en-head">
+                <div class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
+                  id="emLed10"></div>
+                Нуруулдан уусгалт ХС
+              </div>
+              <div class="en-total"><span class="en-k">Нийт</span> <span id="emEnergy10">0.000</span> kWh</div>
             </div>
-            <div class="mt-3 pt-3 border-t border-border-base flex items-center justify-between">
-              <span class="text-[11px] text-text-dim">Total Energy</span>
-              <span class="text-[13px] font-semibold text-text-soft tabular-nums">
-                <span id="emEnergy10">0.000</span> kWh
-              </span>
+            <div class="en-readout">
+              <div class="en-val"><span id="emPower10">0.00</span><span class="en-unit">kW</span></div>
             </div>
           </div>
 
           <!-- 11 — Компрессор ХС -->
-          <div
-            class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
-            <div class="flex items-center gap-2 text-[13px] text-text-soft mb-2 font-medium">
-              <div
-                class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
-                id="emLed11"></div>
-              Компрессор ХС
+          <div class="en-card glass-card rounded-DEFAULT transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
+            <div class="en-scope"></div>
+            <div class="en-pulses">
+              <span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span>
             </div>
-            <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
-              <span id="emPower11">0.00</span>
-              <span class="text-base text-text-dim font-medium"> kW</span>
+            <div class="en-phases"><span class="en-ph"></span><span class="en-ph"></span><span class="en-ph"></span></div>
+            <div class="en-floor"></div>
+            <div class="en-info">
+              <div class="en-head">
+                <div class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
+                  id="emLed11"></div>
+                Компрессор ХС
+              </div>
+              <div class="en-total"><span class="en-k">Нийт</span> <span id="emEnergy11">0.000</span> kWh</div>
             </div>
-            <div class="mt-3 pt-3 border-t border-border-base flex items-center justify-between">
-              <span class="text-[11px] text-text-dim">Total Energy</span>
-              <span class="text-[13px] font-semibold text-text-soft tabular-nums">
-                <span id="emEnergy11">0.000</span> kWh
-              </span>
+            <div class="en-readout">
+              <div class="en-val"><span id="emPower11">0.00</span><span class="en-unit">kW</span></div>
             </div>
           </div>
 
           <!-- 12 — Шатахуун түгээх ХС -->
-          <div
-            class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
-            <div class="flex items-center gap-2 text-[13px] text-text-soft mb-2 font-medium">
-              <div
-                class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
-                id="emLed12"></div>
-              Шатахуун түгээх ХС
+          <div class="en-card glass-card rounded-DEFAULT transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
+            <div class="en-scope"></div>
+            <div class="en-pulses">
+              <span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span>
             </div>
-            <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
-              <span id="emPower12">0.00</span>
-              <span class="text-base text-text-dim font-medium"> kW</span>
+            <div class="en-phases"><span class="en-ph"></span><span class="en-ph"></span><span class="en-ph"></span></div>
+            <div class="en-floor"></div>
+            <div class="en-info">
+              <div class="en-head">
+                <div class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
+                  id="emLed12"></div>
+                Шатахуун түгээх ХС
+              </div>
+              <div class="en-total"><span class="en-k">Нийт</span> <span id="emEnergy12">0.000</span> kWh</div>
             </div>
-            <div class="mt-3 pt-3 border-t border-border-base flex items-center justify-between">
-              <span class="text-[11px] text-text-dim">Total Energy</span>
-              <span class="text-[13px] font-semibold text-text-soft tabular-nums">
-                <span id="emEnergy12">0.000</span> kWh
-              </span>
+            <div class="en-readout">
+              <div class="en-val"><span id="emPower12">0.00</span><span class="en-unit">kW</span></div>
             </div>
           </div>
 
           <!-- 13 — Уурын зуух ХС -->
-          <div
-            class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
-            <div class="flex items-center gap-2 text-[13px] text-text-soft mb-2 font-medium">
-              <div
-                class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
-                id="emLed13"></div>
-              Уурын зуух ХС
+          <div class="en-card glass-card rounded-DEFAULT transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
+            <div class="en-scope"></div>
+            <div class="en-pulses">
+              <span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span>
             </div>
-            <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
-              <span id="emPower13">0.00</span>
-              <span class="text-base text-text-dim font-medium"> kW</span>
+            <div class="en-phases"><span class="en-ph"></span><span class="en-ph"></span><span class="en-ph"></span></div>
+            <div class="en-floor"></div>
+            <div class="en-info">
+              <div class="en-head">
+                <div class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
+                  id="emLed13"></div>
+                Уурын зуух ХС
+              </div>
+              <div class="en-total"><span class="en-k">Нийт</span> <span id="emEnergy13">0.000</span> kWh</div>
             </div>
-            <div class="mt-3 pt-3 border-t border-border-base flex items-center justify-between">
-              <span class="text-[11px] text-text-dim">Total Energy</span>
-              <span class="text-[13px] font-semibold text-text-soft tabular-nums">
-                <span id="emEnergy13">0.000</span> kWh
-              </span>
+            <div class="en-readout">
+              <div class="en-val"><span id="emPower13">0.00</span><span class="en-unit">kW</span></div>
             </div>
           </div>
 
           <!-- 14 — Хотхон ХС -->
-          <div
-            class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
-            <div class="flex items-center gap-2 text-[13px] text-text-soft mb-2 font-medium">
-              <div
-                class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
-                id="emLed14"></div>
-              Хотхон ХС
+          <div class="en-card glass-card rounded-DEFAULT transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
+            <div class="en-scope"></div>
+            <div class="en-pulses">
+              <span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span>
             </div>
-            <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
-              <span id="emPower14">0.00</span>
-              <span class="text-base text-text-dim font-medium"> kW</span>
+            <div class="en-phases"><span class="en-ph"></span><span class="en-ph"></span><span class="en-ph"></span></div>
+            <div class="en-floor"></div>
+            <div class="en-info">
+              <div class="en-head">
+                <div class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
+                  id="emLed14"></div>
+                Хотхон ХС
+              </div>
+              <div class="en-total"><span class="en-k">Нийт</span> <span id="emEnergy14">0.000</span> kWh</div>
             </div>
-            <div class="mt-3 pt-3 border-t border-border-base flex items-center justify-between">
-              <span class="text-[11px] text-text-dim">Total Energy</span>
-              <span class="text-[13px] font-semibold text-text-soft tabular-nums">
-                <span id="emEnergy14">0.000</span> kWh
-              </span>
+            <div class="en-readout">
+              <div class="en-val"><span id="emPower14">0.00</span><span class="en-unit">kW</span></div>
             </div>
           </div>
 
           <!-- 15 — Механик ХС -->
-          <div
-            class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
-            <div class="flex items-center gap-2 text-[13px] text-text-soft mb-2 font-medium">
-              <div
-                class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
-                id="emLed15"></div>
-              Механик ХС
+          <div class="en-card glass-card rounded-DEFAULT transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
+            <div class="en-scope"></div>
+            <div class="en-pulses">
+              <span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span>
             </div>
-            <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
-              <span id="emPower15">0.00</span>
-              <span class="text-base text-text-dim font-medium"> kW</span>
+            <div class="en-phases"><span class="en-ph"></span><span class="en-ph"></span><span class="en-ph"></span></div>
+            <div class="en-floor"></div>
+            <div class="en-info">
+              <div class="en-head">
+                <div class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
+                  id="emLed15"></div>
+                Механик ХС
+              </div>
+              <div class="en-total"><span class="en-k">Нийт</span> <span id="emEnergy15">0.000</span> kWh</div>
             </div>
-            <div class="mt-3 pt-3 border-t border-border-base flex items-center justify-between">
-              <span class="text-[11px] text-text-dim">Total Energy</span>
-              <span class="text-[13px] font-semibold text-text-soft tabular-nums">
-                <span id="emEnergy15">0.000</span> kWh
-              </span>
+            <div class="en-readout">
+              <div class="en-val"><span id="emPower15">0.00</span><span class="en-unit">kW</span></div>
             </div>
           </div>
 
           <!-- 16 — Лаборатор ХС1 -->
-          <div
-            class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
-            <div class="flex items-center gap-2 text-[13px] text-text-soft mb-2 font-medium">
-              <div
-                class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
-                id="emLed16"></div>
-              Лаборатор ХС1
+          <div class="en-card glass-card rounded-DEFAULT transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
+            <div class="en-scope"></div>
+            <div class="en-pulses">
+              <span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span>
             </div>
-            <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
-              <span id="emPower16">0.00</span>
-              <span class="text-base text-text-dim font-medium"> kW</span>
+            <div class="en-phases"><span class="en-ph"></span><span class="en-ph"></span><span class="en-ph"></span></div>
+            <div class="en-floor"></div>
+            <div class="en-info">
+              <div class="en-head">
+                <div class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
+                  id="emLed16"></div>
+                Лаборатор ХС1
+              </div>
+              <div class="en-total"><span class="en-k">Нийт</span> <span id="emEnergy16">0.000</span> kWh</div>
             </div>
-            <div class="mt-3 pt-3 border-t border-border-base flex items-center justify-between">
-              <span class="text-[11px] text-text-dim">Total Energy</span>
-              <span class="text-[13px] font-semibold text-text-soft tabular-nums">
-                <span id="emEnergy16">0.000</span> kWh
-              </span>
+            <div class="en-readout">
+              <div class="en-val"><span id="emPower16">0.00</span><span class="en-unit">kW</span></div>
             </div>
           </div>
 
           <!-- 17 — Лаборатор ХС2 -->
-          <div
-            class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
-            <div class="flex items-center gap-2 text-[13px] text-text-soft mb-2 font-medium">
-              <div
-                class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
-                id="emLed17"></div>
-              Лаборатор ХС2
+          <div class="en-card glass-card rounded-DEFAULT transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
+            <div class="en-scope"></div>
+            <div class="en-pulses">
+              <span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span>
             </div>
-            <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
-              <span id="emPower17">0.00</span>
-              <span class="text-base text-text-dim font-medium"> kW</span>
+            <div class="en-phases"><span class="en-ph"></span><span class="en-ph"></span><span class="en-ph"></span></div>
+            <div class="en-floor"></div>
+            <div class="en-info">
+              <div class="en-head">
+                <div class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
+                  id="emLed17"></div>
+                Лаборатор ХС2
+              </div>
+              <div class="en-total"><span class="en-k">Нийт</span> <span id="emEnergy17">0.000</span> kWh</div>
             </div>
-            <div class="mt-3 pt-3 border-t border-border-base flex items-center justify-between">
-              <span class="text-[11px] text-text-dim">Total Energy</span>
-              <span class="text-[13px] font-semibold text-text-soft tabular-nums">
-                <span id="emEnergy17">0.000</span> kWh
-              </span>
+            <div class="en-readout">
+              <div class="en-val"><span id="emPower17">0.00</span><span class="en-unit">kW</span></div>
             </div>
           </div>
 
@@ -1112,31 +1104,83 @@
                   id="teeremWeightLed"></div>
                 Тээрмийн тэжээлийн жин
               </div>
+              <div class="cs-total"><span class="cs-k">Нийт</span> <span id="teeremWeightTons">0.000</span> t</div>
             </div>
             <div class="cs-readout">
               <div class="cs-val"><span id="teeremWeight">0.00</span><span class="cs-unit">t/h</span></div>
-              <div class="cs-total"><span class="cs-k">Нийт</span> <span id="teeremWeightTons">0.000</span> t</div>
             </div>
           </div>
 
-          <!-- Тээрмийн тэжээлийн ус (Slave 6 flowmeter) -->
-          <div
-            class="glass-card rounded-DEFAULT p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
-            <div class="flex items-center gap-2 text-[13px] text-text-soft mb-2 font-medium">
-              <div
-                class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
-                id="feedWaterLed"></div>
-              Тээрмийн тэжээлийн ус
+          <!-- Тээрмийн тэжээлийн ус (урсгал хэмжигч; Slave 6 flowmeter) -->
+          <div class="fm-card glass-card rounded-DEFAULT transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
+            <div class="fm-floor"></div>
+            <div class="fm-pipe">
+              <div class="fm-bore">
+                <div class="fm-streaks"></div>
+                <div class="fm-chev"><span>›</span><span>›</span><span>›</span><span>›</span><span>›</span></div>
+                <div class="fm-bubbles">
+                  <span class="fm-bubble"></span><span class="fm-bubble"></span><span class="fm-bubble"></span><span class="fm-bubble"></span><span class="fm-bubble"></span>
+                </div>
+              </div>
             </div>
-            <div class="text-[28px] font-bold tracking-[-0.02em] text-text-primary">
-              <span id="feedWaterFlow">0.00</span>
-              <span class="text-base text-text-dim font-medium"> m³/h</span>
+            <div class="fm-flange l"></div><div class="fm-flange r"></div>
+            <div class="fm-coil top"></div><div class="fm-coil bot"></div>
+            <div class="fm-chord"></div>
+            <div class="fm-electrode l"></div><div class="fm-electrode r"></div>
+            <div class="fm-info">
+              <div class="fm-head">
+                <div class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
+                  id="feedWaterLed"></div>
+                Тээрмийн тэжээлийн ус
+              </div>
+              <div class="fm-total"><span class="fm-k">Нийт</span> <span id="feedWaterTotal">0.00</span> m³</div>
             </div>
-            <div class="mt-3 pt-3 border-t border-border-base flex items-center justify-between">
-              <span class="text-[11px] text-text-dim">Cumulative</span>
-              <span class="text-[13px] font-semibold text-text-soft tabular-nums">
-                <span id="feedWaterTotal">0.00</span> m³
-              </span>
+            <div class="fm-readout">
+              <div class="fm-val"><span id="feedWaterFlow">0.00</span><span class="fm-unit">m³/h</span></div>
+            </div>
+          </div>
+
+          <!-- 04 — Бөмбөлөгт тээрэм 1 -->
+          <div class="en-card glass-card rounded-DEFAULT transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
+            <div class="en-scope"></div>
+            <div class="en-pulses">
+              <span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span>
+            </div>
+            <div class="en-phases"><span class="en-ph"></span><span class="en-ph"></span><span class="en-ph"></span></div>
+            <div class="en-floor"></div>
+            <div class="en-info">
+              <div class="en-head">
+                <div class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
+                  id="emLed04T"></div>
+                Бөмбөлөгт тээрэм 1
+              </div>
+              <div class="en-total"><span class="en-k">Нийт</span> <span id="emEnergy04T">0.000</span> kWh</div>
+              <div class="en-cur"><span><i>A</i><span id="emCurrentA04T">0.00</span></span><span><i>B</i><span id="emCurrentB04T">0.00</span></span><span><i>C</i><span id="emCurrentC04T">0.00</span></span></div>
+            </div>
+            <div class="en-readout">
+              <div class="en-val"><span id="emPower04T">0.00</span><span class="en-unit">kW</span></div>
+            </div>
+          </div>
+
+          <!-- 05 — Бөмбөлөгт тээрэм 2 -->
+          <div class="en-card glass-card rounded-DEFAULT transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
+            <div class="en-scope"></div>
+            <div class="en-pulses">
+              <span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span><span class="en-pulse"></span>
+            </div>
+            <div class="en-phases"><span class="en-ph"></span><span class="en-ph"></span><span class="en-ph"></span></div>
+            <div class="en-floor"></div>
+            <div class="en-info">
+              <div class="en-head">
+                <div class="relative w-[7px] h-[7px] rounded-full bg-text-faint transition-[background,box-shadow] duration-300"
+                  id="emLed05T"></div>
+                Бөмбөлөгт тээрэм 2
+              </div>
+              <div class="en-total"><span class="en-k">Нийт</span> <span id="emEnergy05T">0.000</span> kWh</div>
+              <div class="en-cur"><span><i>A</i><span id="emCurrentA05T">0.00</span></span><span><i>B</i><span id="emCurrentB05T">0.00</span></span><span><i>C</i><span id="emCurrentC05T">0.00</span></span></div>
+            </div>
+            <div class="en-readout">
+              <div class="en-val"><span id="emPower05T">0.00</span><span class="en-unit">kW</span></div>
             </div>
           </div>
         </div>
@@ -1178,10 +1222,10 @@
                   id="butluurWeightLed"></div>
                 01-WT-01 Бутлуурын жин
               </div>
+              <div class="cs-total"><span class="cs-k">Нийт</span> <span id="butluurWeightTons">0.000</span> t</div>
             </div>
             <div class="cs-readout">
               <div class="cs-val"><span id="butluurWeight">0.00</span><span class="cs-unit">t/h</span></div>
-              <div class="cs-total"><span class="cs-k">Нийт</span> <span id="butluurWeightTons">0.000</span> t</div>
             </div>
           </div>
         </div>

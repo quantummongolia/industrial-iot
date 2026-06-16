@@ -19,7 +19,8 @@
         "totalizer":  { ".validate": "newData.isNumber()" }
       },
       "level_sensor": {
-        "level": { ".validate": "newData.isNumber()" }
+        "level": { ".validate": "newData.isNumber()" },
+        "mount_height": { ".validate": "newData.isNumber()" }
       },
       "last_updated": { ".validate": "newData.isNumber()" }
     },
@@ -34,7 +35,8 @@
         "totalizer": { ".validate": "newData.isNumber()" }
       },
       "water_tank": {
-        "level": { ".validate": "newData.isNumber()" }
+        "level": { ".validate": "newData.isNumber()" },
+        "mount_height": { ".validate": "newData.isNumber()" }
       },
       "last_updated":  { ".validate": "newData.isNumber()" }
     },
@@ -51,10 +53,12 @@
       ".read": "auth != null",
       ".write": "auth != null && auth.token.email === 'mresource-teerem@iot.com'",
       "bayan_tank": {
-        "level": { ".validate": "newData.isNumber()" }
+        "level": { ".validate": "newData.isNumber()" },
+        "mount_height": { ".validate": "newData.isNumber()" }
       },
       "clean_water_tank": {
-        "level": { ".validate": "newData.isNumber()" }
+        "level": { ".validate": "newData.isNumber()" },
+        "mount_height": { ".validate": "newData.isNumber()" }
       },
       "last_updated": { ".validate": "newData.isNumber()" }
     },

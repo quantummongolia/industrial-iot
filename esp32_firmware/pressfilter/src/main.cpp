@@ -64,6 +64,7 @@ constexpr uint8_t SPM33_CT_SEC = 5;        // SPM33 CT secondary side (5A typica
 
 // Supmea ultrasonic level — Level instantaneous (uint16, raw/1000 = m)
 constexpr uint16_t REG_ULS_LEVEL = 0x2002;
+constexpr uint16_t REG_ULS_MOUNT = 0x2009; // Mount Height — суурилуулалтын нийт өндөр (raw/1000 = m, W/R)
 
 constexpr uint32_t POLL_MS = 2000;                // Flow cycle interval (tick rate)
 constexpr uint32_t TOTALIZER_INTERVAL_MS = 60000; // Totalizer cycle — 1 минут тутамд
@@ -375,6 +376,11 @@ float cachedEm08EnergyKWh = 0.0f; bool cachedEm08EnergyValid = false;
 float cachedEm09EnergyKWh = 0.0f; bool cachedEm09EnergyValid = false;
 float cachedEm10EnergyKWh = 0.0f; bool cachedEm10EnergyValid = false;
 
+// Ultrasonic mount height (рег. 0x2009) — boot дээр нэг удаа уншиж Firebase-д
+// нэг удаа нийтэлнэ. Дашбоард савны дээд хязгаарт (data-max) ашиглана.
+float ulsMountM = 0.0f;  bool ulsMountKnown = false;  bool ulsMountSent = false;   // Баян уусмалын сан
+float uls2MountM = 0.0f; bool uls2MountKnown = false; bool uls2MountSent = false;  // Цэвэр усан сан
+
 void fbOnFailure() {
   fbFailStreak++;
   unsigned long backoff = 2000UL * (1UL << min((unsigned int)8, fbFailStreak));
@@ -593,6 +599,22 @@ void loop() {
         [&] { return busC.readU16(cfg::ULS2_SLAVE, cfg::REG_ULS_LEVEL, uls2Raw); });
     uls2Level = uls2LevelOk ? (uls2Raw / 1000.0f) : 0.0f;
 
+    // Mount height — савны нийт өндөр, тус бүр нэг л удаа (амжилттай болтол оролдоно).
+    if (!ulsMountKnown) {
+      uint16_t mountRaw = 0;
+      if (withRetry([&] { return busC.readU16(cfg::ULS_SLAVE, cfg::REG_ULS_MOUNT, mountRaw); }) && mountRaw > 0) {
+        ulsMountM = mountRaw / 1000.0f; ulsMountKnown = true;
+        Serial.printf("[ULS] Bayan mount height: %.3f m\n", ulsMountM);
+      }
+    }
+    if (!uls2MountKnown) {
+      uint16_t mountRaw = 0;
+      if (withRetry([&] { return busC.readU16(cfg::ULS2_SLAVE, cfg::REG_ULS_MOUNT, mountRaw); }) && mountRaw > 0) {
+        uls2MountM = mountRaw / 1000.0f; uls2MountKnown = true;
+        Serial.printf("[ULS] Clean-water mount height: %.3f m\n", uls2MountM);
+      }
+    }
+
     Serial.printf("[Flow] EM08:%s EM09:%s EM10:%s Bayan:%s Tseever:%s\n",
                   em08.powerOk ? String(em08.powerKW, 2).c_str() : "#",
                   em09.powerOk ? String(em09.powerKW, 2).c_str() : "#",
@@ -667,6 +689,9 @@ void loop() {
     if (!totalizerCycle) {
       if (ulsLevelOk)  { j.set("bayan_tank/level", ulsLevel);        pfAny = true; }
       if (uls2LevelOk) { j.set("clean_water_tank/level", uls2Level); pfAny = true; }
+      // Mount height-г нэг удаа нийтэлнэ (амжилттай upload болтол оролдоно).
+      if (ulsMountKnown && !ulsMountSent)   { j.set("bayan_tank/mount_height", ulsMountM);        pfAny = true; }
+      if (uls2MountKnown && !uls2MountSent) { j.set("clean_water_tank/mount_height", uls2MountM); pfAny = true; }
       if (pfAny) j.set("last_updated", (int)(millis() / 1000));
     }
     if (pfAny) {
@@ -685,6 +710,8 @@ void loop() {
   if (emOk && pfOk) {
     Serial.println("[Firebase] Updated");
     fbOnSuccess();
+    if (ulsMountKnown) ulsMountSent = true;   // mount height нийтлэгдсэн
+    if (uls2MountKnown) uls2MountSent = true;
     led::setMode(led::OFF);
     led::pulse();
   } else {
