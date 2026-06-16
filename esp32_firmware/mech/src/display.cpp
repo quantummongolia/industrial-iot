@@ -36,9 +36,9 @@ constexpr uint8_t ROTATION = 3;
 // Текст — хамгийн жижиг built-in GLCD фонт (6×8px), textSize 1.
 constexpr int16_t SCR_W = 240;
 constexpr int16_t SCR_H = 240;
-constexpr uint8_t TEXT_SIZE = 1;
-constexpr int16_t CH_W = 6 * TEXT_SIZE; // тэмдэгтийн өргөн
-constexpr int16_t CH_H = 8 * TEXT_SIZE; // мөрийн өндөр
+constexpr uint8_t TEXT_SIZE = 2; // 12×16 тэмдэгтүүд, нэг мөрөнд 20 ширхэг, нийт 15 мөр (300 байт/мөр)
+constexpr int16_t CH_W = 12 * TEXT_SIZE; // тэмдэгтийн өргөн
+constexpr int16_t CH_H = 16 * TEXT_SIZE; // мөрийн өндөр
 
 // RGB565 өнгө — Arduino_GFX-ийн хувилбараас (BLACK/RGB565_BLACK) хамаарахгүй
 // байхын тулд шууд тодорхойлов.
