@@ -40,6 +40,11 @@ constexpr uint8_t TEXT_SIZE = 1;
 constexpr int16_t CH_W = 6 * TEXT_SIZE; // тэмдэгтийн өргөн
 constexpr int16_t CH_H = 8 * TEXT_SIZE; // мөрийн өндөр
 
+// RGB565 өнгө — Arduino_GFX-ийн хувилбараас (BLACK/RGB565_BLACK) хамаарахгүй
+// байхын тулд шууд тодорхойлов.
+constexpr uint16_t COL_BLACK = 0x0000;
+constexpr uint16_t COL_WHITE = 0xFFFF;
+
 Arduino_DataBus *bus = nullptr;
 Arduino_GFX *gfx = nullptr;
 StreamBufferHandle_t sb = nullptr;
@@ -48,7 +53,7 @@ int16_t curX = 0;
 int16_t curY = 0;
 
 void clearScreen() {
-  gfx->fillScreen(BLACK);
+  gfx->fillScreen(COL_BLACK);
   curX = 0;
   curY = 0;
 }
@@ -100,9 +105,9 @@ bool begin() {
   if (!gfx->begin())
     return false;
 
-  gfx->fillScreen(BLACK);
+  gfx->fillScreen(COL_BLACK);
   gfx->setTextSize(TEXT_SIZE);
-  gfx->setTextColor(GREEN, BLACK); // ногоон текст, хар дэвсгэр
+  gfx->setTextColor(COL_WHITE, COL_BLACK); // цагаан текст, хар дэвсгэр
   gfx->setTextWrap(false);
   curX = 0;
   curY = 0;
