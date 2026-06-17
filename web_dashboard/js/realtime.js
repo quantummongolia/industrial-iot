@@ -48,19 +48,8 @@ function _setTankLevel(waterEls, v) {
   });
 }
 
-// Савны нийт өндрийг (mount height, метр) ESP-ээс уншсан утгаар автоматаар
-// тохируулна — card-ын data-max ба харагдах "Өндөр" текстийг шинэчилнэ.
-// Ингэснээр HTML дээр гараар тохируулах шаардлагагүй.
-function _setTankMax(waterEls, mh) {
-  if (!(mh > 0)) return;
-  _asArr(waterEls).forEach(waterEl => {
-    const card = waterEl.closest(".wl-card");
-    if (!card) return;
-    card.dataset.max = mh;
-    const maxEl = card.querySelector(".wl-max");
-    if (maxEl) maxEl.textContent = mh.toFixed(2);
-  });
-}
+// Савны өндрийг (data-max) зөвхөн index.html дээр ГАРААР тохируулна — ESP-ийн
+// mount_height-аар автоматаар дарж бичих логикийг (2026-06-17) хассан.
 
 function _onFlowRate(key, val) {
   _readingCount++;
@@ -272,10 +261,6 @@ function initRealtime() {
     _setTankLevel(_el.ulsLevelBar, v);
     _blinkLed(_el.ulsLevelLed);
   });
-  // Mount height (савны нийт өндөр) — ESP boot дээр уншиж нэг удаа нийтэлдэг.
-  db.ref("/flow_system/level_sensor/mount_height").on("value", s => {
-    if (s.val() !== null) _setTankMax(_el.ulsLevelBar, parseFloat(s.val()));
-  });
 
   // Баян уусмалын сан (Supmea ultrasonic — pressfilter Bus C Slave 5)
   // Суларсан уусмалын сантай яг адил төхөөрөмж, ижил bar хязгаар (0..2.20m).
@@ -286,9 +271,6 @@ function initRealtime() {
     _setTankLevel(_el.bayanLevelBar, v);
     _blinkLed(_el.bayanLevelLed);
   });
-  db.ref("/pressfilter/bayan_tank/mount_height").on("value", s => {
-    if (s.val() !== null) _setTankMax(_el.bayanLevelBar, parseFloat(s.val()));
-  });
 
   // Цэвэр усан сан (Supmea ultrasonic — pressfilter Bus C Slave 6)
   // Bar-ийн дээд хязгаарыг index.html дахь #cleanWaterLevelBar data-max-аас уншина.
@@ -298,9 +280,6 @@ function initRealtime() {
     _setText(_el.cleanWaterLevel, v.toFixed(2));
     _setTankLevel(_el.cleanWaterLevelBar, v);
     _blinkLed(_el.cleanWaterLevelLed);
-  });
-  db.ref("/pressfilter/clean_water_tank/mount_height").on("value", s => {
-    if (s.val() !== null) _setTankMax(_el.cleanWaterLevelBar, parseFloat(s.val()));
   });
 
   // ── Teerem ────────────────────────────────────────────
@@ -336,9 +315,6 @@ function initRealtime() {
     _setText(_el.waterTankLevel, v.toFixed(2));
     _setTankLevel(_el.waterTankLevelBar, v);
     _blinkLed(_el.waterTankLevelLed);
-  });
-  db.ref("/teerem/water_tank/mount_height").on("value", s => {
-    if (s.val() !== null) _setTankMax(_el.waterTankLevelBar, parseFloat(s.val()));
   });
 
   // ── Butluur (01-WT-01 Бутлуурын жин) ───────────────────
