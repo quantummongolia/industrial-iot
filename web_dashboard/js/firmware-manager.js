@@ -17,7 +17,7 @@
 
 (function () {
   const STALE_AFTER_SEC = 90;       // last_heartbeat хэдэн секундээс хойш "offline"
-  const KNOWN_FAMILIES = ["teerem", "flowmeter", "butluur", "ushg", "pressfilter", "mech", "gen", "lab", "hothon"];
+  const KNOWN_FAMILIES = ["teerem", "flowmeter", "butluur", "ushg", "pressfilter", "mech", "gen", "lab", "hothon", "industrialMachine"];
   const _devices = {};              // deviceId -> latest data
   const _latestReleases = { teerem: null, flowmeter: null, butluur: null, ushg: null, pressfilter: null, mech: null, gen: null, lab: null, hothon: null };
 
