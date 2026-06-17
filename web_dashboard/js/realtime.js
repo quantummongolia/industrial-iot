@@ -13,45 +13,66 @@
 let _readingCount = 0;
 let _el = {};
 
-function _blinkLed(ledEl) {
-  if (!ledEl) return;
-  ledEl.classList.add("data-led-active");
-  setTimeout(function () { ledEl.classList.remove("data-led-active"); }, 400);
+// Нэг логик утга нэгээс олон таб дээр давхар card-аар харагдаж болно (ж:
+// Activity ба Үйлдвэр таб). Тийм элементүүдийг массиваар хадгалж, доорх туслах
+// функцууд нэг ба массив хоёуланд ажиллана.
+function _asArr(x) {
+  return x == null ? [] : (Array.isArray(x) ? x : [x]);
+}
+
+// Үндсэн id + "Uv" (Үйлдвэр таб) хуулбарыг цуглуулна. Байгаа элементүүдийг л
+// буцаана (хоосон бол []).
+function _pickAll(base) {
+  return ["", "Uv"].map(s => document.getElementById(base + s)).filter(Boolean);
+}
+
+function _setText(els, v) {
+  _asArr(els).forEach(el => { el.textContent = v; });
+}
+
+function _blinkLed(led) {
+  _asArr(led).forEach(el => {
+    el.classList.add("data-led-active");
+    setTimeout(function () { el.classList.remove("data-led-active"); }, 400);
+  });
 }
 
 // Усны савны card — түвшинг (метр) .wl-card[data-max]-тай харьцуулж усыг дүүргэнэ.
 // Бодит савны өндрийг мэдэхгүй бол data-max default нь 4 м.
-function _setTankLevel(waterEl, v) {
-  if (!waterEl) return;
-  const card = waterEl.closest(".wl-card");
-  const max = (card && parseFloat(card.dataset.max)) || 4;
-  const pct = Math.max(0, Math.min(100, (v / max) * 100));
-  waterEl.style.setProperty("--level", pct.toFixed(2) + "%");
+function _setTankLevel(waterEls, v) {
+  _asArr(waterEls).forEach(waterEl => {
+    const card = waterEl.closest(".wl-card");
+    const max = (card && parseFloat(card.dataset.max)) || 4;
+    const pct = Math.max(0, Math.min(100, (v / max) * 100));
+    waterEl.style.setProperty("--level", pct.toFixed(2) + "%");
+  });
 }
 
 // Савны нийт өндрийг (mount height, метр) ESP-ээс уншсан утгаар автоматаар
 // тохируулна — card-ын data-max ба харагдах "Өндөр" текстийг шинэчилнэ.
 // Ингэснээр HTML дээр гараар тохируулах шаардлагагүй.
-function _setTankMax(waterEl, mh) {
-  if (!waterEl || !(mh > 0)) return;
-  const card = waterEl.closest(".wl-card");
-  if (!card) return;
-  card.dataset.max = mh;
-  const maxEl = card.querySelector(".wl-max");
-  if (maxEl) maxEl.textContent = mh.toFixed(2);
+function _setTankMax(waterEls, mh) {
+  if (!(mh > 0)) return;
+  _asArr(waterEls).forEach(waterEl => {
+    const card = waterEl.closest(".wl-card");
+    if (!card) return;
+    card.dataset.max = mh;
+    const maxEl = card.querySelector(".wl-max");
+    if (maxEl) maxEl.textContent = mh.toFixed(2);
+  });
 }
 
 function _onFlowRate(key, val) {
   _readingCount++;
   const flow = parseFloat(val).toFixed(2);
   if (key === "fm1") {
-    if (_el.fm1Flow) _el.fm1Flow.textContent = flow;
+    _setText(_el.fm1Flow, flow);
     _blinkLed(_el.dataLed1);
   } else if (key === "fm2") {
-    if (_el.fm2Flow) _el.fm2Flow.textContent = flow;
+    _setText(_el.fm2Flow, flow);
     _blinkLed(_el.dataLed2);
   } else if (key === "fm3") {
-    if (_el.fm3Flow) _el.fm3Flow.textContent = flow;
+    _setText(_el.fm3Flow, flow);
     _blinkLed(_el.dataLed3);
   }
   if (_el.readingCount) _el.readingCount.textContent = _readingCount;
@@ -61,60 +82,52 @@ function _onFlowRate(key, val) {
 function _onTotalizer(key, val) {
   const total = parseFloat(val).toFixed(2);
   if (key === "fm1") {
-    if (_el.fm1Total) _el.fm1Total.textContent = total;
+    _setText(_el.fm1Total, total);
   } else if (key === "fm2") {
-    if (_el.fm2Total) _el.fm2Total.textContent = total;
+    _setText(_el.fm2Total, total);
   } else if (key === "fm3") {
-    if (_el.fm3Total) _el.fm3Total.textContent = total;
+    _setText(_el.fm3Total, total);
   }
 }
 
 function initRealtime() {
+  // Доорх олонлог элементүүд Activity ба Үйлдвэр таб дээр давхар card-аар
+  // харагдана. _pickAll нь үндсэн id + "Uv" (Үйлдвэр) хуулбар хоёуланг цуглуулж,
+  // _setText / _blinkLed / _setTankLevel массиваар зэрэг шинэчилнэ.
   _el = {
-    fm1Flow:      document.getElementById("fm1Flow"),
-    fm1Total:     document.getElementById("fm1Total"),
-    fm2Flow:      document.getElementById("fm2Flow"),
-    fm2Total:     document.getElementById("fm2Total"),
-    fm3Flow:      document.getElementById("fm3Flow"),
-    fm3Total:     document.getElementById("fm3Total"),
-    dataLed1:     document.getElementById("dataLed1"),
-    dataLed2:     document.getElementById("dataLed2"),
-    dataLed3:     document.getElementById("dataLed3"),
+    fm1Flow:      _pickAll("fm1Flow"),
+    fm1Total:     _pickAll("fm1Total"),
+    fm2Flow:      _pickAll("fm2Flow"),
+    fm2Total:     _pickAll("fm2Total"),
+    fm3Flow:      _pickAll("fm3Flow"),
+    fm3Total:     _pickAll("fm3Total"),
+    dataLed1:     _pickAll("dataLed1"),
+    dataLed2:     _pickAll("dataLed2"),
+    dataLed3:     _pickAll("dataLed3"),
     // Ultrasonic level transmitter (Slave 1) — Суларсан уусмал савны түвшин
-    ulsLevel:     document.getElementById("ulsLevel"),
-    ulsLevelBar:  document.getElementById("ulsLevelBar"),
-    ulsLevelLed:  document.getElementById("ulsLevelLed"),
+    ulsLevel:     _pickAll("ulsLevel"),
+    ulsLevelBar:  _pickAll("ulsLevelBar"),
+    ulsLevelLed:  _pickAll("ulsLevelLed"),
     // Ultrasonic level (Teerem Slave 7) — Эргэлтийн усан сан
-    waterTankLevel:    document.getElementById("waterTankLevel"),
-    waterTankLevelBar: document.getElementById("waterTankLevelBar"),
-    waterTankLevelLed: document.getElementById("waterTankLevelLed"),
+    waterTankLevel:    _pickAll("waterTankLevel"),
+    waterTankLevelBar: _pickAll("waterTankLevelBar"),
+    waterTankLevelLed: _pickAll("waterTankLevelLed"),
     statusLed:    document.getElementById("statusLed"),
     statusText:   document.getElementById("statusText"),
     readingCount: document.getElementById("readingCount"),
     lastUpdate:   document.getElementById("lastUpdate"),
-    // Teerem (Тээрэм tab)
-    teeremWeight:     document.getElementById("teeremWeight"),
-    teeremWeightTons: document.getElementById("teeremWeightTons"),
-    teeremWeightLed:  document.getElementById("teeremWeightLed"),
-    // Тээрмийн тэжээлийн ус — Teerem tab + Activity tab дублицат
-    feedWaterFlow:       document.getElementById("feedWaterFlow"),
-    feedWaterTotal:      document.getElementById("feedWaterTotal"),
-    feedWaterLed:        document.getElementById("feedWaterLed"),
-    feedWaterFlowAct:    document.getElementById("feedWaterFlowAct"),
-    feedWaterTotalAct:   document.getElementById("feedWaterTotalAct"),
-    feedWaterLedAct:     document.getElementById("feedWaterLedAct"),
-    // Teerem хуулбар (Activity tab)
-    teeremWeightAct:     document.getElementById("teeremWeightAct"),
-    teeremWeightTonsAct: document.getElementById("teeremWeightTonsAct"),
-    teeremWeightLedAct:  document.getElementById("teeremWeightLedAct"),
-    // Butluur
-    butluurWeight:     document.getElementById("butluurWeight"),
-    butluurWeightTons: document.getElementById("butluurWeightTons"),
-    butluurWeightLed:  document.getElementById("butluurWeightLed"),
-    // 01-WT-01 Бутлуурын жин (Activity tab card)
-    wt01Weight:     document.getElementById("wt01Weight"),
-    wt01WeightTons: document.getElementById("wt01WeightTons"),
-    wt01Led:        document.getElementById("wt01Led"),
+    // Тээрмийн жин — Activity + Үйлдвэр таб дублицат
+    teeremWeightAct:     _pickAll("teeremWeightAct"),
+    teeremWeightTonsAct: _pickAll("teeremWeightTonsAct"),
+    teeremWeightLedAct:  _pickAll("teeremWeightLedAct"),
+    // Тээрмийн тэжээлийн ус — Activity + Үйлдвэр таб дублицат
+    feedWaterFlowAct:    _pickAll("feedWaterFlowAct"),
+    feedWaterTotalAct:   _pickAll("feedWaterTotalAct"),
+    feedWaterLedAct:     _pickAll("feedWaterLedAct"),
+    // 01-WT-01 Бутлуурын жин — Activity + Үйлдвэр таб дублицат
+    wt01Weight:     _pickAll("wt01Weight"),
+    wt01WeightTons: _pickAll("wt01WeightTons"),
+    wt01Led:        _pickAll("wt01Led"),
     // Цахилгаан тоолуурууд (Slave ID → card)
     //   em01 ← Slave 2 (Боловсруулах үйлдвэр ХС)
     //   em02 ← Slave 3 (Нунтаглах хэсэг ХС)
@@ -190,13 +203,13 @@ function initRealtime() {
     em17Energy: document.getElementById("emEnergy17"),
     em17Led:    document.getElementById("emLed17"),
     // Баян уусмалын сан (Supmea ultrasonic — pressfilter Bus C Slave 5)
-    bayanLevel:    document.getElementById("bayanLevel"),
-    bayanLevelBar: document.getElementById("bayanLevelBar"),
-    bayanLevelLed: document.getElementById("bayanLevelLed"),
+    bayanLevel:    _pickAll("bayanLevel"),
+    bayanLevelBar: _pickAll("bayanLevelBar"),
+    bayanLevelLed: _pickAll("bayanLevelLed"),
     // Цэвэр усан сан (Supmea ultrasonic — pressfilter Bus C Slave 6)
-    cleanWaterLevel:    document.getElementById("cleanWaterLevel"),
-    cleanWaterLevelBar: document.getElementById("cleanWaterLevelBar"),
-    cleanWaterLevelLed: document.getElementById("cleanWaterLevelLed"),
+    cleanWaterLevel:    _pickAll("cleanWaterLevel"),
+    cleanWaterLevelBar: _pickAll("cleanWaterLevelBar"),
+    cleanWaterLevelLed: _pickAll("cleanWaterLevelLed"),
   };
 
   // Усны савны card бүрийн харагдах дээд хэмжээг (метр) data-max-аас тааруулна —
@@ -255,7 +268,7 @@ function initRealtime() {
   db.ref("/flow_system/level_sensor/level").on("value", s => {
     if (s.val() === null) return;
     const v = parseFloat(s.val());
-    if (_el.ulsLevel) _el.ulsLevel.textContent = v.toFixed(2);
+    _setText(_el.ulsLevel, v.toFixed(2));
     _setTankLevel(_el.ulsLevelBar, v);
     _blinkLed(_el.ulsLevelLed);
   });
@@ -269,7 +282,7 @@ function initRealtime() {
   db.ref("/pressfilter/bayan_tank/level").on("value", s => {
     if (s.val() === null) return;
     const v = parseFloat(s.val());
-    if (_el.bayanLevel) _el.bayanLevel.textContent = v.toFixed(2);
+    _setText(_el.bayanLevel, v.toFixed(2));
     _setTankLevel(_el.bayanLevelBar, v);
     _blinkLed(_el.bayanLevelLed);
   });
@@ -282,7 +295,7 @@ function initRealtime() {
   db.ref("/pressfilter/clean_water_tank/level").on("value", s => {
     if (s.val() === null) return;
     const v = parseFloat(s.val());
-    if (_el.cleanWaterLevel) _el.cleanWaterLevel.textContent = v.toFixed(2);
+    _setText(_el.cleanWaterLevel, v.toFixed(2));
     _setTankLevel(_el.cleanWaterLevelBar, v);
     _blinkLed(_el.cleanWaterLevelLed);
   });
@@ -294,39 +307,33 @@ function initRealtime() {
   db.ref("/teerem/weight_rate").on("value", s => {
     if (s.val() === null) return;
     const v = parseFloat(s.val()).toFixed(2);
-    if (_el.teeremWeight)    _el.teeremWeight.textContent    = v;
-    if (_el.teeremWeightAct) _el.teeremWeightAct.textContent = v;
-    _blinkLed(_el.teeremWeightLed);
+    _setText(_el.teeremWeightAct, v);
     _blinkLed(_el.teeremWeightLedAct);
   });
   db.ref("/teerem/cumulative_kg").on("value", s => {
     if (s.val() === null) return;
     const t = (parseInt(s.val(), 10) / 1000).toFixed(3);
-    if (_el.teeremWeightTons)    _el.teeremWeightTons.textContent    = t;
-    if (_el.teeremWeightTonsAct) _el.teeremWeightTonsAct.textContent = t;
+    _setText(_el.teeremWeightTonsAct, t);
   });
 
   // ── Тээрмийн тэжээлийн ус (Slave 6 flowmeter) ────────
   db.ref("/teerem/feed_water/flow_rate").on("value", s => {
     if (s.val() === null) return;
     const v = parseFloat(s.val()).toFixed(2);
-    if (_el.feedWaterFlow)    _el.feedWaterFlow.textContent    = v;
-    if (_el.feedWaterFlowAct) _el.feedWaterFlowAct.textContent = v;
-    _blinkLed(_el.feedWaterLed);
+    _setText(_el.feedWaterFlowAct, v);
     _blinkLed(_el.feedWaterLedAct);
   });
   db.ref("/teerem/feed_water/totalizer").on("value", s => {
     if (s.val() === null) return;
     const v = parseFloat(s.val()).toFixed(2);
-    if (_el.feedWaterTotal)    _el.feedWaterTotal.textContent    = v;
-    if (_el.feedWaterTotalAct) _el.feedWaterTotalAct.textContent = v;
+    _setText(_el.feedWaterTotalAct, v);
   });
 
   // ── Эргэлтийн усан сан — Ultrasonic Level (Teerem Slave 7) ─────────
   db.ref("/teerem/water_tank/level").on("value", s => {
     if (s.val() === null) return;
     const v = parseFloat(s.val());
-    if (_el.waterTankLevel) _el.waterTankLevel.textContent = v.toFixed(2);
+    _setText(_el.waterTankLevel, v.toFixed(2));
     _setTankLevel(_el.waterTankLevelBar, v);
     _blinkLed(_el.waterTankLevelLed);
   });
@@ -339,16 +346,13 @@ function initRealtime() {
   db.ref("/butluur/weight_rate").on("value", s => {
     if (s.val() === null) return;
     const v = parseFloat(s.val()).toFixed(2);
-    if (_el.butluurWeight) _el.butluurWeight.textContent = v;
-    if (_el.wt01Weight)    _el.wt01Weight.textContent    = v;
-    _blinkLed(_el.butluurWeightLed);
+    _setText(_el.wt01Weight, v);
     _blinkLed(_el.wt01Led);
   });
   db.ref("/butluur/cumulative_t").on("value", s => {
     if (s.val() === null) return;
     const t = parseFloat(s.val()).toFixed(3);
-    if (_el.butluurWeightTons) _el.butluurWeightTons.textContent = t;
-    if (_el.wt01WeightTons)    _el.wt01WeightTons.textContent    = t;
+    _setText(_el.wt01WeightTons, t);
   });
 
   // ── Цахилгаан тоолуурууд + Нийт эрчим хүч хураангуй ───────────────
