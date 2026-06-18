@@ -1,31 +1,62 @@
 /*
- * display.h — 0.92" I2C OLED (SSD1306, addr 0x3C) дээр монитор хийж буй
- * төхөөрөмжийн serial гаралтыг terminal маягаар realtime харуулна.
+ * display.h — SSD1306 128×64 I2C OLED рүү Serial логийг realtime толин тусгал
  * ----------------------------------------------------------------------
- *  • USB-аар төхөөрөмж залгагдсан үед түүний serial текстийг гүйлгэж харуулна.
- *  • Залгаагүй (USB host device байхгүй) үед "NOT CONNECTED" + хувилбар/IP.
- *  • Дэлгэц олдохгүй бол begin() false буцаана — firmware non-fatal үргэлжилнэ.
+ *  Зорилго: UART debug дээр гарч буй БҮХ логийг (boot, USB таних, WiFi,
+ *  [USB] connected, цаашлаад монитор хийж буй device-ийн serial) OLED дээр
+ *  terminal маягаар шууд харуулна. Лог хадгалахгүй — зөвхөн realtime урсгал.
  *
- *  Бүх API нь main loop (Core 1)-ээс л дуудагдана — дотроо нэмэлт sync хийхгүй.
+ *  Ажиллах зарчим (mech-тэй ижил):
+ *    - main.cpp дотор `#define Serial gLog` хийснээр бүх `Serial.print*`
+ *      дуудлага TeeSerial руу орно. TeeSerial нь жинхэнэ ::Serial (UART0) рүү
+ *      бичээд зэрэг богино FreeRTOS stream buffer руу байтуудыг түлхэнэ.
+ *    - Рендер нь core 0 дээрх тусдаа task-д явагдана (loop()-ийн core 1-г
+ *      хэзээ ч блоклохгүй).
+ *    - feedBytes timeout=0 — buffer дүүрвэл шууд алгасна, хэзээ ч блоклохгүй.
  */
 #pragma once
 #include <Arduino.h>
 
 namespace disp {
 
-// SSD1306 128×32 init. Олдохгүй бол false (non-fatal).
+// Дэлгэцийн горим: TERMINAL = Serial лог урсгал, MENU = сонголтын цэс.
+enum Mode { TERMINAL, MENU };
+
+// SSD1306 init. Дэлгэц хариу өгөхгүй бол false (non-fatal — firmware үргэлжилнэ).
 bool begin();
 
-// Монитор хийж буй төхөөрөмжөөс ирсэн байтуудыг terminal буферт нэмнэ.
-void feed(const uint8_t* data, size_t len);
+// TeeSerial-ийн дуудах цэг — байтуудыг terminal буферт нэмнэ. Олон task/core-оос
+// дуудагдаж болох тул spinlock-оор хамгаалсан (thread-safe). Блоклохгүй.
+void feedBytes(const uint8_t *data, size_t len);
 
-// USB төхөөрөмж залгагдсан эсэх — false бол "NOT CONNECTED" дэлгэц.
-void setConnected(bool connected);
+// Идэвхтэй горим сонгоно (зөвхөн core 1-ээс дуудна).
+void setMode(Mode m);
 
-// "NOT CONNECTED" дэлгэцийн доод мөрд гарах статус (ж: хувилбар, IP).
-void setStatus(const char* line);
+// Terminal буферийг цэвэрлэнэ (шинэ үйлдэл эхлэхэд). Thread-safe.
+void clear();
 
-// Одоогийн төлвийг OLED-д зурна. main loop-аас тогтмол (~80мс) дуудна.
+// MENU горимд харуулах цэс: гарчиг, мөрүүд, сонгогдсон индекс. (core 1).
+void setMenu(const char *title, const char *const *items, int count, int sel);
+
+// Идэвхтэй горимоор OLED-д зурна. Үндсэн loop (core 1)-ээс тогтмол дуудна.
 void render();
-
 } // namespace disp
+
+// Жинхэнэ ::Serial (UART0) рүү бичээд зэрэг дэлгэц рүү толин тусгана.
+// main.cpp-д `#define Serial gLog` гэснээр бүх лог OLED дээр гарна.
+class TeeSerial : public Print {
+public:
+  void begin(unsigned long baud) { Serial.begin(baud); }
+  size_t write(uint8_t c) override {
+    size_t r = Serial.write(c);
+    disp::feedBytes(&c, 1);
+    return r;
+  }
+  size_t write(const uint8_t *buf, size_t size) override {
+    size_t r = Serial.write(buf, size);
+    disp::feedBytes(buf, size);
+    return r;
+  }
+  using Print::write;
+};
+
+extern TeeSerial gLog;

@@ -1,126 +1,168 @@
 /*
- * display.cpp — SSD1306 128×64 I2C OLED terminal (U8g2).
+ * display.cpp — SSD1306 128×64 I2C OLED рүү Serial логийг realtime толин тусгал
  *
  *  I2C холболт (ESP32-S3 N8R2):
  *    OLED SCL → GPIO 10
  *    OLED SDA → GPIO 11
  *    OLED VCC → 3V3, GND → GND
  *  ⚠️ USB host нь GPIO19/20 (USB D-/D+)-г эзэлдэг тул OLED-г 19/20 дээр тавьж
- *     БОЛОХГҮЙ. I2C-г өөр хос пинд (одоо 10/11) холбоно. Пин солих бол доош.
+ *     БОЛОХГҮЙ. I2C-г өөр хос пинд (одоо 10/11) холбоно.
  *
- *  Дэлгэц: 0.92" SSD1306, I2C addr 0x78 (8-bit бичих) = 0x3C (7-bit).
+ *  Дэлгэц: 0.92" SSD1306, addr 0x78 (8-bit) = 0x3C (7-bit). 180° эргүүлсэн (R2).
+ *  Бүх лог (host + device serial) НЭГ terminal урсгалаар, 4x6 фонт, 10 мөр×32.
+ *
+ *  Concurrency: feedBytes()-г олон task/core зэрэг дуудаж болох тул мөр буферийг
+ *  spinlock-оор хамгаалсан. Рендер нь зөвхөн үндсэн loop (core 1)-ээс дуудагдах
+ *  бөгөөд Wire-ийг мөн core 1-д эхлүүлсэн тул I2C cross-core зөрчил гарахгүй.
+ *  (mech нь SPI учир core 0 task ашигладаг — I2C-д энэ нь эрсдэлтэй.)
  */
 #include "display.h"
 #include <U8g2lib.h>
 #include <Wire.h>
 
-namespace disp {
-namespace {
+TeeSerial gLog;
 
+namespace {
 constexpr uint8_t DISP_SDA   = 11;
 constexpr uint8_t DISP_SCL   = 10;
 constexpr uint8_t DISP_ADDR7 = 0x3C;   // 7-bit (Wire ping)
 constexpr uint8_t DISP_ADDR8 = 0x78;   // 8-bit (U8g2 setI2CAddress)
 
-// Hardware-I2C, full-frame буфер. Wire-ийн SDA/SCL-ийг begin()-д тохируулна.
-U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /*reset=*/U8X8_PIN_NONE);
+// Hardware-I2C, full-frame буфер. 180° эргүүлсэн (R2).
+U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R2, /*reset=*/U8X8_PIN_NONE);
 
-bool      ok = false;
-bool      connected = false;
-char      statusLine[26] = "";
-
-// Terminal буфер — доод мөр рүү бичээд дүүрэхэд дээш гүйлгэнэ.
-// 128×64, 5x7 font (мөрийн өндөр 8px) → 8 мөр × ~25 тэмдэгт.
-constexpr int ROWS = 8;
-constexpr int COLS = 25;
+// Terminal буфер — 4x6 фонт (хамгийн жижиг), мөр 6px → 10 мөр × 32 тэмдэгт.
+constexpr int ROWS = 10;
+constexpr int COLS = 32;
 char lines[ROWS][COLS + 1];
+int  curRow = 0;   // одоогийн бичиж буй мөр (дээрээс доош дүүрнэ)
 int  curCol = 0;
+
+bool ok = false;
+
+// ── Цэс (MENU) горимын төлөв — зөвхөн core 1-ээс хүрнэ, lock хэрэггүй ──
+disp::Mode          mode = disp::TERMINAL;
+const char         *menuTitle = "";
+const char *const  *menuItems = nullptr;
+int                 menuCount = 0;
+int                 menuSel = 0;
+
+// feedBytes() олон task/core-оос дуудагдах тул буферийг spinlock-оор хамгаална.
+portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 
 void clearBuf() {
   for (int i = 0; i < ROWS; i++) lines[i][0] = '\0';
+  curRow = 0;
   curCol = 0;
 }
 
-void scrollUp() {
+// Шинэ мөр рүү шилжинэ. Доод мөрд хүрсэн бол бүх мөрийг 1-ээр дээш гүйлгэж,
+// доод мөрд үлдэнэ — жинхэнэ terminal шиг мөр мөрөөр дээш гүйдэг.
+void newline() {
+  curCol = 0;
+  if (curRow < ROWS - 1) {
+    curRow++;
+    return;
+  }
   for (int i = 0; i < ROWS - 1; i++) strcpy(lines[i], lines[i + 1]);
   lines[ROWS - 1][0] = '\0';
-  curCol = 0;
 }
 
-void putChar(char c) {
-  if (c == '\n') { scrollUp(); return; }
+// putChar нь mux барьсан үед л дуудагдана.
+void putChar(uint8_t c) {
   if (c == '\r') return;
-  if (c == '\t') c = ' ';
-  if (c < 32 || c > 126) return;          // зөвхөн хэвлэгдэх ASCII
-  if (curCol >= COLS) scrollUp();         // мөр дүүрвэл шинэ мөр
-  lines[ROWS - 1][curCol++] = c;
-  lines[ROWS - 1][curCol] = '\0';
+  if (c == '\n') { newline(); return; }
+  if (c < 32 || c > 126) c = ' ';         // зөвхөн хэвлэгдэх ASCII
+  if (curCol >= COLS) newline();          // мөр дүүрвэл шинэ мөр (wrap)
+  lines[curRow][curCol++] = c;
+  lines[curRow][curCol] = '\0';
 }
-
 } // namespace
+
+namespace disp {
 
 bool begin() {
   Wire.begin(DISP_SDA, DISP_SCL);
   Wire.setClock(400000);
 
-  // Дэлгэц байгаа эсэхийг I2C ping-ээр шалгана — олдохгүй бол non-fatal.
-  Wire.beginTransmission(DISP_ADDR7);
-  if (Wire.endTransmission() != 0) {
+  // Дэлгэц байгаа эсэхийг I2C ping-ээр шалгана. Cold boot/тэжээл тогтворжих
+  // хүртэл хариу өгөхгүй байж болзошгүй тул хэдэн удаа давтана.
+  bool found = false;
+  for (int attempt = 0; attempt < 10 && !found; attempt++) {
+    Wire.beginTransmission(DISP_ADDR7);
+    if (Wire.endTransmission() == 0) { found = true; break; }
+    delay(50);
+  }
+  if (!found) {
     ok = false;
     return false;
   }
 
-  u8g2.setI2CAddress(DISP_ADDR8);         // U8g2 8-bit хаяг хүлээнэ (0x78)
+  u8g2.setI2CAddress(DISP_ADDR8);
   u8g2.begin();
   u8g2.setFontMode(1);
-  ok = true;
   clearBuf();
+  ok = true;
 
-  // Splash
   u8g2.clearBuffer();
-  u8g2.setFont(u8g2_font_7x13B_tr);
-  u8g2.drawStr(8, 28, "industrial");
-  u8g2.drawStr(28, 44, "Machine");
-  u8g2.sendBuffer();
+  u8g2.sendBuffer();                      // хоосон дэлгэц — лог тэр даруй урсана
   return true;
 }
 
-void feed(const uint8_t* data, size_t len) {
+void feedBytes(const uint8_t *data, size_t len) {
   if (!ok || !data) return;
-  for (size_t i = 0; i < len; i++) putChar((char)data[i]);
+  portENTER_CRITICAL(&mux);
+  for (size_t i = 0; i < len; i++) putChar(data[i]);
+  portEXIT_CRITICAL(&mux);
 }
 
-void setConnected(bool c) { connected = c; }
+void setMode(Mode m) { mode = m; }
 
-void setStatus(const char* line) {
-  if (!line) { statusLine[0] = '\0'; return; }
-  strncpy(statusLine, line, sizeof(statusLine) - 1);
-  statusLine[sizeof(statusLine) - 1] = '\0';
+void clear() {
+  portENTER_CRITICAL(&mux);
+  clearBuf();
+  portEXIT_CRITICAL(&mux);
 }
+
+void setMenu(const char *title, const char *const *items, int count, int sel) {
+  menuTitle = title ? title : "";
+  menuItems = items;
+  menuCount = count;
+  menuSel   = sel;
+}
+
+namespace {
+// MENU горим — гарчиг + мөрүүд, сонгогдсонд '>' заагч.
+void renderMenu() {
+  u8g2.drawStr(0, 5, menuTitle);
+  for (int i = 0; i < menuCount && i < ROWS - 1; i++) {
+    char row[COLS + 1];
+    snprintf(row, sizeof(row), "%c %.*s", (i == menuSel ? '>' : ' '),
+             COLS - 2, menuItems[i] ? menuItems[i] : "");
+    u8g2.drawStr(0, 5 + (i + 1) * 6, row);
+  }
+}
+
+// TERMINAL горим — лог буфер (богино локоор хуулж аваад зурна).
+void renderTerminal() {
+  char local[ROWS][COLS + 1];
+  portENTER_CRITICAL(&mux);
+  memcpy(local, lines, sizeof(local));
+  portEXIT_CRITICAL(&mux);
+  for (int i = 0; i < ROWS; i++) {
+    u8g2.drawStr(0, 5 + i * 6, local[i]);
+  }
+}
+} // namespace
 
 void render() {
   if (!ok) return;
+
   u8g2.clearBuffer();
-
-  if (!connected) {
-    // Залгаагүй дэлгэц — төвд "NOT CONNECTED", доор статус (хувилбар/IP).
-    u8g2.setFont(u8g2_font_7x13B_tr);
-    const char* msg = "NOT CONNECTED";
-    int w = u8g2.getStrWidth(msg);
-    u8g2.drawStr((128 - w) / 2, 34, msg);
-    if (statusLine[0]) {
-      u8g2.setFont(u8g2_font_5x7_tf);
-      int sw = u8g2.getStrWidth(statusLine);
-      u8g2.drawStr((128 - sw) / 2, 52, statusLine);
-    }
-  } else {
-    // Монитор горим — terminal мөрүүд (5x7 font, 8 мөр).
-    u8g2.setFont(u8g2_font_5x7_tf);
-    for (int i = 0; i < ROWS; i++) {
-      u8g2.drawStr(0, 7 + i * 8, lines[i]);
-    }
-  }
-
+  u8g2.setDrawColor(1);                    // цагаан пиксел (хар дэвсгэр дээр)
+  u8g2.setFont(u8g2_font_4x6_tr);         // хамгийн жижиг уншигдахуйц фонт
+  if (mode == MENU) renderMenu();
+  else              renderTerminal();
   u8g2.sendBuffer();
 }
 

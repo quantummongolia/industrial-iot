@@ -36,9 +36,15 @@ constexpr uint8_t ROTATION = 3;
 // Текст — хамгийн жижиг built-in GLCD фонт (6×8px), textSize 1.
 constexpr int16_t SCR_W = 240;
 constexpr int16_t SCR_H = 240;
-constexpr uint8_t TEXT_SIZE = 2; // 12×16 тэмдэгтүүд, нэг мөрөнд 20 ширхэг, нийт 15 мөр (300 байт/мөр)
-constexpr int16_t CH_W = 12 * TEXT_SIZE; // тэмдэгтийн өргөн
-constexpr int16_t CH_H = 16 * TEXT_SIZE; // мөрийн өндөр
+constexpr uint8_t TEXT_SIZE = 1; // 12×16 тэмдэгтүүд, нэг мөрөнд 20 ширхэг, нийт 15 мөр (300 байт/мөр)
+constexpr int16_t CH_W = 6 * TEXT_SIZE; // тэмдэгтийн өргөн
+constexpr int16_t CH_H = 8 * TEXT_SIZE; // мөрийн өндөр
+
+// Terminal мөр буфер — industrialMachine-тэй ижил зарчмаар мөр мөрөөр дээш
+// гүйлгэнэ (хуудсаар арчихгүй). SCR_W/CH_W тэмдэгт/мөр, SCR_H/CH_H мөр.
+constexpr int COLS = SCR_W / CH_W;
+constexpr int ROWS = SCR_H / CH_H;
+char lines[ROWS][COLS + 1];
 
 // RGB565 өнгө — Arduino_GFX-ийн хувилбараас (BLACK/RGB565_BLACK) хамаарахгүй
 // байхын тулд шууд тодорхойлов.
@@ -49,37 +55,48 @@ Arduino_DataBus *bus = nullptr;
 Arduino_GFX *gfx = nullptr;
 StreamBufferHandle_t sb = nullptr;
 
-int16_t curX = 0;
-int16_t curY = 0;
+int curRow = 0; // одоо бичиж буй мөр (дээрээс доош дүүрнэ)
+int curCol = 0;
 
-void clearScreen() {
-  gfx->fillScreen(COL_BLACK);
-  curX = 0;
-  curY = 0;
+void clearBuf() {
+  for (int i = 0; i < ROWS; i++) lines[i][0] = '\0';
+  curRow = 0;
+  curCol = 0;
 }
 
+// Шинэ мөр. Доод мөрд хүрсэн бол бүх мөрийг 1-ээр дээш гүйлгэж, доод мөрийг
+// хоослоно — terminal шиг мөр мөрөөр дээш гүйдэг (хуудсаар арчихгүй).
 void newline() {
-  curX = 0;
-  curY += CH_H;
-  // Доод ирмэгт хүрвэл шинэ хуудас (лог хадгалахгүй, realtime урсгал).
-  if (curY + CH_H > SCR_H)
-    clearScreen();
+  curCol = 0;
+  if (curRow < ROWS - 1) {
+    curRow++;
+    return;
+  }
+  for (int i = 0; i < ROWS - 1; i++) strcpy(lines[i], lines[i + 1]);
+  lines[ROWS - 1][0] = '\0';
 }
 
 void putChar(uint8_t c) {
-  if (c == '\r')
-    return;
-  if (c == '\n') {
-    newline();
-    return;
+  if (c == '\r') return;
+  if (c == '\n') { newline(); return; }
+  if (c < 32 || c > 126) c = ' '; // зөвхөн хэвлэгдэх ASCII
+  if (curCol >= COLS) newline();   // мөр дүүрвэл доош гүйнэ (wrap)
+  lines[curRow][curCol++] = c;
+  lines[curRow][curCol] = '\0';
+}
+
+// Буферээс бүх дэлгэцийг дахин зурна. Мөр бүрийг COLS өргөнд хоосон зайгаар
+// гүйцээх тул хуучин агуулга opaque (хар) дэвсгэрээр дарагдаж арилна —
+// fillScreen хэрэггүй, анивчаа бага.
+void redraw() {
+  char row[COLS + 1];
+  for (int r = 0; r < ROWS; r++) {
+    int len = (int)strlen(lines[r]);
+    for (int c = 0; c < COLS; c++) row[c] = (c < len) ? lines[r][c] : ' ';
+    row[COLS] = '\0';
+    gfx->setCursor(0, r * CH_H);
+    gfx->print(row);
   }
-  if (c < 32 || c > 126)
-    c = ' '; // зөвхөн хэвлэгдэх ASCII
-  if (curX + CH_W > SCR_W)
-    newline();
-  gfx->setCursor(curX, curY);
-  gfx->write(c);
-  curX += CH_W;
 }
 
 // Core 0 дээр ажиллах рендер task. stream buffer-аас байт татаж зурна.
@@ -88,8 +105,12 @@ void renderTask(void *) {
   uint8_t buf[64];
   for (;;) {
     size_t n = xStreamBufferReceive(sb, buf, sizeof(buf), pdMS_TO_TICKS(50));
-    for (size_t i = 0; i < n; i++)
-      putChar(buf[i]);
+    if (n == 0) continue;                 // юу ч ирээгүй — дахин зурахгүй
+    for (size_t i = 0; i < n; i++) putChar(buf[i]);
+    // Нэг бөөн дэх үлдсэн байтуудыг шавхаад нэг л удаа redraw().
+    while ((n = xStreamBufferReceive(sb, buf, sizeof(buf), 0)) > 0)
+      for (size_t i = 0; i < n; i++) putChar(buf[i]);
+    redraw();
   }
 }
 } // namespace
@@ -109,8 +130,7 @@ bool begin() {
   gfx->setTextSize(TEXT_SIZE);
   gfx->setTextColor(COL_WHITE, COL_BLACK); // цагаан текст, хар дэвсгэр
   gfx->setTextWrap(false);
-  curX = 0;
-  curY = 0;
+  clearBuf();
 
   // Богино урсгал буфер (1KB) — лог хадгалах биш, core1→core0 дамжуулагч.
   sb = xStreamBufferCreate(1024, 1);
