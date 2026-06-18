@@ -51,13 +51,14 @@ constexpr uint16_t SPM33_REG_ENERGY = 25; // 40026: Total active energy LUINT32,
 constexpr uint16_t SPM33_REG_CT_PRI = 201; // 40202: CT primary side value (1..50000)
 constexpr uint8_t SPM33_CT_SEC = 5;        // SPM33 CT secondary side (5A typical)
 
-constexpr uint32_t POLL_MS = 2000;                // Flow cycle interval (tick rate)
+constexpr uint32_t POLL_MS = 3000;                // Flow cycle interval (tick rate)
 constexpr uint32_t TOTALIZER_INTERVAL_MS = 60000; // Totalizer cycle — 1 минут тутамд
 constexpr uint32_t RX_TMO = 200;
 constexpr uint32_t FRAME_GAP_MS = 10;
 
 constexpr uint32_t WDT_TIMEOUT_S = 30;
 constexpr uint32_t WIFI_RETRY_MS = 10000;
+constexpr uint32_t WIFI_DISCONNECT_RESTART_MS = 5UL * 60UL * 1000UL; // 5 минут тасрахад reset
 constexpr uint8_t MODBUS_RETRY = 2;
 constexpr uint8_t MAX_CONSECUTIVE_FAILS = 10;
 constexpr uint8_t MAX_RECOVERY_ATTEMPTS = 20;
@@ -399,6 +400,7 @@ FirebaseConfig fbConfig;
 
 bool firebaseReady = false;
 unsigned long lastWifiCheck = 0;
+unsigned long wifiDisconnectedAt = 0; // 0 = холбоотой; !=0 = тасрахад эхэлсэн агшин
 unsigned long lastTotalizerReadTime = 0; // Сүүлд totalizer уншсан агшин (ms)
 unsigned long lastHeapLogTime = 0;       // Сүүлд heap-н хэмжээг log хийсэн агшин
 
@@ -452,11 +454,14 @@ void onWifiEvent(WiFiEvent_t event) {
   switch (event) {
   case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
     Serial.println("[WiFi] Disconnected — attempting auto-reconnect");
+    if (wifiDisconnectedAt == 0)
+      wifiDisconnectedAt = millis(); // тасралтгүй тасарсан эхний агшныг тэмдэглэнэ
     WiFi.reconnect();
     break;
   case ARDUINO_EVENT_WIFI_STA_GOT_IP:
     Serial.printf("[WiFi] Reconnected — IP: %s\n",
                   WiFi.localIP().toString().c_str());
+    wifiDisconnectedAt = 0;
     break;
   default:
     break;
@@ -553,6 +558,16 @@ void loop() {
   }
   if (now >= cfg::MAX_UPTIME_MS) {
     Serial.println("[Stability] Reached 24h uptime — scheduled restart");
+    delay(200);
+    ESP.restart();
+  }
+
+  // WiFi.reconnect() / auto-reconnect зарим тохиолдолд бодит сүлжээ сэргэсэн ч
+  // chip-ийн WiFi stack хатуу "stuck" болсон үед амжилтгүй хэвээр үлддэг —
+  // үүнийг зөвхөн бүрэн restart л засдаг тул threshold давсан бол reboot хийнэ.
+  if (wifiDisconnectedAt != 0 &&
+      now - wifiDisconnectedAt >= cfg::WIFI_DISCONNECT_RESTART_MS) {
+    Serial.println("[Stability] WiFi 5+ минут тасархад — restarting");
     delay(200);
     ESP.restart();
   }

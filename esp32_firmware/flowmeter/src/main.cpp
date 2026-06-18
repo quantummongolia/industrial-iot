@@ -59,7 +59,7 @@ constexpr uint16_t REG_ULS_LEVEL = 0x2002; // Ultrasonic Level instantaneous (ra
 constexpr uint16_t REG_ULS_MOUNT = 0x2009; // Ultrasonic Mount Height — суурилуулалтын нийт өндөр (raw/1000 = m, W/R)
 
 // Timing
-constexpr uint32_t READ_INTERVAL_MS = 2000;        // Flow rate read interval (also tick rate)
+constexpr uint32_t READ_INTERVAL_MS = 3000;        // Flow rate read interval (also tick rate)
 constexpr uint32_t TOTALIZER_INTERVAL_MS = 60000;  // Totalizer уншилт — 1 минут тутамд
 constexpr uint32_t WIFI_RETRY_MS = 10000;          // WiFi reconnect probe
 constexpr uint32_t WDT_TIMEOUT_S = 30;             // Watchdog timeout

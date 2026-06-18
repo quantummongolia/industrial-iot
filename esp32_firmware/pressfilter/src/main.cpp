@@ -66,7 +66,7 @@ constexpr uint8_t SPM33_CT_SEC = 5;        // SPM33 CT secondary side (5A typica
 constexpr uint16_t REG_ULS_LEVEL = 0x2002;
 constexpr uint16_t REG_ULS_MOUNT = 0x2009; // Mount Height — суурилуулалтын нийт өндөр (raw/1000 = m, W/R)
 
-constexpr uint32_t POLL_MS = 2000;                // Flow cycle interval (tick rate)
+constexpr uint32_t POLL_MS = 3000;                // Flow cycle interval (tick rate)
 constexpr uint32_t TOTALIZER_INTERVAL_MS = 60000; // Totalizer cycle — 1 минут тутамд
 constexpr uint32_t RX_TMO = 200;
 constexpr uint32_t FRAME_GAP_MS = 10;
