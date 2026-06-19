@@ -21,6 +21,12 @@
  */
 
 #include "secrets.h"
+
+// Нөөц WiFi (Photon). Тодорхойлоогүй хуучин secrets.h-тэй ажиллах — хоосон = нөөцгүй.
+#ifndef WIFI_SSID2
+#define WIFI_SSID2 ""
+#define WIFI_PASSWORD2 ""
+#endif
 #include "ota.h"
 #include <Arduino.h>
 #include <Firebase_ESP_Client.h>
@@ -53,6 +59,8 @@ constexpr uint32_t FRAME_GAP_MS = 10;
 
 constexpr uint32_t WDT_TIMEOUT_S = 30;
 constexpr uint32_t WIFI_RETRY_MS = 10000;
+constexpr uint8_t  FB_FAILOVER_STREAK = 5;               // Mandal дээр Firebase энэ удаа дараалан алдвал нөөц рүү
+constexpr uint32_t BACKUP_HOLD_MS = 2UL * 60UL * 1000UL; // Photon дээр энэ хугацаанд барина; дараа нь Mandal-ыг дахин үзнэ
 constexpr uint32_t WIFI_DISCONNECT_RESTART_MS = 5UL * 60UL * 1000UL; // 5 минут тасрахад reset
 constexpr uint8_t MODBUS_RETRY = 2;
 constexpr uint8_t MAX_CONSECUTIVE_FAILS = 10;
@@ -347,6 +355,8 @@ unsigned int totalRecoveryAttempts = 0;
 
 unsigned long fbNextAllowedAt = 0;
 unsigned int fbFailStreak = 0;
+bool wifiOnBackup = false;            // одоо нөөц сүлжээ (Photon) дээр байна уу
+unsigned long primaryRetryAt = 0;     // нөөц дээр байх үед энэ хугацаанд Mandal-ыг дахин шалгана
 
 // Energy (totalizer) утга 1 минутад нэг л шинэчлэгдэх тул хооронд нь cache-д хадгална.
 float cachedEm13EnergyKWh = 0.0f; bool cachedEm13EnergyValid = false;
@@ -405,30 +415,86 @@ void onWifiEvent(WiFiEvent_t event) {
   }
 }
 
+// Нөөц сүлжээ (Photon) тохируулсан эсэх.
+static bool wifiHasBackup() { return WIFI_SSID2[0] != '\0'; }
+
+// Нэг сүлжээнд блоклон холбогдохыг оролдоно. Амжилттай бол true.
+static bool wifiTry(const char *ssid, const char *pass, uint32_t timeoutMs) {
+  Serial.printf("[WiFi] Connecting to network: %s", ssid);
+  WiFi.begin(ssid, pass);
+  unsigned long start = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - start < timeoutMs) {
+    delay(500);
+    Serial.print(".");
+  }
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.printf("\n[WiFi] Connected to %s — IP: %s\n", ssid,
+                  WiFi.localIP().toString().c_str());
+    return true;
+  }
+  Serial.printf("\n[WiFi] %s failed\n", ssid);
+  return false;
+}
+
+// Strict-priority холболт: ҮРГЭЛЖ эхэлж үндсэн (Mandal) сүлжээнд оролдоно, зөвхөн
+// бүтэхгүй үед нөөц (Photon) рүү шилжинэ. Дохионы хүчээр (RSSI) сонгохгүй.
 void wifiConnect() {
   if (WiFi.status() == WL_CONNECTED)
     return;
 
-  Serial.printf("[WiFi] Connecting to network: %s", WIFI_SSID);
   WiFi.mode(WIFI_STA);
   WiFi.setAutoReconnect(true);
   WiFi.persistent(true);
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
-  unsigned long start = millis();
-  while (WiFi.status() != WL_CONNECTED && millis() - start < 15000) {
-    delay(500);
-    Serial.print(".");
+  if (wifiTry(WIFI_SSID, WIFI_PASSWORD, 10000)) {
+    wifiOnBackup = false;
+    return;
+  }
+  if (wifiHasBackup() && wifiTry(WIFI_SSID2, WIFI_PASSWORD2, 10000)) {
+    wifiOnBackup = true;
+    primaryRetryAt = millis() + cfg::BACKUP_HOLD_MS;
+    return;
+  }
+  Serial.println("[WiFi] All networks failed — will retry later");
+}
+
+// Холбоотой үед ажиллах failover шийдвэр:
+//  • Mandal дээр байгаа ч Firebase рүү өгөгдөл явахгүй (fail streak) бол → Photon руу.
+//  • Photon дээр байгаа бол BACKUP_HOLD_MS тутамд Mandal сэргэсэн эсэхийг шалгана.
+void wifiFailover(unsigned long now) {
+  if (WiFi.status() != WL_CONNECTED || !wifiHasBackup())
+    return;
+
+  if (!wifiOnBackup) {
+    // Үндсэн (Mandal) дээр. Firebase тогтмол алдаж, throttle гарсан бол нөөц рүү.
+    if (fbFailStreak >= cfg::FB_FAILOVER_STREAK && now >= primaryRetryAt) {
+      Serial.printf("[WiFi] Primary up but Firebase failing (streak %u) — trying backup\n",
+                    fbFailStreak);
+      primaryRetryAt = now + cfg::BACKUP_HOLD_MS;
+      if (wifiTry(WIFI_SSID2, WIFI_PASSWORD2, 10000)) {
+        wifiOnBackup = true;
+      } else {
+        Serial.println("[WiFi] Backup unavailable — staying on primary");
+        wifiTry(WIFI_SSID, WIFI_PASSWORD, 10000);
+      }
+      fbFailStreak = 0;
+      fbNextAllowedAt = 0;
+    }
+    return;
   }
 
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.printf("\n[WiFi] Connected — IP: %s\n",
-                  WiFi.localIP().toString().c_str());
-  } else {
-    Serial.println("\n[WiFi] Connection failed — will retry later");
-    WiFi.disconnect(true);
-    delay(100);
-    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  // Нөөц (Photon) дээр. Хааяа Mandal сэргэсэн эсэхийг шалгаж, сэргсэн бол буцна.
+  if (now >= primaryRetryAt) {
+    primaryRetryAt = now + cfg::BACKUP_HOLD_MS;
+    Serial.println("[WiFi] Re-checking primary (Mandal)...");
+    if (wifiTry(WIFI_SSID, WIFI_PASSWORD, 8000)) {
+      wifiOnBackup = false;
+      Serial.println("[WiFi] Back on primary (Mandal)");
+    } else {
+      wifiTry(WIFI_SSID2, WIFI_PASSWORD2, 10000);
+    }
+    fbFailStreak = 0;
+    fbNextAllowedAt = 0;
   }
 }
 
@@ -516,9 +582,10 @@ void loop() {
   if (WiFi.status() != WL_CONNECTED &&
       now - lastWifiCheck >= cfg::WIFI_RETRY_MS) {
     lastWifiCheck = now;
-    Serial.println("[WiFi] retry — async reconnect");
-    WiFi.reconnect();
+    Serial.println("[WiFi] retry — reconnect (primary first)");
+    wifiConnect();
   }
+  wifiFailover(now);
 
   static unsigned long lastPoll = 0;
   if (now - lastPoll < cfg::POLL_MS)
