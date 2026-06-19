@@ -28,13 +28,7 @@
  *   • Шинэ firmware-г GitHub releases-ээс татаж 2-slot OTA-р суулгана
  */
 
-#include "secrets.h"
-
-// Нөөц WiFi (Photon). Тодорхойлоогүй хуучин secrets.h-тэй ажиллах — хоосон = нөөцгүй.
-#ifndef WIFI_SSID2
-#define WIFI_SSID2 ""
-#define WIFI_PASSWORD2 ""
-#endif // WiFi and Firebase credentials (not tracked in git)
+#include "secrets.h" // WiFi and Firebase credentials (not tracked in git)
 #include "ota.h"     // Remote OTA + heartbeat (DEVICE_ID = flowmeter_<mac>)
 #include <Arduino.h> // Arduino core library for ESP32
 #include <Firebase_ESP_Client.h> // Firebase client library for ESP32
@@ -67,9 +61,7 @@ constexpr uint16_t REG_ULS_MOUNT = 0x2009; // Ultrasonic Mount Height — суу
 // Timing
 constexpr uint32_t READ_INTERVAL_MS = 3000;        // Flow rate read interval (also tick rate)
 constexpr uint32_t TOTALIZER_INTERVAL_MS = 60000;  // Totalizer уншилт — 1 минут тутамд
-constexpr uint32_t WIFI_RETRY_MS = 10000;
-constexpr uint8_t  FB_FAILOVER_STREAK = 5;               // Mandal дээр Firebase энэ удаа дараалан алдвал нөөц рүү
-constexpr uint32_t BACKUP_HOLD_MS = 2UL * 60UL * 1000UL; // Photon дээр энэ хугацаанд барина; дараа нь Mandal-ыг дахин үзнэ          // WiFi reconnect probe
+constexpr uint32_t WIFI_RETRY_MS = 10000;          // WiFi reconnect probe
 constexpr uint32_t WDT_TIMEOUT_S = 30;             // Watchdog timeout
 constexpr uint32_t RX_TMO = 100;                   // Modbus receive timeout (ms)
 constexpr uint32_t MODBUS_RETRY_DELAY_MS = 50;     // Уншилт амжилтгүй болсон үед хүлээх хугацаа
@@ -352,9 +344,7 @@ bool  ulsMountSent = false;
 
 // Firebase upload backoff — prevents auth rate-limit storms on failure
 unsigned long fbNextAllowedAt = 0; // Next allowed upload timestamp
-unsigned int fbFailStreak = 0;
-bool wifiOnBackup = false;            // одоо нөөц сүлжээ (Photon) дээр байна уу
-unsigned long primaryRetryAt = 0;     // нөөц дээр байх үед энэ хугацаанд Mandal-ыг дахин шалгана     // Consecutive upload failure count
+unsigned int fbFailStreak = 0;     // Consecutive upload failure count
 
 // Modbus read failure recovery state
 unsigned int consecutiveReadFails = 0; // Straight failed read cycles
@@ -384,86 +374,31 @@ void onWifiEvent(WiFiEvent_t event) {
  * setAutoReconnect + WiFi event handler keep the link up automatically after
  * this initial connect, so loop-level polling is just a fallback.
  */
-// Нөөц сүлжээ (Photon) тохируулсан эсэх.
-static bool wifiHasBackup() { return WIFI_SSID2[0] != '\0'; }
+void wifiConnect() {
+  if (WiFi.status() == WL_CONNECTED) // Skip if already connected
+    return;
 
-// Нэг сүлжээнд блоклон холбогдохыг оролдоно. Амжилттай бол true.
-static bool wifiTry(const char *ssid, const char *pass, uint32_t timeoutMs) {
-  Serial.printf("[WiFi] Connecting to network: %s", ssid);
-  WiFi.begin(ssid, pass);
+  Serial.printf("[WiFi] Connecting to network: %s", WIFI_SSID);
+  WiFi.mode(WIFI_STA);         // Station mode
+  WiFi.setAutoReconnect(true); // Auto reconnect on disconnect
+  WiFi.persistent(true);       // Persist credentials to NVS
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+
   unsigned long start = millis();
-  while (WiFi.status() != WL_CONNECTED && millis() - start < timeoutMs) {
+  while (WiFi.status() != WL_CONNECTED && millis() - start < 15000) {
     delay(500);
     Serial.print(".");
   }
+
   if (WiFi.status() == WL_CONNECTED) {
-    Serial.printf("\n[WiFi] Connected to %s — IP: %s\n", ssid,
+    Serial.printf("\n[WiFi] Connected — IP: %s\n",
                   WiFi.localIP().toString().c_str());
-    return true;
-  }
-  Serial.printf("\n[WiFi] %s failed\n", ssid);
-  return false;
-}
-
-// Strict-priority холболт: ҮРГЭЛЖ эхэлж үндсэн (Mandal) сүлжээнд оролдоно, зөвхөн
-// бүтэхгүй үед нөөц (Photon) рүү шилжинэ. Дохионы хүчээр (RSSI) сонгохгүй.
-void wifiConnect() {
-  if (WiFi.status() == WL_CONNECTED)
-    return;
-
-  WiFi.mode(WIFI_STA);
-  WiFi.setAutoReconnect(true);
-  WiFi.persistent(true);
-
-  if (wifiTry(WIFI_SSID, WIFI_PASSWORD, 10000)) {
-    wifiOnBackup = false;
-    return;
-  }
-  if (wifiHasBackup() && wifiTry(WIFI_SSID2, WIFI_PASSWORD2, 10000)) {
-    wifiOnBackup = true;
-    primaryRetryAt = millis() + cfg::BACKUP_HOLD_MS;
-    return;
-  }
-  Serial.println("[WiFi] All networks failed — will retry later");
-}
-
-// Холбоотой үед ажиллах failover шийдвэр:
-//  • Mandal дээр байгаа ч Firebase рүү өгөгдөл явахгүй (fail streak) бол → Photon руу.
-//  • Photon дээр байгаа бол BACKUP_HOLD_MS тутамд Mandal сэргэсэн эсэхийг шалгана.
-void wifiFailover(unsigned long now) {
-  if (WiFi.status() != WL_CONNECTED || !wifiHasBackup())
-    return;
-
-  if (!wifiOnBackup) {
-    // Үндсэн (Mandal) дээр. Firebase тогтмол алдаж, throttle гарсан бол нөөц рүү.
-    if (fbFailStreak >= cfg::FB_FAILOVER_STREAK && now >= primaryRetryAt) {
-      Serial.printf("[WiFi] Primary up but Firebase failing (streak %u) — trying backup\n",
-                    fbFailStreak);
-      primaryRetryAt = now + cfg::BACKUP_HOLD_MS;
-      if (wifiTry(WIFI_SSID2, WIFI_PASSWORD2, 10000)) {
-        wifiOnBackup = true;
-      } else {
-        Serial.println("[WiFi] Backup unavailable — staying on primary");
-        wifiTry(WIFI_SSID, WIFI_PASSWORD, 10000);
-      }
-      fbFailStreak = 0;
-      fbNextAllowedAt = 0;
-    }
-    return;
-  }
-
-  // Нөөц (Photon) дээр. Хааяа Mandal сэргэсэн эсэхийг шалгаж, сэргсэн бол буцна.
-  if (now >= primaryRetryAt) {
-    primaryRetryAt = now + cfg::BACKUP_HOLD_MS;
-    Serial.println("[WiFi] Re-checking primary (Mandal)...");
-    if (wifiTry(WIFI_SSID, WIFI_PASSWORD, 8000)) {
-      wifiOnBackup = false;
-      Serial.println("[WiFi] Back on primary (Mandal)");
-    } else {
-      wifiTry(WIFI_SSID2, WIFI_PASSWORD2, 10000);
-    }
-    fbFailStreak = 0;
-    fbNextAllowedAt = 0;
+  } else {
+    Serial.println("\n[WiFi] Connection failed — will retry later");
+    WiFi.disconnect(true); // Clear stale state so next begin() is clean
+    delay(100);
+    WiFi.begin(WIFI_SSID,
+               WIFI_PASSWORD); // Kick off a fresh attempt in the background
   }
 }
 
@@ -651,7 +586,6 @@ void loop() {
     lastWifiCheck = now;
     wifiConnect();
   }
-  wifiFailover(now);
 
   // Rate limit: 2 секунд тутамд нэг cycle (READ_INTERVAL_MS)
   if (now - lastReadTime < cfg::READ_INTERVAL_MS)
