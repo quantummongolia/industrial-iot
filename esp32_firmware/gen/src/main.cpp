@@ -444,6 +444,22 @@ void firebaseInit() {
   Serial.println("[Firebase] init — authenticating");
 }
 
+// ========================== DATA-LED LIVENESS FLIP =========================
+// Сул зогссон сенсорын утга өөрчлөгдөхгүй бол Firebase-ийн .on("value")
+// listener асдаггүй тул dashboard-ийн ногоон data-LED анивчдаггүй. Үүнийг
+// засахын тулд утгыг 2 орноор бөөрөнхийлж, гацсан тохиолдолд 3 дахь орныг
+// 0↔1 сэлгэнэ — dashboard 2 орон харуулдаг тул flag үл харагдана. Уншилт
+// амжилттай болоход л дуудагдана тул үхсэн сенсор анивчихгүй, stale болно.
+// ЗӨВХӨН жижиг утганд (power); totalizer/energy/currents-д ХЭРЭГЛЭХГҮЙ.
+struct LiveState { float last2 = NAN; bool flip = false; };
+static float liveValue(float v, LiveState &st) {
+  float v2 = roundf(v * 100.0f) / 100.0f;
+  st.flip = (v2 == st.last2) ? !st.flip : false;
+  st.last2 = v2;
+  return v2 + (st.flip ? 0.001f : 0.0f);
+}
+LiveState lvEm13, lvEm12;
+
 void setup() {
   Serial.begin(115200);
   delay(300);
@@ -612,7 +628,7 @@ void loop() {
   bool emAny = false;
   {
     FirebaseJson j;
-    auto addEm = [&](const char *id, const Spm33Reading &r) {
+    auto addEm = [&](const char *id, const Spm33Reading &r, LiveState &lv) {
       String base = String(id) + "/";
       if (totalizerCycle) {
         if (r.energyOk) {
@@ -621,13 +637,13 @@ void loop() {
         }
       } else {
         if (r.powerOk) {
-          j.set((base + "power_kw").c_str(), r.powerKW);
+          j.set((base + "power_kw").c_str(), liveValue(r.powerKW, lv));
           emAny = true;
         }
       }
     };
-    addEm("em13", em13);
-    addEm("em12", em12);
+    addEm("em13", em13, lvEm13);
+    addEm("em12", em12, lvEm12);
     if (emAny) {
       emOk = Firebase.RTDB.updateNodeSilent(&fbData, "/energy_meters", &j);
       if (!emOk)

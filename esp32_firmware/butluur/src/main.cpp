@@ -507,6 +507,22 @@ void firebaseInit() {
   Serial.println("[Firebase] init — authenticating");
 }
 
+// ========================== DATA-LED LIVENESS FLIP =========================
+// Сул зогссон сенсорын утга өөрчлөгдөхгүй бол Firebase-ийн .on("value")
+// listener асдаггүй тул dashboard-ийн ногоон data-LED анивчдаггүй. Үүнийг
+// засахын тулд утгыг 2 орноор бөөрөнхийлж, гацсан тохиолдолд 3 дахь орныг
+// 0↔1 сэлгэнэ — dashboard 2 орон харуулдаг тул flag үл харагдана. Уншилт
+// амжилттай болоход л дуудагдана тул үхсэн сенсор анивчихгүй, stale болно.
+// ЗӨВХӨН жижиг утганд (power/weight); totalizer/energy/currents-д ХЭРЭГЛЭХГҮЙ.
+struct LiveState { float last2 = NAN; bool flip = false; };
+static float liveValue(float v, LiveState &st) {
+  float v2 = roundf(v * 100.0f) / 100.0f;
+  st.flip = (v2 == st.last2) ? !st.flip : false;
+  st.last2 = v2;
+  return v2 + (st.flip ? 0.001f : 0.0f);
+}
+LiveState lvEm03, lvWeight;
+
 void setup() {
   Serial.begin(115200);
   delay(300);
@@ -683,7 +699,7 @@ void loop() {
       }
     } else {
       // Flow cycle: жингийн урсгал
-      if (flowOk) { j.set("weight_rate", flow); butluurAny = true; }
+      if (flowOk) { j.set("weight_rate", liveValue(flow, lvWeight)); butluurAny = true; }
     }
     if (butluurAny) {
       j.set("last_updated", (int)(millis() / 1000));
@@ -708,7 +724,7 @@ void loop() {
       }
     } else {
       if (em03.powerOk) {
-        j.set("em03/power_kw", em03.powerKW);
+        j.set("em03/power_kw", liveValue(em03.powerKW, lvEm03));
         emAny = true;
       }
       if (em03.currentsOk) {
