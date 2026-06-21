@@ -104,8 +104,7 @@ exports.requestOtp = onCall(
       subject: "MRESOURCE — Нэвтрэх код",
       text:
         `Таны нэвтрэх код: ${code}\n\n` +
-        `Энэ код 10 минутын дотор хүчинтэй.\n` +
-        `Хэрэв та хүсээгүй бол энэ захиаг үл тоомсорлоно уу.`,
+        `Энэ код 10 минутын дотор хүчинтэй.`,
       html: otpEmailHtml(code),
     });
 
@@ -194,8 +193,7 @@ function otpEmailHtml(code) {
     'padding:18px;border-radius:12px;text-align:center;">' +
     code +
     "</div>" +
-    '<p style="color:#a6a6aa;font-size:13px;margin:20px 0 0;">Код 10 минутын дотор хүчинтэй. ' +
-    "Хэрэв та хүсээгүй бол энэ захиаг үл тоомсорлоно уу.</p>" +
+    '<p style="color:#a6a6aa;font-size:13px;margin:20px 0 0;">Код 10 минутын дотор хүчинтэй.</p>' +
     "</div>"
   );
 }
