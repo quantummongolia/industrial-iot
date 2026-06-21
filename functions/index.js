@@ -172,8 +172,11 @@ exports.verifyOtp = onCall(
       user = await admin.auth().createUser({ email, emailVerified: true });
     }
 
+    // setCustomUserClaims — token сэргэх бүрд хадгалагдана (refresh-safe)
     await admin.auth().setCustomUserClaims(user.uid, { allowed: true });
-    const token = await admin.auth().createCustomToken(user.uid);
+    // createCustomToken-д ШУУД суулгана — эхний ID token-д claim шууд орж,
+    // propagation race-ээс болж "allowed" дутахаас сэргийлнэ
+    const token = await admin.auth().createCustomToken(user.uid, { allowed: true });
 
     await ref.remove(); // код дахин ашиглагдахгүй (replay-ээс хамгаална)
 
