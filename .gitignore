@@ -27,5 +27,6 @@ firebase-debug.log
 # Нууц мэдээлэл — API key, нууц үг, тохиргоо
 secrets.h
 config.js
+allowlist.js
 *.env
 test.cpp
