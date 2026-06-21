@@ -69,7 +69,7 @@ constexpr uint16_t SPM33_REG_ENERGY = 25; // 40026: Total active energy LUINT32,
 constexpr uint16_t SPM33_REG_CT_PRI = 201; // 40202: CT primary side value (1..50000)
 constexpr uint8_t SPM33_CT_SEC = 5;        // SPM33 CT secondary side (5A typical)
 
-constexpr uint32_t POLL_MS = 2000;                // Flow cycle interval (tick rate)
+constexpr uint32_t POLL_MS = 3000;                // Flow cycle interval (tick rate)
 constexpr uint32_t TOTALIZER_INTERVAL_MS = 60000; // Totalizer cycle — 1 минут тутамд
 constexpr uint32_t RX_TMO = 200;
 constexpr uint32_t FRAME_GAP_MS = 10;
@@ -545,6 +545,22 @@ void firebaseInit() {
   Serial.println("[Firebase] init — authenticating");
 }
 
+// ========================== DATA-LED LIVENESS FLIP =========================
+// Сул зогссон сенсорын утга өөрчлөгдөхгүй бол Firebase-ийн .on("value")
+// listener асдаггүй тул dashboard-ийн ногоон data-LED анивчдаггүй. Үүнийг
+// засахын тулд утгыг 2 орноор бөөрөнхийлж, гацсан тохиолдолд 3 дахь орныг
+// 0↔1 сэлгэнэ — dashboard 2 орон харуулдаг тул flag үл харагдана. Уншилт
+// амжилттай болоход л дуудагдана тул үхсэн сенсор анивчихгүй, stale болно.
+// ЗӨВХӨН жижиг утганд (power/weight/feed/level); totalizer/energy/currents-д ХЭРЭГЛЭХГҮЙ.
+struct LiveState { float last2 = NAN; bool flip = false; };
+static float liveValue(float v, LiveState &st) {
+  float v2 = roundf(v * 100.0f) / 100.0f;
+  st.flip = (v2 == st.last2) ? !st.flip : false;
+  st.last2 = v2;
+  return v2 + (st.flip ? 0.001f : 0.0f);
+}
+LiveState lvEm01, lvEm02, lvEm04, lvEm05, lvWeight, lvFeed, lvWaterTank;
+
 void setup() {
   Serial.begin(115200);
   delay(300);
@@ -788,13 +804,13 @@ void loop() {
       }
     } else {
       // Flow cycle: жингийн урсгал + feed water flow + water tank level
-      if (flowOk) { j.set("weight_rate", flow); teeremAny = true; }
+      if (flowOk) { j.set("weight_rate", liveValue(flow, lvWeight)); teeremAny = true; }
       if (feedFlowOk) {
-        j.set("feed_water/flow_rate", feedFlow);
+        j.set("feed_water/flow_rate", liveValue(feedFlow, lvFeed));
         teeremAny = true;
       }
       if (ulsLevelOk) {
-        j.set("water_tank/level", ulsLevel);
+        j.set("water_tank/level", liveValue(ulsLevel, lvWaterTank));
         teeremAny = true;
       }
       // Mount height-г нэг удаа нийтэлнэ (амжилттай upload болтол оролдоно).
@@ -819,7 +835,7 @@ void loop() {
   bool emAny = false;
   {
     FirebaseJson j;
-    auto addEm = [&](const char *id, const Spm33Reading &r, bool withI) {
+    auto addEm = [&](const char *id, const Spm33Reading &r, bool withI, LiveState &lv) {
       String base = String(id) + "/";
       if (totalizerCycle) {
         if (r.energyOk) {
@@ -828,7 +844,7 @@ void loop() {
         }
       } else {
         if (r.powerOk) {
-          j.set((base + "power_kw").c_str(), r.powerKW);
+          j.set((base + "power_kw").c_str(), liveValue(r.powerKW, lv));
           emAny = true;
         }
         if (withI && r.currentsOk) {
@@ -839,10 +855,10 @@ void loop() {
         }
       }
     };
-    addEm("em01", em01, false);
-    addEm("em02", em02, false);
-    addEm("em04", em04, true);
-    addEm("em05", em05, true);
+    addEm("em01", em01, false, lvEm01);
+    addEm("em02", em02, false, lvEm02);
+    addEm("em04", em04, true, lvEm04);
+    addEm("em05", em05, true, lvEm05);
     if (emAny) {
       emOk = Firebase.RTDB.updateNodeSilent(&fbData, "/energy_meters", &j);
       if (!emOk)

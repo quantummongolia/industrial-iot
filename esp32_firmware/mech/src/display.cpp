@@ -33,12 +33,12 @@ constexpr int8_t PIN_RST = 8;
 // Хэрэв урвуу/толин харагдвал хөрш утга (0 эсвэл 2)-ыг туршина.
 constexpr uint8_t ROTATION = 3;
 
-// Текст — хамгийн жижиг built-in GLCD фонт (6×8px), textSize 1.
+// Текст — built-in GLCD фонт (6×8px суурь), textSize 2 → 12×16px.
 constexpr int16_t SCR_W = 240;
 constexpr int16_t SCR_H = 240;
-constexpr uint8_t TEXT_SIZE = 1; // 12×16 тэмдэгтүүд, нэг мөрөнд 20 ширхэг, нийт 15 мөр (300 байт/мөр)
-constexpr int16_t CH_W = 6 * TEXT_SIZE; // тэмдэгтийн өргөн
-constexpr int16_t CH_H = 8 * TEXT_SIZE; // мөрийн өндөр
+constexpr uint8_t TEXT_SIZE = 2; // 12×16 тэмдэгт: нэг мөрөнд 20 ширхэг, нийт 15 мөр
+constexpr int16_t CH_W = 6 * TEXT_SIZE; // тэмдэгтийн өргөн (12px)
+constexpr int16_t CH_H = 8 * TEXT_SIZE; // мөрийн өндөр (16px)
 
 // Terminal мөр буфер — industrialMachine-тэй ижил зарчмаар мөр мөрөөр дээш
 // гүйлгэнэ (хуудсаар арчихгүй). SCR_W/CH_W тэмдэгт/мөр, SCR_H/CH_H мөр.

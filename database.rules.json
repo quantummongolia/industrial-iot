@@ -3,8 +3,13 @@
     ".read": false,
     ".write": false,
 
+    "otp_codes": {
+      ".read": false,
+      ".write": false
+    },
+
     "flow_system": {
-      ".read": "auth != null",
+      ".read": "auth != null && (auth.token.allowed === true || auth.token.email === 'mresource-teerem@iot.com')",
       ".write": "auth != null && auth.token.email === 'mresource-teerem@iot.com'",
       "flowmeter1": {
         "flow_rate":  { ".validate": "newData.isNumber()" },
@@ -26,7 +31,7 @@
     },
 
     "teerem": {
-      ".read": "auth != null",
+      ".read": "auth != null && (auth.token.allowed === true || auth.token.email === 'mresource-teerem@iot.com')",
       ".write": "auth != null && auth.token.email === 'mresource-teerem@iot.com'",
       "weight_rate":   { ".validate": "newData.isNumber()" },
       "cumulative_kg": { ".validate": "newData.isNumber()" },
@@ -42,7 +47,7 @@
     },
 
     "butluur": {
-      ".read": "auth != null",
+      ".read": "auth != null && (auth.token.allowed === true || auth.token.email === 'mresource-teerem@iot.com')",
       ".write": "auth != null && auth.token.email === 'mresource-teerem@iot.com'",
       "weight_rate":   { ".validate": "newData.isNumber()" },
       "cumulative_t":  { ".validate": "newData.isNumber()" },
@@ -50,7 +55,7 @@
     },
 
     "pressfilter": {
-      ".read": "auth != null",
+      ".read": "auth != null && (auth.token.allowed === true || auth.token.email === 'mresource-teerem@iot.com')",
       ".write": "auth != null && auth.token.email === 'mresource-teerem@iot.com'",
       "bayan_tank": {
         "level": { ".validate": "newData.isNumber()" },
@@ -64,7 +69,7 @@
     },
 
     "energy_meters": {
-      ".read": "auth != null",
+      ".read": "auth != null && (auth.token.allowed === true || auth.token.email === 'mresource-teerem@iot.com')",
       ".write": "auth != null && auth.token.email === 'mresource-teerem@iot.com'",
       "$meter": {
         "power_kw":         { ".validate": "newData.isNumber()" },
@@ -81,7 +86,7 @@
     },
 
     "firmware": {
-      ".read": "auth != null",
+      ".read": "auth != null && (auth.token.allowed === true || auth.token.email === 'mresource-teerem@iot.com')",
       ".write": false,
       "$module": {
         "latest": {
@@ -95,7 +100,7 @@
     },
 
     "devices": {
-      ".read": "auth != null",
+      ".read": "auth != null && (auth.token.allowed === true || auth.token.email === 'mresource-teerem@iot.com')",
       "$deviceId": {
         ".write": "auth != null && auth.token.email === 'mresource-teerem@iot.com'",
         "family":         { ".validate": "newData.isString()" },
@@ -122,7 +127,7 @@
     },
 
     "commands": {
-      ".read": "auth != null",
+      ".read": "auth != null && (auth.token.allowed === true || auth.token.email === 'mresource-teerem@iot.com')",
       "$deviceId": {
         "pending": {
           ".write": "auth != null && root.child('admins').child(auth.token.email.replace('.', '_').replace('@', '_at_')).val() != null"

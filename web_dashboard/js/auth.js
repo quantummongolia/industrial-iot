@@ -1,5 +1,6 @@
 // ============================================================
-//  AUTH — Firebase Authentication (email + password)
+//  AUTH — Firebase Email OTP (passwordless) нэвтрэлт
+//  Код хүсэх/шалгах нь Cloud Function дээр (сервер) хийгдэнэ.
 // ============================================================
 
 function isVerified() {
@@ -17,33 +18,47 @@ function logout() {
   }
 }
 
-async function loginWithEmail(email, password) {
+function _fnErr(e) {
+  if (e && e.code === "functions/unavailable") return "Сервертэй холбогдож чадсангүй";
+  if (e && e.code === "functions/deadline-exceeded") return "Хугацаа хэтэрлээ — дахин оролдоно уу";
+  if (e && e.code === "functions/internal") return "Серверийн алдаа — дахин оролдоно уу";
+  if (e && e.message) return e.message;
+  return "Алдаа гарлаа";
+}
+
+// 6 оронтой код хүсэх — имэйл рүү код илгээнэ
+async function requestOtp(email) {
   if (typeof firebase === "undefined" || !firebase.apps || !firebase.apps.length) {
     return { ok: false, error: "Firebase холбогдоогүй байна" };
   }
-
   try {
-    await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-    await firebase.auth().signInWithEmailAndPassword(email.trim(), password);
+    var call = firebase.functions().httpsCallable("requestOtp");
+    await call({ email: String(email || "").trim().toLowerCase() });
     return { ok: true };
   } catch (e) {
-    console.error("[auth] sign-in error:", e);
-    var msg = "Нэвтрэхэд алдаа гарлаа";
-    switch (e.code) {
-      case "auth/invalid-email":
-        msg = "Зөв email хаяг оруулна уу"; break;
-      case "auth/user-not-found":
-        msg = "Бүртгэлтэй хэрэглэгч олдсонгүй"; break;
-      case "auth/wrong-password":
-      case "auth/invalid-credential":
-        msg = "Email эсвэл нууц үг буруу"; break;
-      case "auth/user-disabled":
-        msg = "Хэрэглэгчийн эрх хаагдсан"; break;
-      case "auth/too-many-requests":
-        msg = "Хэт олон оролдлого — түр хүлээнэ үү"; break;
-      case "auth/network-request-failed":
-        msg = "Интернэт холболтоо шалгана уу"; break;
-    }
-    return { ok: false, error: msg };
+    console.error("[auth] requestOtp error:", e);
+    return { ok: false, error: _fnErr(e) };
+  }
+}
+
+// Кодыг шалгаж нэвтрэх (custom token → signInWithCustomToken)
+async function verifyOtp(email, code) {
+  if (typeof firebase === "undefined" || !firebase.apps || !firebase.apps.length) {
+    return { ok: false, error: "Firebase холбогдоогүй байна" };
+  }
+  try {
+    await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+    var call = firebase.functions().httpsCallable("verifyOtp");
+    var res = await call({
+      email: String(email || "").trim().toLowerCase(),
+      code: String(code || "").trim(),
+    });
+    var token = res && res.data && res.data.token;
+    if (!token) return { ok: false, error: "Token буцаагүй" };
+    await firebase.auth().signInWithCustomToken(token);
+    return { ok: true };
+  } catch (e) {
+    console.error("[auth] verifyOtp error:", e);
+    return { ok: false, error: _fnErr(e) };
   }
 }

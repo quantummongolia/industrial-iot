@@ -41,8 +41,10 @@ jobs:
       - name: Generate secrets.h from GitHub Secrets
         working-directory: esp32_firmware/hothon/src
         env:
-          WIFI_SSID:           ${{ secrets.WIFI_SSID }}
-          WIFI_PASSWORD:       ${{ secrets.WIFI_PASSWORD }}
+          # Хотон бусдаасаа өөр WiFi-тай тул эхлээд HOTHON_* секретийг авна,
+          # байхгүй бол дундын WIFI_* дээр fallback хийнэ.
+          WIFI_SSID:           ${{ secrets.HOTHON_WIFI_SSID || secrets.WIFI_SSID }}
+          WIFI_PASSWORD:       ${{ secrets.HOTHON_WIFI_PASSWORD || secrets.WIFI_PASSWORD }}
           FIREBASE_API_KEY:    ${{ secrets.FIREBASE_API_KEY }}
           FIREBASE_DB_URL:     ${{ secrets.FIREBASE_DB_URL }}
           FIREBASE_USER_EMAIL: ${{ secrets.FIREBASE_USER_EMAIL }}

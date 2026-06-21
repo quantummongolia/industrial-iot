@@ -59,7 +59,7 @@ constexpr uint16_t REG_ULS_LEVEL = 0x2002; // Ultrasonic Level instantaneous (ra
 constexpr uint16_t REG_ULS_MOUNT = 0x2009; // Ultrasonic Mount Height — суурилуулалтын нийт өндөр (raw/1000 = m, W/R)
 
 // Timing
-constexpr uint32_t READ_INTERVAL_MS = 2000;        // Flow rate read interval (also tick rate)
+constexpr uint32_t READ_INTERVAL_MS = 3000;        // Flow rate read interval (also tick rate)
 constexpr uint32_t TOTALIZER_INTERVAL_MS = 60000;  // Totalizer уншилт — 1 минут тутамд
 constexpr uint32_t WIFI_RETRY_MS = 10000;          // WiFi reconnect probe
 constexpr uint32_t WDT_TIMEOUT_S = 30;             // Watchdog timeout
@@ -451,6 +451,24 @@ void fbOnSuccess() {
 
 bool fbCanUpload() { return (long)(millis() - fbNextAllowedAt) >= 0; }
 
+// ========================== DATA-LED LIVENESS FLIP =========================
+// Сул зогссон сенсорын утга өөрчлөгдөхгүй бол Firebase-ийн .on("value")
+// listener асдаггүй тул dashboard-ийн ногоон data-LED анивчдаггүй. Үүнийг
+// засахын тулд утгыг 2 орноор бөөрөнхийлж, гацсан (өөрчлөгдөөгүй) тохиолдолд
+// 3 дахь орныг 0↔1 сэлгэнэ — dashboard 2 орон харуулдаг тул flag үл харагдана,
+// харин утга "өөрчлөгдсөн" болж LED анивчина. Уншилт амжилттай болоход л
+// дуудагдана (okFlow/okLevel) — тиймээс үхсэн сенсор анивчихгүй, stale болно.
+// ЗӨВХОН жижиг утганд (flow/level/power/weight — float32 нарийвчлал хүрнэ);
+// totalizer/energy-д ХЭРЭГЛЭХГҮЙ.
+struct LiveState { float last2 = NAN; bool flip = false; };
+static float liveValue(float v, LiveState &st) {
+  float v2 = roundf(v * 100.0f) / 100.0f;       // 2 орноор бөөрөнхийл
+  st.flip = (v2 == st.last2) ? !st.flip : false; // гацвал сэлгэ, өөрчлөгдвөл 0
+  st.last2 = v2;
+  return v2 + (st.flip ? 0.001f : 0.0f);         // 3 дахь орны flag
+}
+LiveState lvFm1, lvFm2, lvFm3, lvLevel;
+
 // ========================== MODBUS READ WITH RETRY =========================
 // Slave түр хариу өгөхгүй байгаа тохиолдлыг (intermittent failure)
 // нэг удаагийн дахин оролдлогоор нөхнө. 9600 baud дээр нэг уншилт ~30ms тул
@@ -706,11 +724,11 @@ void loop() {
     if (okTotal2) { json.set("flowmeter2/totalizer", cachedTotal2); anyWrite = true; }
     if (okTotal3) { json.set("flowmeter3/totalizer", cachedTotal3); anyWrite = true; }
   } else {
-    if (okFlow1) { json.set("flowmeter1/flow_rate", flow1); anyWrite = true; }
-    if (okFlow2) { json.set("flowmeter2/flow_rate", flow2); anyWrite = true; }
-    if (okFlow3) { json.set("flowmeter3/flow_rate", flow3); anyWrite = true; }
+    if (okFlow1) { json.set("flowmeter1/flow_rate", liveValue(flow1, lvFm1)); anyWrite = true; }
+    if (okFlow2) { json.set("flowmeter2/flow_rate", liveValue(flow2, lvFm2)); anyWrite = true; }
+    if (okFlow3) { json.set("flowmeter3/flow_rate", liveValue(flow3, lvFm3)); anyWrite = true; }
   }
-  if (okLevel)  { json.set("level_sensor/level", ulsLevel); anyWrite = true; }
+  if (okLevel)  { json.set("level_sensor/level", liveValue(ulsLevel, lvLevel)); anyWrite = true; }
   // Mount height-г нэг удаа нийтэлнэ (амжилттай upload болтол дахин оролдоно).
   if (ulsMountKnown && !ulsMountSent) { json.set("level_sensor/mount_height", ulsMountM); anyWrite = true; }
 

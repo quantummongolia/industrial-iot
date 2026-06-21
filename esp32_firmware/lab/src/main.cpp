@@ -46,7 +46,7 @@ constexpr uint16_t SPM33_REG_ENERGY = 25;  // 40026: Total active energy LUINT32
 constexpr uint16_t SPM33_REG_CT_PRI = 201; // 40202: CT primary side value (1..50000)
 constexpr uint8_t SPM33_CT_SEC = 5;        // SPM33 CT secondary side (5A typical)
 
-constexpr uint32_t POLL_MS = 2000;                // Flow cycle interval (tick rate)
+constexpr uint32_t POLL_MS = 3000;                // Flow cycle interval (tick rate)
 constexpr uint32_t TOTALIZER_INTERVAL_MS = 60000; // Totalizer cycle — 1 минут тутамд
 constexpr uint32_t RX_TMO = 200;
 constexpr uint32_t FRAME_GAP_MS = 10;
@@ -439,6 +439,22 @@ void firebaseInit() {
   Serial.println("[Firebase] init — authenticating");
 }
 
+// ========================== DATA-LED LIVENESS FLIP =========================
+// Сул зогссон сенсорын утга өөрчлөгдөхгүй бол Firebase-ийн .on("value")
+// listener асдаггүй тул dashboard-ийн ногоон data-LED анивчдаггүй. Үүнийг
+// засахын тулд утгыг 2 орноор бөөрөнхийлж, гацсан тохиолдолд 3 дахь орныг
+// 0↔1 сэлгэнэ — dashboard 2 орон харуулдаг тул flag үл харагдана. Уншилт
+// амжилттай болоход л дуудагдана тул үхсэн сенсор анивчихгүй, stale болно.
+// ЗӨВХӨН жижиг утганд (power); totalizer/energy/currents-д ХЭРЭГЛЭХГҮЙ.
+struct LiveState { float last2 = NAN; bool flip = false; };
+static float liveValue(float v, LiveState &st) {
+  float v2 = roundf(v * 100.0f) / 100.0f;
+  st.flip = (v2 == st.last2) ? !st.flip : false;
+  st.last2 = v2;
+  return v2 + (st.flip ? 0.001f : 0.0f);
+}
+LiveState lvEm16, lvEm17;
+
 void setup() {
   Serial.begin(115200);
   delay(300);
@@ -597,7 +613,7 @@ void loop() {
   bool emAny = false;
   {
     FirebaseJson j;
-    auto addEm = [&](const char *id, const Spm33Reading &r) {
+    auto addEm = [&](const char *id, const Spm33Reading &r, LiveState &lv) {
       String base = String(id) + "/";
       if (totalizerCycle) {
         if (r.energyOk) {
@@ -606,13 +622,13 @@ void loop() {
         }
       } else {
         if (r.powerOk) {
-          j.set((base + "power_kw").c_str(), r.powerKW);
+          j.set((base + "power_kw").c_str(), liveValue(r.powerKW, lv));
           emAny = true;
         }
       }
     };
-    addEm("em16", em16);
-    addEm("em17", em17);
+    addEm("em16", em16, lvEm16);
+    addEm("em17", em17, lvEm17);
     if (emAny) {
       emOk = Firebase.RTDB.updateNodeSilent(&fbData, "/energy_meters", &j);
       if (!emOk)

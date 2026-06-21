@@ -3,6 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
+  <meta name="google-site-verification" content="gUOWswPFHpXyIFxjHJhI-KVOTr6MoNYFXv8XFDFZlNY" />
   <meta name="viewport"
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#0a0a0c" media="(prefers-color-scheme: dark)">
@@ -237,7 +238,7 @@
             <line x1="8" y1="21" x2="16" y2="21" />
             <line x1="12" y1="17" x2="12" y2="21" />
           </svg>
-          Firmware
+          Dev
         </div>
         <div
           class="nav-item flex items-center gap-3 py-2.5 px-3 rounded-sm text-text-soft cursor-pointer text-sm font-medium select-none transition-[background,color] duration-[180ms] hover:bg-bg-card hover:text-text-primary"
@@ -1366,13 +1367,23 @@
        currentUser байхгүй ч IndexedDB-ээс restore хийх хугацаа өгнө. -->
   <script>
     (function () {
+      var MAX_SESSION_MS = 15 * 24 * 60 * 60 * 1000; // 15 хоног — дараа нь дахин нэвтрэх
       firebase.auth().onAuthStateChanged(function (user) {
-        if (user) {
+        if (!user) { location.replace('login.html'); return; }
+        user.getIdTokenResult().then(function (res) {
+          // auth_time = хамгийн сүүлд нэвтэрсэн цаг (token сэргэхэд өөрчлөгддөггүй)
+          var ageMs = Date.now() - new Date(res.authTime).getTime();
+          if (ageMs > MAX_SESSION_MS) {
+            firebase.auth().signOut().finally(function () { location.replace('login.html'); });
+            return;
+          }
           var gate = document.getElementById('authGate');
           if (gate) gate.remove();
-        } else {
-          location.replace('login.html');
-        }
+        }).catch(function () {
+          // token уншиж чадаагүй ч хэрэглэгч байгаа тул нэвтрүүлнэ
+          var gate = document.getElementById('authGate');
+          if (gate) gate.remove();
+        });
       });
     })();
   </script>
