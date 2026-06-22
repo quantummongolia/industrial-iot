@@ -51,7 +51,8 @@ constexpr uint32_t TOTALIZER_INTERVAL_MS = 60000; // Totalizer cycle — 1 ми�
 constexpr uint32_t RX_TMO = 200;
 constexpr uint32_t FRAME_GAP_MS = 10;
 
-constexpr uint32_t WDT_TIMEOUT_S = 30;
+constexpr uint32_t WDT_TIMEOUT_S = 60;             // Watchdog timeout — supervisor-аас урт байх ёстой
+constexpr uint32_t SUPERVISOR_TIMEOUT_MS = 45000;  // loop ийм удаан зогсвол → цэвэр ESP.restart()
 constexpr uint32_t WIFI_RETRY_MS = 10000;
 constexpr uint8_t MODBUS_RETRY = 2;
 constexpr uint8_t MAX_CONSECUTIVE_FAILS = 10;
@@ -140,6 +141,28 @@ void update() {
   }
 }
 } // namespace led
+
+// Supervisor watchdog — loop ахиц гаргаж буйг хянана. loop нь
+// cfg::SUPERVISOR_TIMEOUT_MS-ээс удаан зогсвол (Firebase/WiFi/Modbus блоклосон г.м.)
+// ЦЭВЭР ESP.restart() хийнэ — Task WDT-ийн panic зам (S3+USB-CDC дээр backtrace
+// хэвлэхдээ гацаж болзошгүй)-аас тойрно. Core 0 дээр тусдаа ажилладаг тул core 1-ийн
+// loop бүрэн блоклосон ч энэ task ажиллана.
+volatile uint32_t g_loopBeat = 0;
+void watchdogTask(void *) {
+  uint32_t lastBeat = 0;
+  unsigned long lastChangeMs = millis();
+  for (;;) {
+    if (g_loopBeat != lastBeat) {
+      lastBeat = g_loopBeat;
+      lastChangeMs = millis();
+    } else if (millis() - lastChangeMs >= cfg::SUPERVISOR_TIMEOUT_MS) {
+      Serial.println("[Supervisor] loop stalled — clean ESP.restart()");
+      Serial.flush();
+      ESP.restart();
+    }
+    vTaskDelay(pdMS_TO_TICKS(1000));
+  }
+}
 
 void ledTask(void *) {
   for (;;) {
@@ -495,11 +518,16 @@ void setup() {
                                      .trigger_panic = true};
   esp_task_wdt_reconfigure(&wdtConfig);
   esp_task_wdt_add(NULL);
+
+  // Supervisor watchdog task — setup дууссаны дараа эхлүүлнэ (setup-ийн блоклох
+  // wifiConnect зэргийг false-restart болгохгүйн тулд). Core 0.
+  xTaskCreatePinnedToCore(watchdogTask, "wdog", 2048, nullptr, 1, nullptr, 0);
   Serial.printf("[WDT] Watchdog started — %lu second timeout\n",
                 (unsigned long)cfg::WDT_TIMEOUT_S);
 }
 
 void loop() {
+  g_loopBeat++;           // supervisor task-д "loop ахиж байна" дохио
   esp_task_wdt_reset();
   unsigned long now = millis();
 
