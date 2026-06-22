@@ -76,6 +76,11 @@ constexpr uint8_t MAX_TOTAL_RECOVERY_FAILS = 20;
 constexpr uint32_t MIN_FREE_HEAP_BYTES = 20480;     // 20KB threshold
 constexpr uint32_t MAX_UPTIME_MS = 24UL * 60UL * 60UL * 1000UL;  // 24 цаг
 constexpr uint32_t HEAP_LOG_INTERVAL_MS = 5UL * 60UL * 1000UL;   // 5 минут тутамд heap log
+
+// Connectivity watchdog: WiFi эсвэл Firebase энэ хугацаанаас удаан унавал
+// болзолгүй ESP.restart() хийж сэргэнэ. while(true)+WDT-д найдахгүй — TLS/auth
+// гацсан "амьд атлаа чимээгүй" төлөвөөс гаргах гол хамгаалалт.
+constexpr uint32_t MAX_OFFLINE_MS = 3UL * 60UL * 1000UL;          // 3 минут
 } // namespace cfg
 
 // Firebase Realtime Database paths (string literals — keep as macros)
@@ -350,6 +355,11 @@ unsigned int fbFailStreak = 0;     // Consecutive upload failure count
 unsigned int consecutiveReadFails = 0; // Straight failed read cycles
 unsigned int totalRecoveryAttempts = 0; // Recovery escalations since last success
 
+// Connectivity watchdog state — салгагдсан агшнаас хэдий хугацаа өнгөрснийг хэмжинэ.
+// 0 = одоо холбоотой (асуудалгүй).
+unsigned long wifiDownSince = 0;    // WiFi салгагдсан агшин (ms)
+unsigned long fbNotReadySince = 0;  // Firebase ready бус болсон агшин (ms, WiFi байгаа үед)
+
 // ========================== WI-FI CONNECTION =========================
 
 // WiFi event handler — auto-triggers reconnection on any disconnect event.
@@ -508,10 +518,13 @@ void recoverModbusBus() {
                 totalRecoveryAttempts, consecutiveReadFails);
 
   if (totalRecoveryAttempts >= cfg::MAX_TOTAL_RECOVERY_FAILS) {
-    Serial.println("[Recovery] Max attempts reached — forcing reboot via WDT");
+    // Цэвэр reboot — while(true)+WDT panic нь S3/USB-CDC дээр backtrace-аа
+    // гацсан USB порт руу хэвлэхийг оролдоод reboot хүртэл хүрдэггүй (чип хөшинэ).
+    // esp_restart() panic printer-ээр орохгүй тул заавал найдвартай сэргэнэ.
+    Serial.println("[Recovery] Max attempts reached — clean ESP.restart()");
+    Serial.flush();
     delay(100);
-    while (true) {
-    } // Let watchdog reset the chip cleanly
+    ESP.restart();
   }
 
   modbus.recover();
@@ -595,6 +608,35 @@ void loop() {
     Serial.println("[Stability] Reached 24h uptime — scheduled restart");
     delay(200);
     ESP.restart();
+  }
+
+  // ---- Connectivity watchdog ----
+  // WiFi эсвэл Firebase нь cfg::MAX_OFFLINE_MS-ээс удаан салгагдвал цэвэр reboot.
+  // Энэ нь сэргэлтийн гол баталгаа: WiFi буцаж ирэхэд эсвэл сенсор сэргэхэд
+  // төхөөрөмж "бүр мөсөн алга" болохгүй, заавал өөрөө сэргэнэ. Firebase.ready()-г
+  // энд цикл бүрт дуудах нь token-refresh-ийг тасралтгүй ажиллуулж бас тустай.
+  if (WiFi.status() == WL_CONNECTED) {
+    wifiDownSince = 0;
+  } else if (wifiDownSince == 0) {
+    wifiDownSince = now;
+  } else if (now - wifiDownSince >= cfg::MAX_OFFLINE_MS) {
+    Serial.println("[Watchdog] WiFi offline too long — clean restart");
+    Serial.flush();
+    delay(200);
+    ESP.restart();
+  }
+
+  if (WiFi.status() == WL_CONNECTED && !Firebase.ready()) {
+    if (fbNotReadySince == 0) {
+      fbNotReadySince = now;
+    } else if (now - fbNotReadySince >= cfg::MAX_OFFLINE_MS) {
+      Serial.println("[Watchdog] Firebase not ready too long — clean restart");
+      Serial.flush();
+      delay(200);
+      ESP.restart();
+    }
+  } else {
+    fbNotReadySince = 0;
   }
 
   // Fallback WiFi polling — onWifiEvent/setAutoReconnect handle most cases,

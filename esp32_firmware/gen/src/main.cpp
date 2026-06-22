@@ -57,6 +57,9 @@ constexpr uint32_t WIFI_DISCONNECT_RESTART_MS = 5UL * 60UL * 1000UL; // 5 мин
 constexpr uint8_t MODBUS_RETRY = 2;
 constexpr uint8_t MAX_CONSECUTIVE_FAILS = 10;
 constexpr uint8_t MAX_RECOVERY_ATTEMPTS = 20;
+// Connectivity watchdog: WiFi/Firebase энэ хугацаанаас удаан унавал болзолгүй
+// ESP.restart() хийж сэргэнэ — while(true)+WDT-д найдахгүй сэргэлтийн гол баталгаа.
+constexpr uint32_t MAX_OFFLINE_MS = 3UL * 60UL * 1000UL;  // 3 минут
 
 // Long-running stability — flowmeter firmware-тэй ижил pattern
 constexpr uint32_t MIN_FREE_HEAP_BYTES = 20480;                  // 20KB threshold
@@ -345,6 +348,11 @@ unsigned long lastHeapLogTime = 0;       // Сүүлд heap-н хэмжээг lo
 unsigned int consecutiveReadFails = 0;
 unsigned int totalRecoveryAttempts = 0;
 
+// Connectivity watchdog state — салгагдсан агшнаас хойш хэдий хугацаа өнгөрснийг
+// хэмжинэ (0 = одоо холбоотой, асуудалгүй).
+unsigned long wifiDownSince = 0;
+unsigned long fbNotReadySince = 0;
+
 unsigned long fbNextAllowedAt = 0;
 unsigned int fbFailStreak = 0;
 
@@ -377,10 +385,13 @@ void recoverModbusBus() {
   Serial.printf("[Recovery] Attempt #%u after %u failed cycles\n",
                 totalRecoveryAttempts, consecutiveReadFails);
   if (totalRecoveryAttempts >= cfg::MAX_RECOVERY_ATTEMPTS) {
-    Serial.println("[Recovery] Max attempts — forcing reboot via WDT");
+    // Цэвэр reboot — while(true)+WDT panic нь S3/USB-CDC дээр backtrace-аа гацсан
+    // USB порт руу хэвлэхийг оролдоод reboot хүртэл хүрдэггүй. esp_restart() нь
+    // panic printer-ээр орохгүй тул заавал найдвартай сэргэнэ.
+    Serial.println("[Recovery] Max attempts — clean ESP.restart()");
+    Serial.flush();
     delay(100);
-    while (true) {
-    }
+    ESP.restart();
   }
   modbus.recover();
   consecutiveReadFails = 0;
@@ -517,6 +528,35 @@ void loop() {
     Serial.println("[Stability] Reached 24h uptime — scheduled restart");
     delay(200);
     ESP.restart();
+  }
+
+  // ---- Connectivity watchdog ----
+  // WiFi эсвэл Firebase нь cfg::MAX_OFFLINE_MS-ээс удаан салгагдвал цэвэр reboot.
+  // WiFi буцаж ирэхэд / сенсор сэргэхэд төхөөрөмж 'бүр мөсөн алга' болохгүй,
+  // заавал өөрөө сэргэх баталгаа. Firebase.ready()-г цикл бүрт дуудах нь
+  // token-refresh-ийг тасралтгүй ажиллуулж бас тустай.
+  if (WiFi.status() == WL_CONNECTED) {
+    wifiDownSince = 0;
+  } else if (wifiDownSince == 0) {
+    wifiDownSince = now;
+  } else if (now - wifiDownSince >= cfg::MAX_OFFLINE_MS) {
+    Serial.println("[Watchdog] WiFi offline too long — clean restart");
+    Serial.flush();
+    delay(200);
+    ESP.restart();
+  }
+
+  if (WiFi.status() == WL_CONNECTED && !Firebase.ready()) {
+    if (fbNotReadySince == 0) {
+      fbNotReadySince = now;
+    } else if (now - fbNotReadySince >= cfg::MAX_OFFLINE_MS) {
+      Serial.println("[Watchdog] Firebase not ready too long — clean restart");
+      Serial.flush();
+      delay(200);
+      ESP.restart();
+    }
+  } else {
+    fbNotReadySince = 0;
   }
 
   // WiFi.reconnect() / auto-reconnect зарим тохиолдолд бодит сүлжээ сэргэсэн ч
