@@ -62,7 +62,8 @@ constexpr uint16_t REG_ULS_MOUNT = 0x2009; // Ultrasonic Mount Height — суу
 constexpr uint32_t READ_INTERVAL_MS = 3000;        // Flow rate read interval (also tick rate)
 constexpr uint32_t TOTALIZER_INTERVAL_MS = 60000;  // Totalizer уншилт — 1 минут тутамд
 constexpr uint32_t WIFI_RETRY_MS = 10000;          // WiFi reconnect probe
-constexpr uint32_t WDT_TIMEOUT_S = 30;             // Watchdog timeout
+constexpr uint32_t WDT_TIMEOUT_S = 60;             // Watchdog timeout — supervisor-аас урт байх ёстой
+constexpr uint32_t SUPERVISOR_TIMEOUT_MS = 45000;  // loop ийм удаан зогсвол → цэвэр ESP.restart()
 constexpr uint32_t RX_TMO = 100;                   // Modbus receive timeout (ms)
 constexpr uint32_t MODBUS_RETRY_DELAY_MS = 50;     // Уншилт амжилтгүй болсон үед хүлээх хугацаа
 
@@ -76,6 +77,11 @@ constexpr uint8_t MAX_TOTAL_RECOVERY_FAILS = 20;
 constexpr uint32_t MIN_FREE_HEAP_BYTES = 20480;     // 20KB threshold
 constexpr uint32_t MAX_UPTIME_MS = 24UL * 60UL * 60UL * 1000UL;  // 24 цаг
 constexpr uint32_t HEAP_LOG_INTERVAL_MS = 5UL * 60UL * 1000UL;   // 5 минут тутамд heap log
+
+// Connectivity watchdog: WiFi эсвэл Firebase энэ хугацаанаас удаан унавал
+// болзолгүй ESP.restart() хийж сэргэнэ. while(true)+WDT-д найдахгүй — TLS/auth
+// гацсан "амьд атлаа чимээгүй" төлөвөөс гаргах гол хамгаалалт.
+constexpr uint32_t MAX_OFFLINE_MS = 3UL * 60UL * 1000UL;          // 3 минут
 } // namespace cfg
 
 // Firebase Realtime Database paths (string literals — keep as macros)
@@ -176,6 +182,28 @@ void update() {
 
 // LED task — pinned to core 0 so Modbus / Firebase blocking on core 1 (where
 // the Arduino loop runs) can't stall the blink cadence.
+// Supervisor watchdog — loop ахиц гаргаж буйг хянана. loop нь
+// cfg::SUPERVISOR_TIMEOUT_MS-ээс удаан зогсвол (Firebase/WiFi/Modbus блоклосон г.м.)
+// ЦЭВЭР ESP.restart() хийнэ — Task WDT-ийн panic зам (S3+USB-CDC дээр backtrace
+// хэвлэхдээ гацаж болзошгүй)-аас тойрно. Core 0 дээр тусдаа ажилладаг тул core 1-ийн
+// loop бүрэн блоклосон ч энэ task ажиллана.
+volatile uint32_t g_loopBeat = 0;
+void watchdogTask(void *) {
+  uint32_t lastBeat = 0;
+  unsigned long lastChangeMs = millis();
+  for (;;) {
+    if (g_loopBeat != lastBeat) {
+      lastBeat = g_loopBeat;
+      lastChangeMs = millis();
+    } else if (millis() - lastChangeMs >= cfg::SUPERVISOR_TIMEOUT_MS) {
+      Serial.println("[Supervisor] loop stalled — clean ESP.restart()");
+      Serial.flush();
+      ESP.restart();
+    }
+    vTaskDelay(pdMS_TO_TICKS(1000));
+  }
+}
+
 void ledTask(void *) {
   for (;;) {
     led::update();
@@ -350,6 +378,11 @@ unsigned int fbFailStreak = 0;     // Consecutive upload failure count
 unsigned int consecutiveReadFails = 0; // Straight failed read cycles
 unsigned int totalRecoveryAttempts = 0; // Recovery escalations since last success
 
+// Connectivity watchdog state — салгагдсан агшнаас хэдий хугацаа өнгөрснийг хэмжинэ.
+// 0 = одоо холбоотой (асуудалгүй).
+unsigned long wifiDownSince = 0;    // WiFi салгагдсан агшин (ms)
+unsigned long fbNotReadySince = 0;  // Firebase ready бус болсон агшин (ms, WiFi байгаа үед)
+
 // ========================== WI-FI CONNECTION =========================
 
 // WiFi event handler — auto-triggers reconnection on any disconnect event.
@@ -508,10 +541,13 @@ void recoverModbusBus() {
                 totalRecoveryAttempts, consecutiveReadFails);
 
   if (totalRecoveryAttempts >= cfg::MAX_TOTAL_RECOVERY_FAILS) {
-    Serial.println("[Recovery] Max attempts reached — forcing reboot via WDT");
+    // Цэвэр reboot — while(true)+WDT panic нь S3/USB-CDC дээр backtrace-аа
+    // гацсан USB порт руу хэвлэхийг оролдоод reboot хүртэл хүрдэггүй (чип хөшинэ).
+    // esp_restart() panic printer-ээр орохгүй тул заавал найдвартай сэргэнэ.
+    Serial.println("[Recovery] Max attempts reached — clean ESP.restart()");
+    Serial.flush();
     delay(100);
-    while (true) {
-    } // Let watchdog reset the chip cleanly
+    ESP.restart();
   }
 
   modbus.recover();
@@ -556,6 +592,10 @@ void setup() {
       .trigger_panic = true};             // Reset ESP32 on timeout
   esp_task_wdt_reconfigure(&wdtConfig);   // Apply watchdog configuration
   esp_task_wdt_add(NULL); // Add current task to watchdog monitoring
+
+  // Supervisor watchdog task — setup дууссаны дараа эхлүүлнэ (setup-ийн блоклох
+  // wifiConnect зэргийг false-restart болгохгүйн тулд). Core 0.
+  xTaskCreatePinnedToCore(watchdogTask, "wdog", 2048, nullptr, 1, nullptr, 0);
   Serial.printf("[WDT] Watchdog started — %d second timeout\n",
                 cfg::WDT_TIMEOUT_S);
 }
@@ -568,6 +608,7 @@ void setup() {
  * Includes WiFi reconnection logic and watchdog timer reset.
  */
 void loop() {
+  g_loopBeat++;           // supervisor task-д "loop ахиж байна" дохио
   esp_task_wdt_reset();
   unsigned long now = millis();
 
@@ -595,6 +636,35 @@ void loop() {
     Serial.println("[Stability] Reached 24h uptime — scheduled restart");
     delay(200);
     ESP.restart();
+  }
+
+  // ---- Connectivity watchdog ----
+  // WiFi эсвэл Firebase нь cfg::MAX_OFFLINE_MS-ээс удаан салгагдвал цэвэр reboot.
+  // Энэ нь сэргэлтийн гол баталгаа: WiFi буцаж ирэхэд эсвэл сенсор сэргэхэд
+  // төхөөрөмж "бүр мөсөн алга" болохгүй, заавал өөрөө сэргэнэ. Firebase.ready()-г
+  // энд цикл бүрт дуудах нь token-refresh-ийг тасралтгүй ажиллуулж бас тустай.
+  if (WiFi.status() == WL_CONNECTED) {
+    wifiDownSince = 0;
+  } else if (wifiDownSince == 0) {
+    wifiDownSince = now;
+  } else if (now - wifiDownSince >= cfg::MAX_OFFLINE_MS) {
+    Serial.println("[Watchdog] WiFi offline too long — clean restart");
+    Serial.flush();
+    delay(200);
+    ESP.restart();
+  }
+
+  if (WiFi.status() == WL_CONNECTED && !Firebase.ready()) {
+    if (fbNotReadySince == 0) {
+      fbNotReadySince = now;
+    } else if (now - fbNotReadySince >= cfg::MAX_OFFLINE_MS) {
+      Serial.println("[Watchdog] Firebase not ready too long — clean restart");
+      Serial.flush();
+      delay(200);
+      ESP.restart();
+    }
+  } else {
+    fbNotReadySince = 0;
   }
 
   // Fallback WiFi polling — onWifiEvent/setAutoReconnect handle most cases,
