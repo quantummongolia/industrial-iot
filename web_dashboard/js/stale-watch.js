@@ -82,10 +82,22 @@
     card.classList.toggle('is-live', !!live);
   }
 
+  // Card-ын үндсэн утга (урсгал / чадал / түвшин) тэг үү? — readout-ийн
+  // эхний span (.fm-val/.cs-val/.wl-val/.en-val дотор, unit span-аас өмнө).
+  // Утга 0.00 бол хөдөлгөөн зогсоно (урсгалгүй/ажиллаагүй гэж үзнэ).
+  function valueIsZero(card) {
+    var span = card.querySelector(
+      '.fm-val > span:first-child, .cs-val > span:first-child,' +
+      '.wl-val > span:first-child, .en-val > span:first-child');
+    if (!span) return false; // үндсэн readout олдоогүй бол хуучин зан хэвээр
+    var v = parseFloat((span.textContent || '').replace(/[^0-9.\-]/g, ''));
+    return !isNaN(v) && v === 0;
+  }
+
   function touch(card) {
     lastUpdate.set(card, Date.now());
     setStale(card, false);
-    setLive(card, true);
+    setLive(card, !valueIsZero(card));
   }
 
   function check() {
@@ -96,7 +108,7 @@
         // Өгөгдөл ирж байсан — хуучирвал шар тэмдэг + хөдөлгөөн зогсоно.
         var stale = (now - ts) > STALE_AFTER_MS;
         setStale(card, stale);
-        setLive(card, !stale);
+        setLive(card, !stale && !valueIsZero(card));
       } else {
         // Өгөгдөл хараахан аваагүй — хөдөлгөөнгүй; grace өнгөрвөл шар тэмдэг.
         setLive(card, false);
