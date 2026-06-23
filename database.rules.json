@@ -72,6 +72,19 @@
       "last_updated": { ".validate": "newData.isNumber()" }
     },
 
+    "ushg": {
+      ".read": "auth != null && (auth.token.allowed === true || auth.token.email === 'mresource-teerem@iot.com')",
+      ".write": "auth != null && auth.token.email === 'mresource-teerem@iot.com'",
+      "compressor": {
+        "error_code":   { ".validate": "newData.isNumber()" },
+        "temp_c":       { ".validate": "newData.isNumber()" },
+        "pressure_bar": { ".validate": "newData.isNumber()" },
+        "total_hours":  { ".validate": "newData.isNumber()" },
+        "status":       { ".validate": "newData.isNumber()" },
+        "last_updated": { ".validate": "newData.isNumber()" }
+      }
+    },
+
     "energy_meters": {
       ".read": "auth != null && (auth.token.allowed === true || auth.token.email === 'mresource-teerem@iot.com')",
       ".write": "auth != null && auth.token.email === 'mresource-teerem@iot.com'",

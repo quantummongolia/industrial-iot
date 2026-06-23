@@ -7,11 +7,14 @@
  *    Slave 1 : SPM33 — Өтгөрүүлэгч УС     (P, E)
  *    Slave 2 : SPM33 — Уусгалтын ган УС   (P, E)
  *    Slave 3 : SPM33 — Компрессор ХС      (P, E)
+ *    Slave 4 : Компрессор удирдлага (Atlas Copco Q1CMCSTD)
+ *              (error code, delivery temp, delivery pressure, total hours, status)
  *
  *  Firebase RTDB:
  *    /energy_meters/em06/{power_kw,total_energy_kwh}
  *    /energy_meters/em07/{power_kw,total_energy_kwh}
  *    /energy_meters/em11/{power_kw,total_energy_kwh}
+ *    /ushg/compressor/{error_code,temp_c,pressure_bar,total_hours,status}
  *
  *  MAX485 модуль ↔ ESP32-S3-Zero холболт (1 transceiver):
  *    MAX485 RO  (Receiver Out) → ESP GPIO 4   (UART RX)
@@ -42,6 +45,16 @@ constexpr uint32_t BAUD = 9600;
 constexpr uint8_t EM06_SLAVE = 1;  // SPM33 — Өтгөрүүлэгч УС
 constexpr uint8_t EM07_SLAVE = 2;  // SPM33 — Уусгалтын ган УС
 constexpr uint8_t EM11_SLAVE = 3;  // SPM33 — Компрессор ХС
+constexpr uint8_t COMP_SLAVE = 4;  // Компрессор удирдлага (Atlas Copco Q1CMCSTD)
+
+// Компрессор удирдлагын Modbus holding register-ууд (FC 0x03, address = hex шууд).
+// Тэмдэглэл: Atlas Copco fieldbus нь big-endian (high word first) дамжуулна —
+// SPM33-ийн "low word first"-ээс ӨӨР. 32-бит уншилтыг readS32BE/readU32BE ашиглана.
+constexpr uint16_t COMP_REG_ERROR  = 0x4000; // GetErrorDisplayValue  — U16  (CODED-ERROR; 0 = алдаагүй)
+constexpr uint16_t COMP_REG_TEMP   = 0x4002; // GetDeliveryAirTemp    — S32, mCEL (÷1000 = °C)
+constexpr uint16_t COMP_REG_PRESS  = 0x4004; // GetDeliveryPressure   — S32, mBAR (÷1000 = bar)
+constexpr uint16_t COMP_REG_HOURS  = 0x400E; // GetTotalHrs           — U32, HRS
+constexpr uint16_t COMP_REG_STATUS = 0x4196; // GetStatusDisplayValue — 1 data byte (MSB), status 1..12
 
 // SPM33 register addresses (4xxxx - 40001 = Modbus address)
 constexpr uint16_t SPM33_REG_POWER = 10;   // 40011: Total active power LINT32, ×0.1 W
@@ -234,6 +247,24 @@ public:
     return true;
   }
 
+  // Atlas Copco компрессор — big-endian (high word first, high byte first = ABCD)
+  bool readU32BE(uint8_t slave, uint16_t addr, uint32_t &out) {
+    uint8_t rx[9];
+    if (!readRegs(slave, addr, 2, rx))
+      return false;
+    out = ((uint32_t)rx[3] << 24) | ((uint32_t)rx[4] << 16) |
+          ((uint32_t)rx[5] << 8)  |  (uint32_t)rx[6];
+    return true;
+  }
+
+  bool readS32BE(uint8_t slave, uint16_t addr, int32_t &out) {
+    uint32_t raw;
+    if (!readU32BE(slave, addr, raw))
+      return false;
+    out = (int32_t)raw;
+    return true;
+  }
+
 private:
   bool readRegs(uint8_t slave, uint16_t addr, uint8_t regCnt, uint8_t *rx) {
     while (Serial1.available())
@@ -363,6 +394,45 @@ Spm33Reading Spm33_readEnergy(Modbus &mb, uint8_t slave) {
   return r;
 }
 
+// ── Компрессор удирдлага (Atlas Copco Q1CMCSTD) ────────────────────────
+struct CompReading {
+  bool errOk = false, tempOk = false, pressOk = false, statusOk = false;
+  uint16_t errorCode = 0;  // 0 = алдаагүй
+  float tempC = 0;         // °C  (mCEL ÷ 1000)
+  float pressureBar = 0;   // bar (mBAR ÷ 1000)
+  uint8_t status = 0;      // 1..12 (1=Shutdown … 9=On Load … 12=Stopping)
+};
+
+// Flow cycle — агшин зуурын утгууд (алдаа / температур / даралт / төлөв).
+CompReading Comp_readFast(Modbus &mb) {
+  CompReading r;
+
+  uint16_t err = 0;
+  r.errOk = withRetry([&] { return mb.readU16(cfg::COMP_SLAVE, cfg::COMP_REG_ERROR, err); });
+  if (r.errOk) r.errorCode = err;
+  delay(cfg::FRAME_GAP_MS);
+
+  int32_t t = 0;
+  r.tempOk = withRetry([&] { return mb.readS32BE(cfg::COMP_SLAVE, cfg::COMP_REG_TEMP, t); });
+  if (r.tempOk) r.tempC = t / 1000.0f;  // mCEL → °C
+  delay(cfg::FRAME_GAP_MS);
+
+  int32_t p = 0;
+  r.pressOk = withRetry([&] { return mb.readS32BE(cfg::COMP_SLAVE, cfg::COMP_REG_PRESS, p); });
+  if (r.pressOk) r.pressureBar = p / 1000.0f;  // mBAR → bar
+  delay(cfg::FRAME_GAP_MS);
+
+  uint16_t st = 0;
+  r.statusOk = withRetry([&] { return mb.readU16(cfg::COMP_SLAVE, cfg::COMP_REG_STATUS, st); });
+  if (r.statusOk) r.status = (uint8_t)(st >> 8);  // "1 data byte, MSB used"
+  return r;
+}
+
+// Totalizer cycle — нийт ажилласан цаг (удаан өөрчлөгддөг).
+bool Comp_readHours(Modbus &mb, uint32_t &hoursOut) {
+  return withRetry([&] { return mb.readU32BE(cfg::COMP_SLAVE, cfg::COMP_REG_HOURS, hoursOut); });
+}
+
 // ── Глобал ─────────────────────────────────────────────────────────────
 Modbus modbus;
 FirebaseData fbData;
@@ -389,6 +459,9 @@ unsigned int fbFailStreak = 0;
 float cachedEm06EnergyKWh = 0.0f; bool cachedEm06EnergyValid = false;
 float cachedEm07EnergyKWh = 0.0f; bool cachedEm07EnergyValid = false;
 float cachedEm11EnergyKWh = 0.0f; bool cachedEm11EnergyValid = false;
+
+// Компрессорын нийт цаг — totalizer циклд (1 мин) уншина, хооронд cache-лнэ.
+uint32_t cachedCompHours = 0; bool cachedCompHoursValid = false;
 
 void fbOnFailure() {
   fbFailStreak++;
@@ -496,7 +569,7 @@ static float liveValue(float v, LiveState &st) {
   st.last2 = v2;
   return v2 + (st.flip ? 0.001f : 0.0f);
 }
-LiveState lvEm06, lvEm07, lvEm11;
+LiveState lvEm06, lvEm07, lvEm11, lvCompTemp, lvCompPress;
 
 void setup() {
   Serial.begin(115200);
@@ -628,9 +701,12 @@ void loop() {
                         (now - lastTotalizerReadTime >= cfg::TOTALIZER_INTERVAL_MS);
 
   Spm33Reading em06, em07, em11;
+  CompReading comp;                       // flow cycle-д уншина
+  uint32_t compHours = 0;                 // totalizer cycle-д уншина
+  bool compHoursOk = false;
 
   if (totalizerCycle) {
-    // ── Totalizer cycle: EM06 + EM07 + EM11 энерги
+    // ── Totalizer cycle: EM06 + EM07 + EM11 энерги + компрессорын нийт цаг
     lastTotalizerReadTime = now;
     Serial.println("[Cycle] Totalizer read (1 min interval)");
 
@@ -646,12 +722,17 @@ void loop() {
     if (em11.energyOk) { cachedEm11EnergyKWh = em11.energyKWh; cachedEm11EnergyValid = true; }
     delay(cfg::FRAME_GAP_MS);
 
-    Serial.printf("[Totalizer] EM06:%s EM07:%s EM11:%s\n",
+    compHoursOk = Comp_readHours(modbus, compHours);
+    if (compHoursOk) { cachedCompHours = compHours; cachedCompHoursValid = true; }
+    delay(cfg::FRAME_GAP_MS);
+
+    Serial.printf("[Totalizer] EM06:%s EM07:%s EM11:%s CompHrs:%s\n",
                   em06.energyOk ? String(em06.energyKWh, 1).c_str() : "#",
                   em07.energyOk ? String(em07.energyKWh, 1).c_str() : "#",
-                  em11.energyOk ? String(em11.energyKWh, 1).c_str() : "#");
+                  em11.energyOk ? String(em11.energyKWh, 1).c_str() : "#",
+                  compHoursOk ? String(compHours).c_str() : "#");
   } else {
-    // ── Flow cycle: EM06 + EM07 + EM11 power
+    // ── Flow cycle: EM06 + EM07 + EM11 power + компрессорын төлөв/темп/даралт
     em06 = Spm33_readPower(modbus, cfg::EM06_SLAVE);
     delay(cfg::FRAME_GAP_MS);
     em07 = Spm33_readPower(modbus, cfg::EM07_SLAVE);
@@ -659,15 +740,23 @@ void loop() {
     em11 = Spm33_readPower(modbus, cfg::EM11_SLAVE);
     delay(cfg::FRAME_GAP_MS);
 
-    Serial.printf("[Flow] EM06:%s EM07:%s EM11:%s\n",
+    comp = Comp_readFast(modbus);
+    delay(cfg::FRAME_GAP_MS);
+
+    Serial.printf("[Flow] EM06:%s EM07:%s EM11:%s | Comp st:%s err:%s T:%s P:%s\n",
                   em06.powerOk ? String(em06.powerKW, 2).c_str() : "#",
                   em07.powerOk ? String(em07.powerKW, 2).c_str() : "#",
-                  em11.powerOk ? String(em11.powerKW, 2).c_str() : "#");
+                  em11.powerOk ? String(em11.powerKW, 2).c_str() : "#",
+                  comp.statusOk ? String(comp.status).c_str() : "#",
+                  comp.errOk ? String(comp.errorCode).c_str() : "#",
+                  comp.tempOk ? String(comp.tempC, 1).c_str() : "#",
+                  comp.pressOk ? String(comp.pressureBar, 2).c_str() : "#");
   }
 
   // ── Алдаа escalate ──────────────────────────────────────────────
   bool anyOk = em06.powerOk || em06.energyOk || em07.powerOk || em07.energyOk ||
-               em11.powerOk || em11.energyOk;
+               em11.powerOk || em11.energyOk ||
+               comp.errOk || comp.tempOk || comp.pressOk || comp.statusOk || compHoursOk;
   if (anyOk) {
     consecutiveReadFails = 0;
     totalRecoveryAttempts = 0;
@@ -724,12 +813,36 @@ void loop() {
     }
   }
 
-  if (!emAny) {
+  // ─ /ushg/compressor ────────────────────────────────────────────────
+  // Flow cycle: error_code + temp_c + pressure_bar + status (агшин зуурын)
+  // Totalizer cycle: total_hours (cumulative)
+  bool compOk = true;
+  bool compAny = false;
+  {
+    FirebaseJson jc;
+    if (totalizerCycle) {
+      if (compHoursOk) { jc.set("total_hours", (int)cachedCompHours); compAny = true; }
+    } else {
+      if (comp.errOk)    { jc.set("error_code", (int)comp.errorCode); compAny = true; }
+      if (comp.tempOk)   { jc.set("temp_c", liveValue(comp.tempC, lvCompTemp)); compAny = true; }
+      if (comp.pressOk)  { jc.set("pressure_bar", liveValue(comp.pressureBar, lvCompPress)); compAny = true; }
+      if (comp.statusOk) { jc.set("status", (int)comp.status); compAny = true; }
+    }
+    if (compAny) {
+      jc.set("last_updated", (int)(millis() / 1000));
+      compOk = Firebase.RTDB.updateNodeSilent(&fbData, "/ushg/compressor", &jc);
+      if (!compOk)
+        Serial.printf("[Firebase] /ushg/compressor ERROR: %s\n",
+                      fbData.errorReason().c_str());
+    }
+  }
+
+  if (!emAny && !compAny) {
     led::setMode(led::SLOW_RED);
     return;
   }
 
-  if (emOk) {
+  if (emOk && compOk) {
     Serial.println("[Firebase] Updated");
     fbOnSuccess();
     led::setMode(led::OFF);
@@ -740,5 +853,5 @@ void loop() {
   }
 
   // OTA heartbeat + self-test gate (амжилттай upload бүрд +1)
-  ota::loop(&fbData, emOk);
+  ota::loop(&fbData, emOk && compOk);
 }

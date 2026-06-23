@@ -79,6 +79,156 @@ function _onTotalizer(key, val) {
   }
 }
 
+// ── Компрессор (ushg Slave 4, Atlas Copco Q1CMCSTD) ──────────────────────
+// CODED-STATUS 1..12 бүрд тусдаа lucide дүрс + хөдөлгөөн. Design: Compressor Card.
+const _CP_STATES = [
+  { icon: 'power',        m: '',          spd: 0,    col: 'dim',     puff: false, name: 'Shutdown'      }, //  1
+  { icon: 'loader',       m: 'm-spin',    spd: 1.6,  col: 'accent',  puff: false, name: 'Initialising'  }, //  2
+  { icon: 'lock',         m: 'm-blink',   spd: 0,    col: 'danger',  puff: false, name: 'Start Inhibit' }, //  3
+  { icon: 'circle-check', m: 'm-pulse',   spd: 0,    col: 'success', puff: false, name: 'Ready to Start'}, //  4
+  { icon: 'wind',         m: 'm-swing',   spd: 0,    col: 'warning', puff: 1.0,   name: 'Blowing Down'  }, //  5
+  { icon: 'pause',        m: 'm-breathe', spd: 0,    col: 'accent',  puff: false, name: 'Standby'       }, //  6
+  { icon: 'rotate-cw',    m: 'm-spin',    spd: 1.3,  col: 'accent',  puff: false, name: 'Motor Starting'}, //  7
+  { icon: 'hourglass',    m: 'm-pulse',   spd: 0,    col: 'accent',  puff: 2.0,   name: 'Load Delay'    }, //  8
+  { icon: 'fan',          m: 'm-spin',    spd: 0.55, col: 'accent',  puff: 1.5,   name: 'On Load'       }, //  9
+  { icon: 'timer',        m: 'm-pulse',   spd: 0,    col: 'accent',  puff: false, name: 'Reload Delay'  }, // 10
+  { icon: 'circle-minus', m: '',          spd: 0,    col: 'accent',  puff: false, name: 'Off Load'      }, // 11
+  { icon: 'circle-stop',  m: 'm-breathe', spd: 0,    col: 'dim',     puff: false, name: 'Stopping'      }, // 12
+];
+const _CP_COL    = { dim: 'rgba(255,255,255,0.16)', accent: '#6195ff', success: '#4ade80', warning: '#fb923c', danger: '#f87171' };
+const _CP_GCOL   = { dim: 'rgba(150,160,180,0.45)', accent: '#8fb2ff', success: '#6ee79a', warning: '#ffb066', danger: '#ff8f8f' };
+const _CP_GLOW   = { dim: 'none',
+                     accent:  'drop-shadow(0 0 6px rgba(97,149,255,.55))',
+                     success: 'drop-shadow(0 0 6px rgba(74,222,128,.55))',
+                     warning: 'drop-shadow(0 0 6px rgba(251,146,60,.55))',
+                     danger:  'drop-shadow(0 0 7px rgba(248,113,113,.6))' };
+const _CP_RUNCOL = { dim: '#9aa3b2', accent: '#6195ff', success: '#4ade80', warning: '#fb923c', danger: '#f87171' };
+
+// CODED-ERROR хүснэгт (Modbus баримтаас) — тоон код → дэлгэцийн код + тайлбар.
+const _CP_ERRORS = {
+  0: 'Алдаагүй',
+  81: '(E0010) Emergency stop',
+  241: '(E0030) Door Open', 242: '(A0030) Door Open', 250: '(A0031) CAB filter DP',
+  321: '(E0040) Oil LVL IMM stop', 322: '(A0040) Oil level alarm',
+  401: '(E0050) RD alarm', 402: '(A0050) RD alarm',
+  481: '(E0060) Belt drive SERV',
+  561: '(E0070) Fan MTR IMM stop', 562: '(A0070) Fan motor alarm', 569: '(E0071) Fan MTR IMM stop',
+  641: '(E0080) Main motor short', 649: '(E0081) Main motor lock', 657: '(E0082) Main MTR overLD',
+  665: '(E0083) Motor phase IMB', 666: '(A0083) Motor phase IMB',
+  673: '(E0084) Main MTR CT SENS', 681: '(E0085) Fan MTR CT SENS', 682: '(A0085) MTR STR HR INH',
+  689: '(E0086) Fan MTR overload',
+  721: '(E0090) Phase sequence', 729: '(E0091) Phase L1 fault', 737: '(E0092) Phase L2 fault', 745: '(E0093) Phase L3 fault',
+  921: '(E0115) PD PRESS high', 953: '(E0119) PD PRESS high', 954: '(A0119) Del press high',
+  1001: '(E0125) PD TEMP SENS', 1033: '(E0129) PD TEMP high', 1034: '(A0129) Del temp high',
+  1049: '(E0131) INT PRESS low', 1081: '(E0135) INT PRESS sensor', 1113: '(E0139) INT PRESS high', 1114: '(A0139) INT PRESS high',
+  1601: '(E0200) COOL WTR IMMstop', 1602: '(A0200) COOL water alarm', 1610: '(A0201) CNDS drain alarm',
+  1833: '(E0229) PD TEMP high',
+  6473: '(E0809) DIFF PRESS high', 6474: '(A0809) Diff press high', 6513: '(E0814) Venting error', 6569: '(E0821) Short circuit',
+  6769: '(E0846) DEL PRESS range', 6849: '(E0856) INT PRESS range',
+  7209: '(E0901) User trip 1', 7210: '(A0901) CONF alarm 1', 7217: '(E0902) User trip 2', 7218: '(A0902) CONF alarm 2',
+  7225: '(E0903) User trip 3', 7226: '(A0903) CONF alarm 3',
+  16242: '(A2030) Air filter DP', 16257: '(E2032) line FTR DP stop', 16258: '(A2032) Line FTR DP ALM', 16282: '(A2035) SEP filter DP',
+  16322: '(A2040) Oil filter DP', 17610: '(A2201) FTR drain ALM', 17922: '(A2240) Oil/WTR SEP ALM',
+  22530: '(A2816) Power failure', 22690: '(A2836) RTC error',
+  23321: '(E2915) ISC PRESS SENS', 23601: '(E2950) ISC sensor range', 23681: '(E2960) ISC XPM COMMS',
+  23762: '(A2970) ISC XPM Di alarm', 23841: '(E2980) ISC XPM DI',
+  24990: '(R3123) PD TEMP low', 25102: '(R3137) INT PRESS high', 25844: '(E3230) Door Open', 28003: '(S3500) Start inhibit',
+  38437: '(A4804) Service hours', 38445: '(A4805) Cabinet filters', 38453: '(A4806) Air filter SERV', 38461: '(A4807) Oilfilter SERV',
+  38466: '(E4808) OilAir SEP DP HI', 38469: '(A4808) Separator SERV', 38477: '(A4809) Grease service', 38485: '(A4810) Valves service',
+  38493: '(A4811) Belt drive SERV', 38501: '(A4812) ELEC SYS SERV', 38509: '(A4813) MTR bearing SERV', 38517: '(A4814) COMP BRG SERV',
+  38525: '(A4815) Weekly service', 38533: '(A4816) Annual service', 38541: '(A4817) Bi-annual SERV',
+  40001: '(E5000) System error', 40002: '(A5000) System error', 40017: '(E5002) System error',
+};
+
+function _cpIcons() { if (window.lucide) lucide.createIcons(); }
+
+function _applyCompressorState(s) {
+  const glyph = document.getElementById('cpGlyph');
+  if (!glyph) return;
+  const puff = document.getElementById('cpPuff');
+  const stName = document.getElementById('cpStName');
+  const stDot = document.getElementById('cpStDot');
+  const ring = document.getElementById('cpRingFill');
+
+  glyph.className = 'glyph' + (s.m ? ' ' + s.m : '');
+  if (s.spd > 0) glyph.style.setProperty('--cp-spd', s.spd + 's');
+  glyph.style.color = _CP_GCOL[s.col];
+  glyph.style.filter = _CP_GLOW[s.col];
+  glyph.innerHTML = '<i data-lucide="' + s.icon + '"></i>';
+
+  stName.textContent = s.name;
+  stName.style.color = _CP_RUNCOL[s.col];
+  stDot.style.background = _CP_RUNCOL[s.col];
+  stDot.style.boxShadow = '0 0 8px ' + _CP_RUNCOL[s.col];
+
+  if (ring) {
+    ring.style.stroke = _CP_COL[s.col];
+    ring.style.filter = _CP_GLOW[s.col];
+    ring.setAttribute('stroke-dashoffset', 0); // бүтэн дугуй, төлвийн өнгөөр асна
+  }
+  if (puff) {
+    if (s.puff) {
+      puff.style.animation = 'cp-puff ' + s.puff + 's cubic-bezier(.4,0,.2,1) infinite';
+      puff.style.borderColor = _CP_COL[s.col];
+    } else {
+      puff.style.animation = 'none';
+    }
+  }
+  _cpIcons();
+}
+
+function _setCompressorError(code) {
+  const val = document.getElementById('cpErrVal');
+  if (!val) return;
+  const cell = document.getElementById('cpErrCell');
+  const ico = document.getElementById('cpErrIco');
+  const label = document.getElementById('cpErrLabel');
+  const fault = code !== 0;
+  // Тоо гардаг хэсэгт → кодын дугаар. "Алдаа" бичигтэй хэсэгт → тайлбар текст.
+  val.textContent = String(code);
+  if (label) label.textContent = _CP_ERRORS[code] || (fault ? ('Тодорхойгүй код ' + code) : 'Алдаагүй');
+  cell.classList.toggle('fault', fault);
+  ico.innerHTML = '<i data-lucide="' + (fault ? 'shield-alert' : 'shield-check') + '"></i>';
+  _cpIcons();
+}
+
+// /ushg/compressor → карт. Status (1..12) хөдөлгөөн, бусад нь тоон утга.
+function _setupCompressor(db) {
+  const ring = document.getElementById('cpRingFill');
+  if (ring) {
+    const C = 2 * Math.PI * 46; // r = 46
+    ring.setAttribute('stroke-dasharray', C);
+    ring.setAttribute('stroke-dashoffset', 0);
+  }
+  db.ref('/ushg/compressor/status').on('value', s => {
+    if (s.val() === null) return;
+    const v = parseInt(s.val(), 10);
+    if (v >= 1 && v <= 12) _applyCompressorState(_CP_STATES[v - 1]);
+  });
+  db.ref('/ushg/compressor/error_code').on('value', s => {
+    if (s.val() === null) return;
+    _setCompressorError(parseInt(s.val(), 10) || 0);
+  });
+  db.ref('/ushg/compressor/temp_c').on('value', s => {
+    if (s.val() === null) return;
+    const v = parseFloat(s.val());
+    const el = document.getElementById('cpTempVal');
+    if (el) el.textContent = Math.round(v);
+    const cell = document.getElementById('cpTempCell');
+    if (cell) cell.classList.toggle('warn', v > 88); // халуун бол улбар шар
+  });
+  db.ref('/ushg/compressor/pressure_bar').on('value', s => {
+    if (s.val() === null) return;
+    const el = document.getElementById('cpPressVal');
+    if (el) el.textContent = parseFloat(s.val()).toFixed(1);
+  });
+  db.ref('/ushg/compressor/total_hours').on('value', s => {
+    if (s.val() === null) return;
+    const el = document.getElementById('cpHrsVal');
+    if (el) el.textContent = parseInt(s.val(), 10).toLocaleString('en-US');
+  });
+}
+
 function initRealtime() {
   // Доорх олонлог элементүүд Activity ба Үйлдвэр таб дээр давхар card-аар
   // харагдана. _pickAll нь үндсэн id + "Uv" (Үйлдвэр) хуулбар хоёуланг цуглуулж,
@@ -333,6 +483,9 @@ function initRealtime() {
     _setTankLevel(_el.waterTankLevelBar, v);
     _blinkLed(_el.waterTankLevelLed);
   });
+
+  // ── Компрессор (ushg Slave 4) ─────────────────────────────────────
+  _setupCompressor(db);
 
   // ── Butluur (01-WT-01 Бутлуурын жин) ───────────────────
   // weight_rate = t/h, cumulative_t = нийт тонн (t).

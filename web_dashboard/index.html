@@ -9,7 +9,7 @@
   <meta name="theme-color" content="#0a0a0c" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
   <meta name="description" content="MRESOURCE Industrial IoT Platform - Real-time monitoring system">
-  <meta name="app-version" content="202604200728-acf64f3">
+  <meta name="app-version" content="202606231409-ca846e7">
   <!-- iOS -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -23,6 +23,115 @@
 
   <!-- Tailwind CSS (compiled) -->
   <link rel="stylesheet" href="css/app.css">
+
+  <!-- Компрессор card (Atlas Copco Q1CMCSTD; ushg Slave 4). Бүх дүрэм .cp-card-аар
+       scoped — Tailwind-ийн .grid г.м. global класстай мөргөлдөхгүй. Keyframes-ийг
+       cp- угтвартай нэрлэв. Өнгийг design system-ийн хувьсагчаас тогтмол утга болгов. -->
+  <style id="compressorCardStyle">
+    .cp-card { position: relative; padding: 22px; user-select: none; }
+    .cp-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 18px; }
+    .cp-head .lhs { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #e6e9ef; white-space: nowrap; }
+    .cp-head .led { width: 7px; height: 7px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 8px rgba(74,222,128,0.55); }
+
+    .cp-card .rig { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; }
+    .cp-card .unit { position: relative; width: 84px; height: 84px; flex: 0 0 auto; }
+    .cp-card .cp-ring { position: absolute; inset: 0; transform: rotate(-90deg); }
+    .cp-card .cp-ring .track { fill: none; stroke: rgba(255,255,255,0.07); stroke-width: 8; }
+    .cp-card .cp-ring .fill  { fill: none; stroke: #6195ff; stroke-width: 8; stroke-linecap: round;
+                            filter: drop-shadow(0 0 6px rgba(97,149,255,0.55));
+                            transition: stroke-dashoffset 600ms cubic-bezier(.4,0,.2,1), stroke 400ms cubic-bezier(.4,0,.2,1), filter 400ms cubic-bezier(.4,0,.2,1); }
+    .cp-card .motor {
+      position: absolute; inset: 16px; border-radius: 50%;
+      background: radial-gradient(circle at 36% 30%, #2b2f36, #14151a 72%);
+      border: 1px solid rgba(255,255,255,0.08);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: inset 0 0 12px rgba(0,0,0,0.6);
+    }
+    .cp-card .glyph { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; color: rgba(150,180,255,0.85); }
+    .cp-card .glyph svg { width: 100%; height: 100%; }
+    .cp-card .glyph.m-spin    { animation: cp-spin var(--cp-spd,1s) linear infinite; }
+    .cp-card .glyph.m-pulse   { animation: cp-gpulse 1.6s cubic-bezier(.4,0,.2,1) infinite; }
+    .cp-card .glyph.m-blink   { animation: cp-gblink 1s cubic-bezier(.4,0,.2,1) infinite; }
+    .cp-card .glyph.m-breathe { animation: cp-gbreathe 3s cubic-bezier(.4,0,.2,1) infinite; }
+    .cp-card .glyph.m-swing   { animation: cp-gswing 1.6s cubic-bezier(.4,0,.2,1) infinite; }
+    @keyframes cp-spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+    @keyframes cp-gpulse  { 0%,100%{ transform: scale(.82); opacity:.7 } 50%{ transform: scale(1.06); opacity:1 } }
+    @keyframes cp-gblink  { 0%,100%{ opacity:1 } 50%{ opacity:.2 } }
+    @keyframes cp-gbreathe{ 0%,100%{ opacity:.4; transform: scale(.9) } 50%{ opacity:1; transform: scale(1) } }
+    @keyframes cp-gswing  { 0%,100%{ transform: rotate(-13deg) } 50%{ transform: rotate(13deg) } }
+    .cp-card .puff { position: absolute; inset: 0; border-radius: 50%; border: 2px solid #6195ff; opacity: 0; pointer-events: none; }
+    @keyframes cp-puff { 0%{ transform: scale(0.6); opacity: .5; } 80%,100%{ transform: scale(1.18); opacity: 0; } }
+
+    .cp-card .lead { flex: 1; min-width: 0; }
+    .cp-card .lead .title { font-size: 14px; font-weight: 700; color: #e6e9ef; }
+    .cp-card .runline { display: flex; align-items: center; gap: 7px; margin-top: 12px; font-size: 12px; font-weight: 600; color: #4ade80; }
+    .cp-card .runline .dot { width: 7px; height: 7px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 8px rgba(74,222,128,0.55); }
+
+    .cp-card .cp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px;
+                        background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.08);
+                        border-radius: 8px; overflow: hidden; }
+    .cp-card .cell { background: rgba(255,255,255,0.018); padding: 13px 14px; display: flex; flex-direction: column; gap: 5px; }
+    .cp-card .cell .k { font-size: 10.5px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #9aa3b2; display: flex; align-items: center; gap: 6px; }
+    .cp-card .cell .k svg { width: 13px; height: 13px; color: #6b7280; }
+    .cp-card .cell .v { font-size: 21px; font-weight: 700; color: #e6e9ef; font-variant-numeric: tabular-nums; line-height: 1; }
+    .cp-card .cell .v .u { font-size: 12px; font-weight: 600; color: #6b7280; margin-left: 3px; }
+    .cp-card .cell.err .k svg { color: #4ade80; }
+    .cp-card .cell.err .v { color: #4ade80; }
+    .cp-card .cell.err.fault .k svg { color: #f87171; }
+    .cp-card .cell.err.fault .v { color: #f87171; animation: cp-cellblink 1.4s cubic-bezier(.4,0,.2,1) infinite; }
+    .cp-card .cell.err.fault { background: rgba(248,113,113,0.06); }
+    @keyframes cp-cellblink { 0%,100%{ opacity: 1; } 50%{ opacity: 0.45; } }
+    .cp-card .cell.warn .v { color: #fb923c; }
+
+    /* Theme-aware (dark/light) — текст/хүрээг design-system хувьсагч руу холбов.
+       err/warn өнгө илүү specific тул хэвээр давамгайлна. */
+    .cp-card .cp-head .lhs,
+    .cp-card .lead .title,
+    .cp-card .cell .v { color: var(--color-text-primary); }
+    .cp-card .cell .k { color: var(--color-text-soft); }
+    .cp-card .cell .k svg,
+    .cp-card .cell .v .u { color: var(--color-text-dim); }
+    .cp-card .cp-grid { background: var(--color-border-strong); border-color: var(--color-border-strong); }
+    [data-theme="light"] .cp-card .cp-ring .track { stroke: rgba(0,0,0,0.10); }
+    [data-theme="light"] .cp-card .cell { background: rgba(0,0,0,0.02); }
+    [data-theme="light"] .cp-card .motor { border-color: rgba(0,0,0,0.12); }
+
+    /* Бүлэг бүр тусдаа мөр; flex order-оор эрэмбэлнэ (markup-аа зөөхгүй). */
+    .dash-sections { display: flex; flex-direction: column; }
+    .dash-section { min-width: 0; }
+    .dash-row-title { font-size: 12px; font-weight: 600; letter-spacing: 0.04em; color: var(--color-text-soft); margin: 6px 2px 6px; }
+    /* Card-ууд дэлгэцэнд багтахгүй тул мөрийг хэвтээ (2 тийш) гүйлгэнэ. */
+    .dash-row {
+      display: flex; align-items: flex-start; gap: 1rem;
+      overflow-x: auto; overflow-y: visible;
+      padding: 6px 2px 6px; margin-bottom: 0.25rem;
+      scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;        /* Firefox — scrollbar нуух */
+      -ms-overflow-style: none;     /* IE/Edge */
+    }
+    .dash-row::-webkit-scrollbar { width: 0; height: 0; display: none; } /* WebKit/Chrome */
+    .dash-row > * { flex: 0 0 300px; scroll-snap-align: start; }
+    .dash-row > .cp-card { flex-basis: 340px; }
+    .dash-row { cursor: grab; }
+    .dash-row.dragging { cursor: grabbing; scroll-behavior: auto; user-select: none; }
+
+    /* Хулганаар чирч гүйлгэх wrapper + хоёр талын жижиг саарал сум товч.
+       JS (dash-scroll.js) нь .dash-row бүрийг .dash-row-wrap дотор боож, сум нэмнэ. */
+    .dash-row-wrap { position: relative; }
+    .dash-arrow {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      z-index: 6; width: 28px; height: 28px; border-radius: 50%;
+      display: none; align-items: center; justify-content: center;
+      background: var(--color-bg-elevated); color: var(--color-text-soft);
+      border: 1px solid var(--color-border-strong);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3); cursor: pointer;
+      padding: 0; transition: background .2s, color .2s, opacity .2s;
+    }
+    .dash-arrow:hover { background: var(--color-bg-card-hover); color: var(--color-text-primary); }
+    .dash-arrow.show { display: flex; }
+    .dash-arrow-left { left: 2px; }
+    .dash-arrow-right { right: 2px; }
+  </style>
 
   <!-- Auth guard: IndexedDB/localStorage хооронд Firebase Auth key өөр өөр байдаг.
        Firebase SDK ачаалагдсны дараа onAuthStateChanged-аар шалгаж redirect хийнэ. -->
@@ -268,7 +377,61 @@
              энэ контейнерт оруулаад/устгахад л болно. Грид өөрөө дахин эрэмбэлнэ.
              - Desktop / Tablet (≥640px): 2 багана
              - PWA / Mobile (<640px):    1 багана -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4 items-start">
+        <div class="dash-sections">
+
+        <!-- ─ Компрессор ─ -->
+        <section class="dash-section" style="order:1">
+        <div class="dash-row-title">Компрессор</div>
+        <div class="dash-row">
+
+          <!-- Компрессор (Atlas Copco Q1CMCSTD; ushg Slave 4) -->
+          <div class="glass-card cp-card rounded-DEFAULT transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]"
+               id="compressorCard" data-screen-label="Компрессор">
+            <div class="cp-head">
+              <div class="lhs"><span class="led"></span> Компрессор</div>
+            </div>
+            <div class="rig">
+              <div class="unit">
+                <div class="puff" id="cpPuff"></div>
+                <svg class="cp-ring" viewBox="0 0 104 104">
+                  <circle class="track" cx="52" cy="52" r="46"></circle>
+                  <circle class="fill" id="cpRingFill" cx="52" cy="52" r="46"></circle>
+                </svg>
+                <div class="motor">
+                  <div class="glyph" id="cpGlyph"><i data-lucide="power"></i></div>
+                </div>
+              </div>
+              <div class="lead">
+                <div class="title">Компрессор</div>
+                <div class="runline"><span class="dot" id="cpStDot"></span> <span id="cpStName">—</span></div>
+              </div>
+            </div>
+            <div class="cp-grid">
+              <div class="cell err" id="cpErrCell">
+                <div class="k"><span id="cpErrIco"><i data-lucide="shield-check"></i></span> <span id="cpErrLabel">Алдаа</span></div>
+                <div class="v" id="cpErrVal">—</div>
+              </div>
+              <div class="cell" id="cpTempCell">
+                <div class="k"><i data-lucide="thermometer"></i>темпратур</div>
+                <div class="v"><span id="cpTempVal">0</span><span class="u">°C</span></div>
+              </div>
+              <div class="cell">
+                <div class="k"><i data-lucide="gauge"></i> даралт</div>
+                <div class="v"><span id="cpPressVal">0.0</span><span class="u">bar</span></div>
+              </div>
+              <div class="cell">
+                <div class="k"><i data-lucide="clock"></i> Нийт цаг</div>
+                <div class="v"><span id="cpHrsVal">0</span><span class="u">h</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        </section>
+
+        <!-- ─ Урсгал хэмжигчүүд ─ -->
+        <section class="dash-section" style="order:2">
+        <div class="dash-row-title">Урсгал хэмжигчүүд</div>
+        <div class="dash-row">
 
           <!-- Flowmeter 2 — Баян уусмал (урсгал хэмжигч) -->
           <div class="fm-card glass-card rounded-DEFAULT transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
@@ -414,6 +577,13 @@
               <div class="fm-val"><span id="feedWater2FlowAct">0.00</span><span class="fm-unit">m³/h</span></div>
             </div>
           </div>
+        </div>
+        </section>
+
+        <!-- ─ Сангууд ─ (DOM-д энд; flex order-оор Жин хэмжүүрийн дараа харагдана) -->
+        <section class="dash-section" style="order:4">
+        <div class="dash-row-title">Сангууд</div>
+        <div class="dash-row">
 
           <!-- Суларсан уусмал савны түвшин (Ultrasonic Level — Slave ID 1) -->
           <!-- Савны бодит өндрийг (метр) data-max дээр өг — ус автоматаар тэр хэмжээгээр дүүрнэ. -->
@@ -532,7 +702,14 @@
               <div class="wl-val"><span id="waterTankLevel">0.00</span><span class="wl-unit">м</span></div>
             </div>
           </div>
-          
+        </div>
+        </section>
+
+        <!-- ─ Жин хэмжүүр ─ (DOM-д Сангуудын дараа; order:3-аар өмнө харагдана) -->
+        <section class="dash-section" style="order:3">
+        <div class="dash-row-title">Жин хэмжүүр</div>
+        <div class="dash-row">
+
           <!-- 02-WT-02 Тээрмийн жин (линльүүрийн жингийн хэмжүүр) -->
           <div class="cs-card glass-card rounded-DEFAULT transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.3)]">
             <div class="cs-floor"></div>
@@ -612,6 +789,8 @@
               <div class="cs-val"><span id="wt01Weight">0.00</span><span class="cs-unit">t/h</span></div>
             </div>
           </div>
+        </div>
+        </section>
         </div>
 
         <!-- System Info -->
@@ -1397,6 +1576,9 @@
   <!-- ==========================================================
        SCRIPTS
        ========================================================== -->
+  <!-- Lucide icons — Компрессор card-д хэрэглэнэ (realtime.js дотор createIcons() дуудна) -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -1433,6 +1615,7 @@
   <script src="js/clock.js"></script>
   <script src="js/ip-detect.js"></script>
   <script src="js/realtime.js"></script>
+  <script src="js/dash-scroll.js"></script>
   <script src="js/toast.js"></script>
   <script src="js/notifications.js"></script>
   <script src="js/stale-watch.js"></script>
