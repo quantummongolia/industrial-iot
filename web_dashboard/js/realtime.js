@@ -109,10 +109,14 @@ function initRealtime() {
     teeremWeightAct:     _pickAll("teeremWeightAct"),
     teeremWeightTonsAct: _pickAll("teeremWeightTonsAct"),
     teeremWeightLedAct:  _pickAll("teeremWeightLedAct"),
-    // Тээрмийн тэжээлийн ус — Activity + Үйлдвэр таб дублицат
-    feedWaterFlowAct:    _pickAll("feedWaterFlowAct"),
-    feedWaterTotalAct:   _pickAll("feedWaterTotalAct"),
-    feedWaterLedAct:     _pickAll("feedWaterLedAct"),
+    // Тээрмийн тэжээлийн ус 1 (Slave 8) — Activity + Үйлдвэр таб дублицат
+    feedWater1FlowAct:   _pickAll("feedWater1FlowAct"),
+    feedWater1TotalAct:  _pickAll("feedWater1TotalAct"),
+    feedWater1LedAct:    _pickAll("feedWater1LedAct"),
+    // Тээрмийн тэжээлийн ус 2 (Slave 6) — Activity + Үйлдвэр таб дублицат
+    feedWater2FlowAct:   _pickAll("feedWater2FlowAct"),
+    feedWater2TotalAct:  _pickAll("feedWater2TotalAct"),
+    feedWater2LedAct:    _pickAll("feedWater2LedAct"),
     // 01-WT-01 Бутлуурын жин — Activity + Үйлдвэр таб дублицат
     wt01Weight:     _pickAll("wt01Weight"),
     wt01WeightTons: _pickAll("wt01WeightTons"),
@@ -295,17 +299,30 @@ function initRealtime() {
     _setText(_el.teeremWeightTonsAct, t);
   });
 
-  // ── Тээрмийн тэжээлийн ус (Slave 6 flowmeter) ────────
-  db.ref("/teerem/feed_water/flow_rate").on("value", s => {
+  // ── Тээрмийн тэжээлийн ус 1 (Slave 8 magnetic flowmeter) ────────
+  db.ref("/teerem/feed_water1/flow_rate").on("value", s => {
     if (s.val() === null) return;
     const v = parseFloat(s.val()).toFixed(2);
-    _setText(_el.feedWaterFlowAct, v);
-    _blinkLed(_el.feedWaterLedAct);
+    _setText(_el.feedWater1FlowAct, v);
+    _blinkLed(_el.feedWater1LedAct);
   });
-  db.ref("/teerem/feed_water/totalizer").on("value", s => {
+  db.ref("/teerem/feed_water1/totalizer").on("value", s => {
     if (s.val() === null) return;
     const v = parseFloat(s.val()).toFixed(2);
-    _setText(_el.feedWaterTotalAct, v);
+    _setText(_el.feedWater1TotalAct, v);
+  });
+
+  // ── Тээрмийн тэжээлийн ус 2 (Slave 6 flowmeter) ────────
+  db.ref("/teerem/feed_water2/flow_rate").on("value", s => {
+    if (s.val() === null) return;
+    const v = parseFloat(s.val()).toFixed(2);
+    _setText(_el.feedWater2FlowAct, v);
+    _blinkLed(_el.feedWater2LedAct);
+  });
+  db.ref("/teerem/feed_water2/totalizer").on("value", s => {
+    if (s.val() === null) return;
+    const v = parseFloat(s.val()).toFixed(2);
+    _setText(_el.feedWater2TotalAct, v);
   });
 
   // ── Эргэлтийн усан сан — Ultrasonic Level (Teerem Slave 7) ─────────

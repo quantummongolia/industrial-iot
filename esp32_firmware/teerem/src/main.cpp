@@ -9,11 +9,14 @@
  *    Slave 3 : SPM33 — Нунтаглах хэсэг ХС          (P, E)
  *    Slave 4 : SPM33 — Бөмбөлөгт тээрэм 1          (P, E, Ia/Ib/Ic)
  *    Slave 5 : SPM33 — Бөмбөлөгт тээрэм 2          (P, E, Ia/Ib/Ic)
- *    Slave 6 : Тээрмийн тэжээлийн ус (flowmeter)   (flow rate + totalizer)
+ *    Slave 6 : Тээрмийн тэжээлийн ус 2 (flowmeter)  (flow rate + totalizer)
+ *    Slave 7 : Supmea ultrasonic — Эргэлтийн усан сан (level)
+ *    Slave 8 : Тээрмийн тэжээлийн ус 1 (зэрэгцээ шугам, magnetic flowmeter)
  *
  *  Firebase RTDB:
  *    /teerem/weight_rate, /teerem/cumulative_kg, /teerem/last_updated
- *    /teerem/feed_water/{flow_rate,totalizer}
+ *    /teerem/feed_water1/{flow_rate,totalizer}   (Slave 8)
+ *    /teerem/feed_water2/{flow_rate,totalizer}   (Slave 6)
  *    /energy_meters/em01/{power_kw,total_energy_kwh}
  *    /energy_meters/em02/{power_kw,total_energy_kwh}
  *    /energy_meters/em04/{power_kw,total_energy_kwh,current_a,current_b,current_c}
@@ -47,8 +50,9 @@ constexpr uint8_t EM01_SLAVE = 2;  // Боловсруулах үйлдвэр Х
 constexpr uint8_t EM02_SLAVE = 3;  // Нунтаглах хэсэг ХС
 constexpr uint8_t EM04_SLAVE = 4;  // Бөмбөлөгт тээрэм 1
 constexpr uint8_t EM05_SLAVE = 5;  // Бөмбөлөгт тээрэм 2
-constexpr uint8_t FLOW_SLAVE = 6;  // Тээрмийн тэжээлийн ус (flowmeter)
+constexpr uint8_t FLOW_SLAVE = 6;  // Тээрмийн тэжээлийн ус 2 (flowmeter) → /teerem/feed_water2
 constexpr uint8_t ULS_SLAVE = 7;   // Supmea ultrasonic — Эргэлтийн усан сан
+constexpr uint8_t FLOW2_SLAVE = 8; // Тээрмийн тэжээлийн ус 1 — зэрэгцээ шугам (magnetic flowmeter) → /teerem/feed_water1
 
 // Тэжээлийн жин (одоо байгаа сенсор)
 constexpr uint16_t REG_FLOW = 0;     // 40001: Flow Rate (Float, t/h)
@@ -481,7 +485,8 @@ float  cachedEm01EnergyKWh = 0.0f; bool cachedEm01EnergyValid = false;
 float  cachedEm02EnergyKWh = 0.0f; bool cachedEm02EnergyValid = false;
 float  cachedEm04EnergyKWh = 0.0f; bool cachedEm04EnergyValid = false;
 float  cachedEm05EnergyKWh = 0.0f; bool cachedEm05EnergyValid = false;
-float  cachedFeedTotal = 0.0f;     bool cachedFeedTotalValid = false;
+float  cachedFeed1Total = 0.0f;    bool cachedFeed1TotalValid = false; // Slave 8 (ус 1)
+float  cachedFeed2Total = 0.0f;    bool cachedFeed2TotalValid = false; // Slave 6 (ус 2)
 
 // Ultrasonic mount height (рег. 0x2009) — boot дээр нэг удаа уншиж Firebase-д
 // нэг удаа нийтэлнэ. Дашбоард савны дээд хязгаарт (data-max) ашиглана.
@@ -593,7 +598,7 @@ static float liveValue(float v, LiveState &st) {
   st.last2 = v2;
   return v2 + (st.flip ? 0.001f : 0.0f);
 }
-LiveState lvEm01, lvEm02, lvEm04, lvEm05, lvWeight, lvFeed, lvWaterTank;
+LiveState lvEm01, lvEm02, lvEm04, lvEm05, lvWeight, lvFeed1, lvFeed2, lvWaterTank;
 
 void setup() {
   Serial.begin(115200);
@@ -732,8 +737,10 @@ void loop() {
   float flow = 0;
   bool flowOk = false;
   Spm33Reading em01, em02, em04, em05;
-  float feedFlow = 0;
-  bool feedFlowOk = false;
+  float feed1Flow = 0;   // Slave 8 (ус 1)
+  bool feed1FlowOk = false;
+  float feed2Flow = 0;   // Slave 6 (ус 2)
+  bool feed2FlowOk = false;
   uint16_t ulsRaw = 0;
   bool ulsLevelOk = false;
   float ulsLevel = 0.0f;
@@ -741,8 +748,10 @@ void loop() {
   // Totalizer cycle-ийн төлөв (uploaded утгууд cache-ээс)
   double weightT = 0;
   bool weightOk = false;
-  float feedTotal = 0;
-  bool feedTotalOk = false;
+  float feed1Total = 0;   // Slave 8 (ус 1)
+  bool feed1TotalOk = false;
+  float feed2Total = 0;   // Slave 6 (ус 2)
+  bool feed2TotalOk = false;
 
   if (totalizerCycle) {
     // ── Totalizer cycle: жингийн нийт жин + EM01-05 энерги + feed water totalizer
@@ -770,18 +779,24 @@ void loop() {
     if (em05.energyOk) { cachedEm05EnergyKWh = em05.energyKWh; cachedEm05EnergyValid = true; }
     delay(cfg::FRAME_GAP_MS);
 
-    feedTotalOk = withRetry(
-        [&] { return modbus.readTotalizer(cfg::FLOW_SLAVE, cfg::FLOW_REG_TOTAL, feedTotal); });
-    if (feedTotalOk) { cachedFeedTotal = feedTotal; cachedFeedTotalValid = true; }
+    feed2TotalOk = withRetry(
+        [&] { return modbus.readTotalizer(cfg::FLOW_SLAVE, cfg::FLOW_REG_TOTAL, feed2Total); });
+    if (feed2TotalOk) { cachedFeed2Total = feed2Total; cachedFeed2TotalValid = true; }
     delay(cfg::FRAME_GAP_MS);
 
-    Serial.printf("[Totalizer] Weight:%s EM01:%s EM02:%s EM04:%s EM05:%s Feed:%s\n",
+    feed1TotalOk = withRetry(
+        [&] { return modbus.readTotalizer(cfg::FLOW2_SLAVE, cfg::FLOW_REG_TOTAL, feed1Total); });
+    if (feed1TotalOk) { cachedFeed1Total = feed1Total; cachedFeed1TotalValid = true; }
+    delay(cfg::FRAME_GAP_MS);
+
+    Serial.printf("[Totalizer] Weight:%s EM01:%s EM02:%s EM04:%s EM05:%s Feed1:%s Feed2:%s\n",
                   weightOk ? String(weightT, 3).c_str() : "#",
                   em01.energyOk ? String(em01.energyKWh, 1).c_str() : "#",
                   em02.energyOk ? String(em02.energyKWh, 1).c_str() : "#",
                   em04.energyOk ? String(em04.energyKWh, 1).c_str() : "#",
                   em05.energyOk ? String(em05.energyKWh, 1).c_str() : "#",
-                  feedTotalOk ? String(feedTotal, 2).c_str() : "#");
+                  feed1TotalOk ? String(feed1Total, 2).c_str() : "#",
+                  feed2TotalOk ? String(feed2Total, 2).c_str() : "#");
   } else {
     // ── Flow cycle: жингийн урсгал + EM01-05 power + currents + feed water flow + level
     flowOk = withRetry(
@@ -797,8 +812,12 @@ void loop() {
     em05 = Spm33_readPower(modbus, cfg::EM05_SLAVE, true);
     delay(cfg::FRAME_GAP_MS);
 
-    feedFlowOk = withRetry(
-        [&] { return modbus.readFloat(cfg::FLOW_SLAVE, cfg::FLOW_REG_RATE, feedFlow); });
+    feed2FlowOk = withRetry(
+        [&] { return modbus.readFloat(cfg::FLOW_SLAVE, cfg::FLOW_REG_RATE, feed2Flow); });
+    delay(cfg::FRAME_GAP_MS);
+
+    feed1FlowOk = withRetry(
+        [&] { return modbus.readFloat(cfg::FLOW2_SLAVE, cfg::FLOW_REG_RATE, feed1Flow); });
     delay(cfg::FRAME_GAP_MS);
 
     ulsLevelOk = withRetry(
@@ -814,13 +833,14 @@ void loop() {
       }
     }
 
-    Serial.printf("[Flow] Scale:%s EM01:%s EM02:%s EM04:%s EM05:%s Feed:%s Tank:%s\n",
+    Serial.printf("[Flow] Scale:%s EM01:%s EM02:%s EM04:%s EM05:%s Feed1:%s Feed2:%s Tank:%s\n",
                   flowOk ? String(flow, 2).c_str() : "#",
                   em01.powerOk ? String(em01.powerKW, 2).c_str() : "#",
                   em02.powerOk ? String(em02.powerKW, 2).c_str() : "#",
                   em04.powerOk ? String(em04.powerKW, 2).c_str() : "#",
                   em05.powerOk ? String(em05.powerKW, 2).c_str() : "#",
-                  feedFlowOk ? String(feedFlow, 2).c_str() : "#",
+                  feed1FlowOk ? String(feed1Flow, 2).c_str() : "#",
+                  feed2FlowOk ? String(feed2Flow, 2).c_str() : "#",
                   ulsLevelOk ? String(ulsLevel, 3).c_str() : "#");
   }
 
@@ -828,7 +848,8 @@ void loop() {
   bool anyOk = flowOk || weightOk || em01.powerOk || em01.energyOk ||
                em02.powerOk || em02.energyOk || em04.powerOk || em04.energyOk ||
                em04.currentsOk || em05.powerOk || em05.energyOk ||
-               em05.currentsOk || feedFlowOk || feedTotalOk || ulsLevelOk;
+               em05.currentsOk || feed1FlowOk || feed1TotalOk ||
+               feed2FlowOk || feed2TotalOk || ulsLevelOk;
   if (anyOk) {
     consecutiveReadFails = 0;
     totalRecoveryAttempts = 0;
@@ -866,15 +887,23 @@ void loop() {
         j.set("cumulative_kg", (int)(cachedWeightT * 1000.0));
         teeremAny = true;
       }
-      if (feedTotalOk) {
-        j.set("feed_water/totalizer", cachedFeedTotal);
+      if (feed1TotalOk) {
+        j.set("feed_water1/totalizer", cachedFeed1Total);
+        teeremAny = true;
+      }
+      if (feed2TotalOk) {
+        j.set("feed_water2/totalizer", cachedFeed2Total);
         teeremAny = true;
       }
     } else {
       // Flow cycle: жингийн урсгал + feed water flow + water tank level
       if (flowOk) { j.set("weight_rate", liveValue(flow, lvWeight)); teeremAny = true; }
-      if (feedFlowOk) {
-        j.set("feed_water/flow_rate", liveValue(feedFlow, lvFeed));
+      if (feed1FlowOk) {
+        j.set("feed_water1/flow_rate", liveValue(feed1Flow, lvFeed1));
+        teeremAny = true;
+      }
+      if (feed2FlowOk) {
+        j.set("feed_water2/flow_rate", liveValue(feed2Flow, lvFeed2));
         teeremAny = true;
       }
       if (ulsLevelOk) {

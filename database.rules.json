@@ -35,7 +35,11 @@
       ".write": "auth != null && auth.token.email === 'mresource-teerem@iot.com'",
       "weight_rate":   { ".validate": "newData.isNumber()" },
       "cumulative_kg": { ".validate": "newData.isNumber()" },
-      "feed_water": {
+      "feed_water1": {
+        "flow_rate": { ".validate": "newData.isNumber()" },
+        "totalizer": { ".validate": "newData.isNumber()" }
+      },
+      "feed_water2": {
         "flow_rate": { ".validate": "newData.isNumber()" },
         "totalizer": { ".validate": "newData.isNumber()" }
       },
