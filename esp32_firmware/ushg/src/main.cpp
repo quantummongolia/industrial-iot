@@ -265,6 +265,16 @@ public:
     return true;
   }
 
+  // N word (≤5) уншиж, word бүрийг big-endian-аар out массивт хийнэ.
+  bool readWords(uint8_t slave, uint16_t addr, uint8_t regCnt, uint16_t *out) {
+    uint8_t rx[16];
+    if (!readRegs(slave, addr, regCnt, rx))
+      return false;
+    for (uint8_t i = 0; i < regCnt; i++)
+      out[i] = ((uint16_t)rx[3 + i * 2] << 8) | rx[4 + i * 2];
+    return true;
+  }
+
 private:
   bool readRegs(uint8_t slave, uint16_t addr, uint8_t regCnt, uint8_t *rx) {
     while (Serial1.available())
@@ -439,12 +449,14 @@ CompReading Comp_readFast(Modbus &mb) {
   if (r.pressOk) r.pressureBar = p / 1000.0f;  // mBAR → bar
   delay(cfg::FRAME_GAP_MS);
 
-  uint16_t st = 0;
-  r.statusOk = withRetry([&] { return mb.readU16(cfg::COMP_SLAVE, cfg::COMP_REG_STATUS, st); });
+  // Status — ном дээр "GetStatus = 3 data word, бүтэн блокоор асуух" гэснийг дагана.
+  uint16_t stW[3] = {0, 0, 0};
+  r.statusOk = withRetry([&] { return mb.readWords(cfg::COMP_SLAVE, cfg::COMP_REG_STATUS, 3, stW); });
   if (r.statusOk) {
-    r.status = (uint8_t)(st >> 8);  // "1 data byte, MSB used" → дээд байт, утга 1..12
-    // DEBUG: түүхий регистр + задалсан утга. Зөв задлалтыг батлахад.
-    Serial.printf("[Comp] STATUS raw=0x%04X  MSB=%u  LSB=%u\n", st, (st >> 8), (st & 0xFF));
+    r.status = (uint8_t)(stW[0] >> 8);  // "1 data byte, MSB used" → эхний word-ийн дээд байт
+    // DEBUG: 3 word-ийг бүтэн харуулна — аль нь status (1..12) болохыг батлахад.
+    Serial.printf("[Comp] STATUS 3w: w0=0x%04X w1=0x%04X w2=0x%04X → status=%u\n",
+                  stW[0], stW[1], stW[2], r.status);
   }
   return r;
 }
@@ -611,6 +623,7 @@ void setup() {
     Spm33_readCtPrimary(modbus, s);
     delay(cfg::FRAME_GAP_MS);
   }
+
 
   WiFi.onEvent(onWifiEvent);
   wifiConnect();
