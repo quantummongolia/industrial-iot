@@ -54,7 +54,7 @@ constexpr uint16_t COMP_REG_ERROR  = 0x4000; // GetErrorDisplayValue  — U16  (
 constexpr uint16_t COMP_REG_TEMP   = 0x4002; // GetDeliveryAirTemp    — S32, mCEL (÷1000 = °C)
 constexpr uint16_t COMP_REG_PRESS  = 0x4004; // GetDeliveryPressure   — S32, mBAR (÷1000 = bar)
 constexpr uint16_t COMP_REG_HOURS  = 0x400E; // GetTotalHrs           — U32, HRS
-constexpr uint16_t COMP_REG_STATUS = 0x4196; // GetStatusDisplayValue — U16, утга 1..12 (шууд)
+constexpr uint16_t COMP_REG_STATUS = 0x4196; // GetStatusDisplayValue — 1 data byte (MSB), status 1..12
 
 // SPM33 register addresses (4xxxx - 40001 = Modbus address)
 constexpr uint16_t SPM33_REG_POWER = 10;   // 40011: Total active power LINT32, ×0.1 W
@@ -280,13 +280,29 @@ private:
     send(req, sizeof(req));
 
     const uint8_t respLen = 5 + regCnt * 2;
-    if (!receive(rx, respLen))
+    size_t got = receive(rx, respLen);
+
+    // DEBUG: уншилт унах болгонд яг юу ирснийг hex-ээр харуулна.
+    // Exception хариу (FC|0x80) ердөө 5 байт; no-response үед got=0.
+    if (got != respLen) {
+      Serial.printf("[Modbus] slave %u addr 0x%04X cnt %u → got %u/%u:",
+                    slave, addr, regCnt, (unsigned)got, respLen);
+      for (size_t i = 0; i < got && i < 8; i++) Serial.printf(" %02X", rx[i]);
+      if (got >= 2 && (rx[1] & 0x80))
+        Serial.printf("  EXCEPTION 0x%02X", got >= 3 ? rx[2] : 0xFF);
+      Serial.println();
       return false;
-    if (rx[0] != slave || rx[1] != 0x03 || rx[2] != regCnt * 2)
+    }
+    if (rx[0] != slave || rx[1] != 0x03 || rx[2] != regCnt * 2) {
+      Serial.printf("[Modbus] slave %u addr 0x%04X → bad frame: %02X %02X %02X\n",
+                    slave, addr, rx[0], rx[1], rx[2]);
       return false;
+    }
     if (crc16(rx, respLen - 2) !=
-        uint16_t(rx[respLen - 2] | (rx[respLen - 1] << 8)))
+        uint16_t(rx[respLen - 2] | (rx[respLen - 1] << 8))) {
+      Serial.printf("[Modbus] slave %u addr 0x%04X → CRC fail\n", slave, addr);
       return false;
+    }
     return true;
   }
 
@@ -312,14 +328,15 @@ private:
     delayMicroseconds(200);         // RX горим идэвхжих, bus settle
   }
 
-  bool receive(uint8_t *buf, size_t want) {
+  // Хүлээж авсан байтын тоог буцаана (exception хариуг таних боломжтой).
+  size_t receive(uint8_t *buf, size_t want) {
     size_t got = 0;
     unsigned long start = millis();
     while (millis() - start < cfg::RX_TMO && got < want) {
       if (Serial1.available())
         buf[got++] = Serial1.read();
     }
-    return got == want;
+    return got;
   }
 };
 
@@ -424,7 +441,11 @@ CompReading Comp_readFast(Modbus &mb) {
 
   uint16_t st = 0;
   r.statusOk = withRetry([&] { return mb.readU16(cfg::COMP_SLAVE, cfg::COMP_REG_STATUS, st); });
-  if (r.statusOk) r.status = (uint8_t)st;  // регистр бүтэн 16-бит утга 1..12 (>>8 биш!)
+  if (r.statusOk) {
+    r.status = (uint8_t)(st >> 8);  // "1 data byte, MSB used" → дээд байт, утга 1..12
+    // DEBUG: түүхий регистр + задалсан утга. Зөв задлалтыг батлахад.
+    Serial.printf("[Comp] STATUS raw=0x%04X  MSB=%u  LSB=%u\n", st, (st >> 8), (st & 0xFF));
+  }
   return r;
 }
 
