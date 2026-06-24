@@ -80,29 +80,8 @@ function _onTotalizer(key, val) {
 }
 
 // ── Компрессор (ushg Slave 4, Atlas Copco Q1CMCSTD) ──────────────────────
-// CODED-STATUS 1..12 бүрд тусдаа lucide дүрс + хөдөлгөөн. Design: Compressor Card.
-const _CP_STATES = [
-  { icon: 'power',        m: '',          spd: 0,    col: 'dim',     puff: false, name: 'Shutdown'      }, //  1
-  { icon: 'loader',       m: 'm-spin',    spd: 1.6,  col: 'accent',  puff: false, name: 'Initialising'  }, //  2
-  { icon: 'lock',         m: 'm-blink',   spd: 0,    col: 'danger',  puff: false, name: 'Start Inhibit' }, //  3
-  { icon: 'circle-check', m: 'm-pulse',   spd: 0,    col: 'success', puff: false, name: 'Ready to Start'}, //  4
-  { icon: 'wind',         m: 'm-swing',   spd: 0,    col: 'warning', puff: 1.0,   name: 'Blowing Down'  }, //  5
-  { icon: 'pause',        m: 'm-breathe', spd: 0,    col: 'accent',  puff: false, name: 'Standby'       }, //  6
-  { icon: 'rotate-cw',    m: 'm-spin',    spd: 1.3,  col: 'accent',  puff: false, name: 'Motor Starting'}, //  7
-  { icon: 'hourglass',    m: 'm-pulse',   spd: 0,    col: 'accent',  puff: 2.0,   name: 'Load Delay'    }, //  8
-  { icon: 'fan',          m: 'm-spin',    spd: 0.55, col: 'accent',  puff: 1.5,   name: 'On Load'       }, //  9
-  { icon: 'timer',        m: 'm-pulse',   spd: 0,    col: 'accent',  puff: false, name: 'Reload Delay'  }, // 10
-  { icon: 'circle-minus', m: '',          spd: 0,    col: 'accent',  puff: false, name: 'Off Load'      }, // 11
-  { icon: 'circle-stop',  m: 'm-breathe', spd: 0,    col: 'dim',     puff: false, name: 'Stopping'      }, // 12
-];
-const _CP_COL    = { dim: 'rgba(255,255,255,0.16)', accent: '#6195ff', success: '#4ade80', warning: '#fb923c', danger: '#f87171' };
-const _CP_GCOL   = { dim: 'rgba(150,160,180,0.45)', accent: '#8fb2ff', success: '#6ee79a', warning: '#ffb066', danger: '#ff8f8f' };
-const _CP_GLOW   = { dim: 'none',
-                     accent:  'drop-shadow(0 0 6px rgba(97,149,255,.55))',
-                     success: 'drop-shadow(0 0 6px rgba(74,222,128,.55))',
-                     warning: 'drop-shadow(0 0 6px rgba(251,146,60,.55))',
-                     danger:  'drop-shadow(0 0 7px rgba(248,113,113,.6))' };
-const _CP_RUNCOL = { dim: '#9aa3b2', accent: '#6195ff', success: '#4ade80', warning: '#fb923c', danger: '#f87171' };
+// Карт нь error / температур / даралт / нийт цаг гэсэн 4 нүднээс бүрдэнэ.
+// (Status-ийн хөдөлгөөнт дүрс/текстийг хассан — зөвхөн тоон утга + дата LED.)
 
 // CODED-ERROR хүснэгт (Modbus баримтаас) — тоон код → дэлгэцийн код + тайлбар.
 const _CP_ERRORS = {
@@ -142,41 +121,6 @@ const _CP_ERRORS = {
 
 function _cpIcons() { if (window.lucide) lucide.createIcons(); }
 
-function _applyCompressorState(s) {
-  const glyph = document.getElementById('cpGlyph');
-  if (!glyph) return;
-  const puff = document.getElementById('cpPuff');
-  const stName = document.getElementById('cpStName');
-  const stDot = document.getElementById('cpStDot');
-  const ring = document.getElementById('cpRingFill');
-
-  glyph.className = 'glyph' + (s.m ? ' ' + s.m : '');
-  if (s.spd > 0) glyph.style.setProperty('--cp-spd', s.spd + 's');
-  glyph.style.color = _CP_GCOL[s.col];
-  glyph.style.filter = _CP_GLOW[s.col];
-  glyph.innerHTML = '<i data-lucide="' + s.icon + '"></i>';
-
-  stName.textContent = s.name;
-  stName.style.color = _CP_RUNCOL[s.col];
-  stDot.style.background = _CP_RUNCOL[s.col];
-  stDot.style.boxShadow = '0 0 8px ' + _CP_RUNCOL[s.col];
-
-  if (ring) {
-    ring.style.stroke = _CP_COL[s.col];
-    ring.style.filter = _CP_GLOW[s.col];
-    ring.setAttribute('stroke-dashoffset', 0); // бүтэн дугуй, төлвийн өнгөөр асна
-  }
-  if (puff) {
-    if (s.puff) {
-      puff.style.animation = 'cp-puff ' + s.puff + 's cubic-bezier(.4,0,.2,1) infinite';
-      puff.style.borderColor = _CP_COL[s.col];
-    } else {
-      puff.style.animation = 'none';
-    }
-  }
-  _cpIcons();
-}
-
 function _setCompressorError(code) {
   const val = document.getElementById('cpErrVal');
   if (!val) return;
@@ -192,32 +136,24 @@ function _setCompressorError(code) {
   _cpIcons();
 }
 
-// /ushg/compressor → карт. Status (1..12) хөдөлгөөн, бусад нь тоон утга.
+// /ushg/compressor → карт. error / температур / даралт / нийт цаг (тоон утга).
+// Дата ирэх бүрд LED анивчина; 10 сек дата ирэхгүй бол анхааруулах гурвалжин гарна.
 function _setupCompressor(db) {
-  const ring = document.getElementById('cpRingFill');
-  if (ring) {
-    const C = 2 * Math.PI * 46; // r = 46
-    ring.setAttribute('stroke-dasharray', C);
-    ring.setAttribute('stroke-dashoffset', 0);
+  const led  = document.getElementById('cpLed');
+  const warn = document.getElementById('cpWarn');
+  let lastData = 0;
+
+  // Дата ирэх бүрд: LED анивчуулж, анхааруулгыг арилгаж, цагийг шинэчилнэ.
+  function _ping() {
+    lastData = Date.now();
+    if (led) _blinkLed(led);
+    if (warn) warn.classList.remove('show');
   }
-  db.ref('/ushg/compressor/status').on('value', s => {
-    if (s.val() === null) return;
-    const v = parseInt(s.val(), 10);
-    // Atlas Copco GetStatusDisplayValue → 1..12. _CP_STATES нь [v-1] индекстэй.
-    if (v >= 1 && v <= 12) {
-      _applyCompressorState(_CP_STATES[v - 1]);
-    } else {
-      // Мужаас гадуур утга — чимээгүй царцахгүй, картад түүхий утгыг харуулна.
-      console.warn('[compressor] status муж гадуур:', v);
-      const stName = document.getElementById('cpStName');
-      const stDot = document.getElementById('cpStDot');
-      if (stName) { stName.textContent = 'Status ' + v; stName.style.color = _CP_RUNCOL.dim; }
-      if (stDot) { stDot.style.background = _CP_RUNCOL.dim; stDot.style.boxShadow = 'none'; }
-    }
-  });
+
   db.ref('/ushg/compressor/error_code').on('value', s => {
     if (s.val() === null) return;
     _setCompressorError(parseInt(s.val(), 10) || 0);
+    _ping();
   });
   db.ref('/ushg/compressor/temp_c').on('value', s => {
     if (s.val() === null) return;
@@ -226,17 +162,25 @@ function _setupCompressor(db) {
     if (el) el.textContent = Math.round(v);
     const cell = document.getElementById('cpTempCell');
     if (cell) cell.classList.toggle('warn', v > 88); // халуун бол улбар шар
+    _ping();
   });
   db.ref('/ushg/compressor/pressure_bar').on('value', s => {
     if (s.val() === null) return;
     const el = document.getElementById('cpPressVal');
     if (el) el.textContent = parseFloat(s.val()).toFixed(1);
+    _ping();
   });
   db.ref('/ushg/compressor/total_hours').on('value', s => {
     if (s.val() === null) return;
     const el = document.getElementById('cpHrsVal');
     if (el) el.textContent = parseInt(s.val(), 10).toLocaleString('en-US');
+    _ping();
   });
+
+  // 10 секунд ямар ч дата ирэхгүй бол анхааруулах гурвалжныг гаргана.
+  setInterval(function () {
+    if (warn && lastData && Date.now() - lastData > 10000) warn.classList.add('show');
+  }, 1000);
 }
 
 function initRealtime() {

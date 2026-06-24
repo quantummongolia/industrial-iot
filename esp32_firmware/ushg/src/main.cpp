@@ -265,16 +265,6 @@ public:
     return true;
   }
 
-  // N word (≤5) уншиж, word бүрийг big-endian-аар out массивт хийнэ.
-  bool readWords(uint8_t slave, uint16_t addr, uint8_t regCnt, uint16_t *out) {
-    uint8_t rx[16];
-    if (!readRegs(slave, addr, regCnt, rx))
-      return false;
-    for (uint8_t i = 0; i < regCnt; i++)
-      out[i] = ((uint16_t)rx[3 + i * 2] << 8) | rx[4 + i * 2];
-    return true;
-  }
-
 private:
   bool readRegs(uint8_t slave, uint16_t addr, uint8_t regCnt, uint8_t *rx) {
     while (Serial1.available())
@@ -290,29 +280,13 @@ private:
     send(req, sizeof(req));
 
     const uint8_t respLen = 5 + regCnt * 2;
-    size_t got = receive(rx, respLen);
-
-    // DEBUG: уншилт унах болгонд яг юу ирснийг hex-ээр харуулна.
-    // Exception хариу (FC|0x80) ердөө 5 байт; no-response үед got=0.
-    if (got != respLen) {
-      Serial.printf("[Modbus] slave %u addr 0x%04X cnt %u → got %u/%u:",
-                    slave, addr, regCnt, (unsigned)got, respLen);
-      for (size_t i = 0; i < got && i < 8; i++) Serial.printf(" %02X", rx[i]);
-      if (got >= 2 && (rx[1] & 0x80))
-        Serial.printf("  EXCEPTION 0x%02X", got >= 3 ? rx[2] : 0xFF);
-      Serial.println();
+    if (!receive(rx, respLen))
       return false;
-    }
-    if (rx[0] != slave || rx[1] != 0x03 || rx[2] != regCnt * 2) {
-      Serial.printf("[Modbus] slave %u addr 0x%04X → bad frame: %02X %02X %02X\n",
-                    slave, addr, rx[0], rx[1], rx[2]);
+    if (rx[0] != slave || rx[1] != 0x03 || rx[2] != regCnt * 2)
       return false;
-    }
     if (crc16(rx, respLen - 2) !=
-        uint16_t(rx[respLen - 2] | (rx[respLen - 1] << 8))) {
-      Serial.printf("[Modbus] slave %u addr 0x%04X → CRC fail\n", slave, addr);
+        uint16_t(rx[respLen - 2] | (rx[respLen - 1] << 8)))
       return false;
-    }
     return true;
   }
 
@@ -338,15 +312,14 @@ private:
     delayMicroseconds(200);         // RX горим идэвхжих, bus settle
   }
 
-  // Хүлээж авсан байтын тоог буцаана (exception хариуг таних боломжтой).
-  size_t receive(uint8_t *buf, size_t want) {
+  bool receive(uint8_t *buf, size_t want) {
     size_t got = 0;
     unsigned long start = millis();
     while (millis() - start < cfg::RX_TMO && got < want) {
       if (Serial1.available())
         buf[got++] = Serial1.read();
     }
-    return got;
+    return got == want;
   }
 };
 
@@ -449,15 +422,9 @@ CompReading Comp_readFast(Modbus &mb) {
   if (r.pressOk) r.pressureBar = p / 1000.0f;  // mBAR → bar
   delay(cfg::FRAME_GAP_MS);
 
-  // Status — ном дээр "GetStatus = 3 data word, бүтэн блокоор асуух" гэснийг дагана.
-  uint16_t stW[3] = {0, 0, 0};
-  r.statusOk = withRetry([&] { return mb.readWords(cfg::COMP_SLAVE, cfg::COMP_REG_STATUS, 3, stW); });
-  if (r.statusOk) {
-    r.status = (uint8_t)(stW[0] >> 8);  // "1 data byte, MSB used" → эхний word-ийн дээд байт
-    // DEBUG: 3 word-ийг бүтэн харуулна — аль нь status (1..12) болохыг батлахад.
-    Serial.printf("[Comp] STATUS 3w: w0=0x%04X w1=0x%04X w2=0x%04X → status=%u\n",
-                  stW[0], stW[1], stW[2], r.status);
-  }
+  uint16_t st = 0;
+  r.statusOk = withRetry([&] { return mb.readU16(cfg::COMP_SLAVE, cfg::COMP_REG_STATUS, st); });
+  if (r.statusOk) r.status = (uint8_t)(st >> 8);  // "1 data byte, MSB used"
   return r;
 }
 
@@ -623,7 +590,6 @@ void setup() {
     Spm33_readCtPrimary(modbus, s);
     delay(cfg::FRAME_GAP_MS);
   }
-
 
   WiFi.onEvent(onWifiEvent);
   wifiConnect();
