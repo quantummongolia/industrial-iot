@@ -54,7 +54,7 @@ constexpr uint16_t COMP_REG_ERROR  = 0x4000; // GetErrorDisplayValue  — U16  (
 constexpr uint16_t COMP_REG_TEMP   = 0x4002; // GetDeliveryAirTemp    — S32, mCEL (÷1000 = °C)
 constexpr uint16_t COMP_REG_PRESS  = 0x4004; // GetDeliveryPressure   — S32, mBAR (÷1000 = bar)
 constexpr uint16_t COMP_REG_HOURS  = 0x400E; // GetTotalHrs           — U32, HRS
-constexpr uint16_t COMP_REG_STATUS = 0x4196; // GetStatusDisplayValue — 1 data byte (MSB), status 1..12
+constexpr uint16_t COMP_REG_STATUS = 0x4196; // GetStatusDisplayValue — U16, утга 1..12 (шууд)
 
 // SPM33 register addresses (4xxxx - 40001 = Modbus address)
 constexpr uint16_t SPM33_REG_POWER = 10;   // 40011: Total active power LINT32, ×0.1 W
@@ -424,7 +424,7 @@ CompReading Comp_readFast(Modbus &mb) {
 
   uint16_t st = 0;
   r.statusOk = withRetry([&] { return mb.readU16(cfg::COMP_SLAVE, cfg::COMP_REG_STATUS, st); });
-  if (r.statusOk) r.status = (uint8_t)(st >> 8);  // "1 data byte, MSB used"
+  if (r.statusOk) r.status = (uint8_t)st;  // регистр бүтэн 16-бит утга 1..12 (>>8 биш!)
   return r;
 }
 

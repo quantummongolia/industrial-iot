@@ -203,7 +203,17 @@ function _setupCompressor(db) {
   db.ref('/ushg/compressor/status').on('value', s => {
     if (s.val() === null) return;
     const v = parseInt(s.val(), 10);
-    if (v >= 1 && v <= 12) _applyCompressorState(_CP_STATES[v - 1]);
+    // Atlas Copco GetStatusDisplayValue → 1..12. _CP_STATES нь [v-1] индекстэй.
+    if (v >= 1 && v <= 12) {
+      _applyCompressorState(_CP_STATES[v - 1]);
+    } else {
+      // Мужаас гадуур утга — чимээгүй царцахгүй, картад түүхий утгыг харуулна.
+      console.warn('[compressor] status муж гадуур:', v);
+      const stName = document.getElementById('cpStName');
+      const stDot = document.getElementById('cpStDot');
+      if (stName) { stName.textContent = 'Status ' + v; stName.style.color = _CP_RUNCOL.dim; }
+      if (stDot) { stDot.style.background = _CP_RUNCOL.dim; stDot.style.boxShadow = 'none'; }
+    }
   });
   db.ref('/ushg/compressor/error_code').on('value', s => {
     if (s.val() === null) return;

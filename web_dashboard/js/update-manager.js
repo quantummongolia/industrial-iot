@@ -1,34 +1,29 @@
 // ============================================================
-//  UPDATE MANAGER — Version manifest polling + update modal
+//  UPDATE MANAGER — Version manifest polling + SILENT force update
 //  ------------------------------------------------------------
 //  Firebase deploy хийгдсэний дараа client автоматаар илрүүлж,
-//  хэрэглэгчид modal харуулна:
-//     [ Шинэчлэх ]   [ Дараа ]
+//  ЯМАР Ч modal/товчгүйгээр шууд хүчээр шинэчилнэ:
+//     cache цэвэрлэх → SW unregister → hard reload
 //
 //  State machine:
-//   1. Every 60s → fetch /version.json (cache: 'no-store')
-//   2. remoteVersion !== currentVersion bol → showModal()
-//   3. "Шинэчлэх" → hard reload + SW unregister
-//   4. "Дараа"    → snooze 1 цаг, modal хаана
-//   5. Шинэ хувилбар илэрсэнээс 24+ цаг болсон бол →
-//      зөвхөн "Шинэчлэх" товчтой force mode
+//   1. Every 60s (+ tab focus) → fetch /version.json (cache: 'no-store')
+//   2. remoteVersion !== currentVersion bol → forceUpdate() ШУУД
+//   3. Reload давталтаас хамгаалах: тухайн remote хувилбарт нэг л
+//      удаа reload хийнэ (sessionStorage guard)
 // ============================================================
 
 (function () {
   'use strict';
 
   // ---------- Config ----------
-  const POLL_INTERVAL_MS   = 60 * 1000;         // 1 минут
-  const SNOOZE_MS          = 60 * 60 * 1000;    // 1 цаг
-  const FORCE_AFTER_MS     = 24 * 60 * 60 * 1000; // 24 цаг
-  const VERSION_URL        = '/version.json';
-  const SNOOZE_KEY         = '__update_snoozed_until';
-  const FIRST_SEEN_KEY     = '__update_first_seen';
+  const POLL_INTERVAL_MS = 60 * 1000;   // 1 минут
+  const VERSION_URL      = '/version.json';
+  const RELOADED_KEY     = '__update_reloaded_for'; // sessionStorage (loop guard)
 
   // ---------- State ----------
   let currentVersion = null;
   let pollTimer      = null;
-  let modalShown     = false;
+  let updating       = false;
 
   // ---------- Helpers ----------
   function getCurrentVersion() {
@@ -36,209 +31,19 @@
     return meta ? meta.getAttribute('content') : null;
   }
 
-  function now() { return Date.now(); }
+  // ---------- Force update (silent) ----------
+  async function forceUpdate(remoteVersion) {
+    if (updating) return;
+    updating = true;
 
-  function getSnoozedUntil() {
-    const v = parseInt(localStorage.getItem(SNOOZE_KEY) || '0', 10);
-    return isNaN(v) ? 0 : v;
-  }
-
-  function setSnoozedUntil(ts) {
-    localStorage.setItem(SNOOZE_KEY, String(ts));
-  }
-
-  function clearSnooze() {
-    localStorage.removeItem(SNOOZE_KEY);
-    localStorage.removeItem(FIRST_SEEN_KEY);
-  }
-
-  function getFirstSeen(remoteVersion) {
-    const key = FIRST_SEEN_KEY;
-    const stored = localStorage.getItem(key);
-    if (stored) {
-      try {
-        const obj = JSON.parse(stored);
-        if (obj.version === remoteVersion) return obj.at;
-      } catch {}
-    }
-    const ts = now();
-    localStorage.setItem(key, JSON.stringify({ version: remoteVersion, at: ts }));
-    return ts;
-  }
-
-  function isForceMode(remoteVersion) {
-    const firstSeen = getFirstSeen(remoteVersion);
-    return (now() - firstSeen) >= FORCE_AFTER_MS;
-  }
-
-  // ---------- Modal UI ----------
-  function ensureModal() {
-    if (document.getElementById('updateModal')) return;
-
-    // Press effect + spinner styles (modal-д хэрэглэгдэх дэд элементүүдэд)
-    if (!document.getElementById('updateModalStyles')) {
-      const styleEl = document.createElement('style');
-      styleEl.id = 'updateModalStyles';
-      styleEl.textContent = `
-        #updateModal button {
-          -webkit-tap-highlight-color: transparent;
-          touch-action: manipulation;
-          will-change: transform;
-          transition:
-            transform 120ms cubic-bezier(0.4, 0, 0.2, 1),
-            filter 150ms ease,
-            opacity 150ms ease,
-            background-color 150ms ease;
-        }
-        #updateModalRefresh:hover:not(:disabled) { filter: brightness(1.1); }
-        #updateModalLater:hover:not(:disabled)   { background: rgba(255,255,255,0.04); }
-        #updateModal button:active:not(:disabled) {
-          transform: scale(0.94);
-          filter: brightness(0.88);
-        }
-        #updateModal button:disabled {
-          cursor: not-allowed;
-          transform: none;
-        }
-        .update-spinner {
-          display: inline-block;
-          width: 14px; height: 14px;
-          border: 2px solid rgba(255, 255, 255, 0.28);
-          border-top-color: #fff;
-          border-radius: 50%;
-          animation: update-spinner-spin 0.7s linear infinite;
-          vertical-align: -2px;
-          margin-right: 8px;
-        }
-        @keyframes update-spinner-spin { to { transform: rotate(360deg); } }
-      `;
-      document.head.appendChild(styleEl);
-    }
-
-    const modal = document.createElement('div');
-    modal.id = 'updateModal';
-    modal.style.cssText = `
-      position: fixed; inset: 0; z-index: 99999;
-      display: none; align-items: center; justify-content: center;
-      padding: 16px;
-    `;
-    modal.innerHTML = `
-      <div id="updateModalBackdrop" style="
-        position: absolute; inset: 0;
-        background: rgba(0, 0, 0, 0.5);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-      "></div>
-      <div style="
-        position: relative; z-index: 1;
-        max-width: 400px; width: 100%;
-        background: var(--color-bg-elevated, #1f1f25);
-        border: 1px solid var(--color-border-strong, rgba(255,255,255,0.08));
-        border-radius: 16px;
-        padding: 28px 24px;
-        box-shadow: 0 24px 48px rgba(0,0,0,0.4);
-        text-align: center;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      ">
-        <div style="
-          width: 56px; height: 56px; margin: 0 auto 16px;
-          border-radius: 50%;
-          background: rgba(97, 149, 255, 0.12);
-          display: flex; align-items: center; justify-content: center;
-          color: var(--color-accent, #6195ff);
-        ">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 12a9 9 0 1 1-3-6.7L21 8"/>
-            <polyline points="21 3 21 8 16 8"/>
-          </svg>
-        </div>
-        <h3 style="
-          font-size: 18px; font-weight: 700;
-          color: var(--color-text-primary, #f5f5f7);
-          margin: 0 0 8px;
-        " id="updateModalTitle">Шинэ хувилбар бэлэн</h3>
-        <p style="
-          font-size: 13px; line-height: 1.5;
-          color: var(--color-text-soft, #a1a1aa);
-          margin: 0 0 24px;
-        " id="updateModalSubtitle">Сайжруулалт, алдаа засвар бэлэн болсон. Шинэчлэхэд хэдхэн секунд болно.</p>
-        <div style="display: flex; gap: 8px;" id="updateModalButtons">
-          <button id="updateModalLater" style="
-            flex: 1; padding: 11px 16px;
-            background: transparent;
-            border: 1px solid var(--color-border-strong, rgba(255,255,255,0.08));
-            color: var(--color-text-soft, #a1a1aa);
-            border-radius: 10px;
-            font-size: 13px; font-weight: 500; font-family: inherit;
-            cursor: pointer;
-          ">Дараа</button>
-          <button id="updateModalRefresh" style="
-            flex: 1; padding: 11px 16px;
-            background: var(--color-accent, #6195ff);
-            border: none;
-            color: #fff;
-            border-radius: 10px;
-            font-size: 13px; font-weight: 600; font-family: inherit;
-            cursor: pointer;
-          ">Шинэчлэх</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
-
-    document.getElementById('updateModalRefresh').onclick = doUpdate;
-    document.getElementById('updateModalLater').onclick   = doSnooze;
-  }
-
-  // "Шинэчилж байна..." state — товч дарангуут хэрэглэгчид feedback өгнө
-  function setRefreshingState() {
-    const refresh = document.getElementById('updateModalRefresh');
-    const later   = document.getElementById('updateModalLater');
-    const subtitle = document.getElementById('updateModalSubtitle');
-    if (refresh) {
-      refresh.disabled = true;
-      refresh.style.cursor = 'wait';
-      refresh.innerHTML = '<span class="update-spinner"></span>Шинэчилж байна...';
-    }
-    if (later) {
-      later.disabled = true;
-      later.style.opacity = '0.4';
-      later.style.pointerEvents = 'none';
-    }
-    if (subtitle) {
-      subtitle.textContent = 'Cache цэвэрлэж, шинэ хувилбар татаж байна...';
-    }
-  }
-
-  function showModal(remoteVersion) {
-    if (modalShown) return;
-    ensureModal();
-    const modal = document.getElementById('updateModal');
-    modal.style.display = 'flex';
-    modalShown = true;
-
-    // 24+ цаг өнгөрсөн бол "Дараа" товчийг нуунa
-    if (isForceMode(remoteVersion)) {
-      const laterBtn = document.getElementById('updateModalLater');
-      if (laterBtn) laterBtn.style.display = 'none';
-      const subtitle = document.getElementById('updateModalSubtitle');
-      if (subtitle) subtitle.textContent = 'Энэ хувилбарыг үргэлжлүүлэх боломжгүй. Шинэчилнэ үү.';
-    }
-  }
-
-  function hideModal() {
-    const modal = document.getElementById('updateModal');
-    if (modal) modal.style.display = 'none';
-    modalShown = false;
-  }
-
-  // ---------- Actions ----------
-  async function doUpdate() {
-    // Шууд visual feedback: cache clear + SW unregister 3-7с үргэлжилнэ,
-    // тиймээс хэрэглэгч царцсан мэт мэдрэхгүйн тулд modal-г "ажиллаж байна" төлөв рүү шилжүүлнэ.
-    setRefreshingState();
-
-    clearSnooze();
+    // Reload давталтаас хамгаалах: энэ remote хувилбарт нэг л удаа reload.
+    try {
+      if (sessionStorage.getItem(RELOADED_KEY) === remoteVersion) {
+        console.warn('[update] already reloaded for', remoteVersion, '— meta/version.json зөрж байж магадгүй');
+        return;
+      }
+      sessionStorage.setItem(RELOADED_KEY, remoteVersion);
+    } catch {}
 
     // 1. Service worker-н бүх cache устгана
     if ('caches' in window) {
@@ -256,31 +61,20 @@
       } catch (e) { console.warn('[update] SW unregister failed', e); }
     }
 
-    // 3. Hard reload
+    // 3. Hard reload — шууд, хэрэглэгчээс асуухгүй
     location.reload();
-  }
-
-  function doSnooze() {
-    setSnoozedUntil(now() + SNOOZE_MS);
-    hideModal();
   }
 
   // ---------- Polling ----------
   async function checkForUpdate() {
+    if (updating) return;
     try {
-      const res = await fetch(VERSION_URL + '?t=' + now(), { cache: 'no-store' });
+      const res = await fetch(VERSION_URL + '?t=' + Date.now(), { cache: 'no-store' });
       if (!res.ok) return;
       const data = await res.json();
       const remote = data.version;
       if (!remote || remote === currentVersion) return;
-
-      // Шинэ хувилбар илэрсэн
-      const snoozedUntil = getSnoozedUntil();
-      if (now() < snoozedUntil && !isForceMode(remote)) {
-        // Хэрэглэгч snooze хийсэн, force mode ч биш
-        return;
-      }
-      showModal(remote);
+      forceUpdate(remote);
     } catch (e) {
       console.warn('[update] check failed', e);
     }
@@ -298,7 +92,7 @@
     // Давтан шалгалт
     pollTimer = setInterval(checkForUpdate, POLL_INTERVAL_MS);
 
-    // Tab-д fokus ирэх үед шалгах (хэрэглэгч бусад tab-аас буцсаны дараа)
+    // Tab-д фокус ирэх үед шалгах (хэрэглэгч бусад tab-аас буцсаны дараа)
     document.addEventListener('visibilitychange', function () {
       if (document.visibilityState === 'visible') checkForUpdate();
     });
