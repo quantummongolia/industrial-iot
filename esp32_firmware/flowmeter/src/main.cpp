@@ -324,13 +324,8 @@ private:
     digitalWrite(cfg::DE_RE, HIGH);
     delayMicroseconds(50);          // DE өндөр болсны дараа драйвер идэвхжих хугацаа
     Serial1.write(data, len);
-    // Serial1.flush() нь UART peripheral wedge болоход (MAX485 цахилгаан гэмтэл, clock
-    // алдаа) TX-done дохио ирэхгүй бол ХЯЗГААРГҮЙ блоклож болзошгүй тул ашиглахгүй.
-    // Оронд нь 9600 baud, 8N1 (10 bit/byte) дээр бүх байт физикээр гарах хугацааг
-    // тооцоолон хүлээнэ — bounded, хэзээ ч гацахгүй. Дараа нь MAX485 шугам тогтворжих
-    // зайг (1200µs) нэмж DE/RE-г салгана.
-    uint32_t txUs = (uint32_t)len * 10UL * 1000000UL / cfg::BAUD;
-    delayMicroseconds(txUs + 1200);
+    Serial1.flush();             // бүх байт физикээр гартал хүлээнэ (TX done)
+    delayMicroseconds(1200);  // MAX485/RS485 шугам тогтворжих зай
     digitalWrite(cfg::DE_RE, LOW);
     delayMicroseconds(200);         // RX горим идэвхжих, bus settle
   }
