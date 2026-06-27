@@ -29,4 +29,12 @@ void loop(FirebaseData* fbData, bool firebaseUploadOk);
  *  шалгаад LED-ээ өөрчилж эсвэл sensor read-ийг хойшлуулах боломжтой. */
 bool isUpdating();
 
+/** Сүүлд Firebase-д амжилттай бичсэн агшин (millis). 0 = хараахан холбогдоогүй.
+ *  main loop-ийн Firebase delivery watchdog-д ашиглана. */
+unsigned long lastContactMs();
+
+/** main loop-оос гол data upload амжилттай болсныг мэдэгдэнэ (contact timestamp-г
+ *  шинэчилнэ) — Firebase delivery watchdog-ийн "амьд" тэмдэг. */
+void noteFbSuccess();
+
 } // namespace ota

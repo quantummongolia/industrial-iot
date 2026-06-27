@@ -36,6 +36,7 @@
 #include <addons/RTDBHelper.h>   // Firebase Realtime Database helper functions
 #include <addons/TokenHelper.h>  // Firebase authentication token helper
 #include <esp_task_wdt.h>        // ESP32 hardware watchdog timer library
+#include <esp_system.h>          // esp_restart() — WDT-ISR доторх цэвэр reset
 
 // ========================== CONFIGURATION ==========================
 
@@ -323,11 +324,13 @@ private:
     digitalWrite(cfg::DE_RE, HIGH);
     delayMicroseconds(50);          // DE өндөр болсны дараа драйвер идэвхжих хугацаа
     Serial1.write(data, len);
-    Serial1.flush();                // TX register-г бүрэн хоослох
-    // 9600 baud дээр нэг байт ≈ 1.04ms. flush() дууссаны дараа MAX485 шугам
-    // тогтворжих хүртэл хүлээж DE/RE-г салгана — өмнө нь 100µs нь хэт богино
-    // байсан тул сүүлийн bit таслагдаж slave хариу өгөхгүй болж байсан.
-    delayMicroseconds(1200);
+    // Serial1.flush() нь UART peripheral wedge болоход (MAX485 цахилгаан гэмтэл, clock
+    // алдаа) TX-done дохио ирэхгүй бол ХЯЗГААРГҮЙ блоклож болзошгүй тул ашиглахгүй.
+    // Оронд нь 9600 baud, 8N1 (10 bit/byte) дээр бүх байт физикээр гарах хугацааг
+    // тооцоолон хүлээнэ — bounded, хэзээ ч гацахгүй. Дараа нь MAX485 шугам тогтворжих
+    // зайг (1200µs) нэмж DE/RE-г салгана.
+    uint32_t txUs = (uint32_t)len * 10UL * 1000000UL / cfg::BAUD;
+    delayMicroseconds(txUs + 1200);
     digitalWrite(cfg::DE_RE, LOW);
     delayMicroseconds(200);         // RX горим идэвхжих, bus settle
   }
@@ -563,6 +566,16 @@ void recoverModbusBus() {
  * Initializes serial ports, RS485 transceiver, WiFi, Firebase, and watchdog
  * timer.
  */
+// ── Task WDT timeout handler (cfg::WDT_TIMEOUT_S) ─────────────────────────────
+// trigger_panic=false тул loop() нь хугацаандаа esp_task_wdt_reset() хийгээгүй үед
+// TWDT нь panic үүсгэхгүйгээр энэ weak handler-ийг timer-ISR контекстэд дууддаг.
+// Энд ШУУД esp_restart() хийнэ — panic/coredump/serial хэвлэлийн зам бүрэн алгасагдаж,
+// "амьд атлаа хөшсөн" (Firebase/Modbus блоклосон, эсвэл panic handler гацсан) төлвөөс
+// найдвартай гарна. Энэ нь гадны hardware watchdog-гүйгээр сэргэлтийн гол баталгаа.
+extern "C" void esp_task_wdt_isr_user_handler(void) {
+  esp_restart();
+}
+
 void setup() {
   Serial.begin(115200); // Initialize debug serial port at 115200 baud
   delay(300);           // Brief delay for USB-CDC serial to stabilize
@@ -589,7 +602,9 @@ void setup() {
   esp_task_wdt_config_t wdtConfig = {
       .timeout_ms = cfg::WDT_TIMEOUT_S * 1000, // Timeout in milliseconds
       .idle_core_mask = 0,                // Don't watch idle tasks
-      .trigger_panic = true};             // Reset ESP32 on timeout
+      // panic БИШ: timeout болоход esp_task_wdt_isr_user_handler()-ээс ШУУД
+      // esp_restart() хийнэ. panic handler гацах (coredump/USB-CDC) эрсдэлийг тойрно.
+      .trigger_panic = false};
   esp_task_wdt_reconfigure(&wdtConfig);   // Apply watchdog configuration
   esp_task_wdt_add(NULL); // Add current task to watchdog monitoring
 
@@ -665,6 +680,20 @@ void loop() {
     }
   } else {
     fbNotReadySince = 0;
+  }
+
+  // ---- Firebase delivery watchdog ----
+  // WiFi асан, Firebase.ready()==true мөртөө бичилт сервер хүрэхгүй (token хүчинтэй ч
+  // доорх TCP/TLS session үхсэн "дүлий" төлөв) бол дээрх !Firebase.ready() болзол
+  // ХЭЗЭЭ Ч барихгүй. Иймд сүүлийн амжилттай Firebase контактаас (heartbeat 30с тутам,
+  // эсвэл data upload) MAX_OFFLINE_MS хэтэрвэл цэвэр reset хийж шинээр холбогдоно.
+  if (firebaseReady && WiFi.status() == WL_CONNECTED &&
+      ota::lastContactMs() != 0 &&
+      now - ota::lastContactMs() >= cfg::MAX_OFFLINE_MS) {
+    Serial.println("[Watchdog] Firebase delivery stalled — clean restart");
+    Serial.flush();
+    delay(200);
+    ESP.restart();
   }
 
   // Fallback WiFi polling — onWifiEvent/setAutoReconnect handle most cases,
@@ -812,6 +841,7 @@ void loop() {
     if (Firebase.RTDB.updateNode(&fbData, "/flow_system", &json)) {
       Serial.println("[Firebase] Updated");
       fbOnSuccess();
+      ota::noteFbSuccess(); // Firebase delivery watchdog-ийн "амьд" тэмдэг шинэчлэх
       led::setMode(led::OFF);
       led::pulse(); // upload бүрд нэг ногоон импульс — terminal-той synchron
       uploadOk = true;

@@ -37,6 +37,7 @@
 #include <addons/RTDBHelper.h>
 #include <addons/TokenHelper.h>
 #include <esp_task_wdt.h>
+#include <esp_system.h>          // esp_restart() — WDT-ISR доторх цэвэр reset
 
 // ── Modbus тохиргоо ────────────────────────────────────────────────────
 namespace cfg {
@@ -287,8 +288,10 @@ private:
     digitalWrite(_de, HIGH);
     delayMicroseconds(50);          // DE өндөр болсны дараа драйвер идэвхжих хугацаа
     _serial.write(data, len);
-    _serial.flush();                // TX register-г бүрэн хоослох
-    delayMicroseconds(1200);        // 9600 baud дээр шугам тогтворжих хүртэл
+    // flush() нь UART wedge болоход (MAX485/RS485 гэмтэл) ХЯЗГААРГҮЙ блоклож болзошгүй тул
+    // ашиглахгүй. Оронд нь бүх байт физикээр гарах хугацааг тооцоолон хүлээнэ (bounded).
+    uint32_t txUs = (uint32_t)len * 10UL * 1000000UL / cfg::BAUD;
+    delayMicroseconds(txUs + 1200);        // 9600 baud дээр шугам тогтворжих хүртэл
     digitalWrite(_de, LOW);
     delayMicroseconds(200);         // RX горим идэвхжих, bus settle
   }
@@ -521,6 +524,16 @@ static float liveValue(float v, LiveState &st) {
 }
 LiveState lvEm08, lvEm09, lvEm10, lvBayan, lvClean;
 
+// ── Task WDT timeout handler (cfg::WDT_TIMEOUT_S) ─────────────────────────────
+// trigger_panic=false тул loop() нь хугацаандаа esp_task_wdt_reset() хийгээгүй үед
+// TWDT нь panic үүсгэхгүйгээр энэ weak handler-ийг timer-ISR контекстэд дууддаг.
+// Энд ШУУД esp_restart() хийнэ — panic/coredump/serial хэвлэлийн зам бүрэн алгасагдаж,
+// "амьд атлаа хөшсөн" (Firebase/Modbus блоклосон, эсвэл panic handler гацсан) төлвөөс
+// найдвартай гарна. Энэ нь гадны hardware watchdog-гүйгээр сэргэлтийн гол баталгаа.
+extern "C" void esp_task_wdt_isr_user_handler(void) {
+  esp_restart();
+}
+
 void setup() {
   Serial.begin(115200);
   delay(300);
@@ -547,7 +560,8 @@ void setup() {
 
   esp_task_wdt_config_t wdtConfig = {.timeout_ms = cfg::WDT_TIMEOUT_S * 1000,
                                      .idle_core_mask = 0,
-                                     .trigger_panic = true};
+                                     // panic БИШ: timeout болоход esp_task_wdt_isr_user_handler()-ээс ШУУД esp_restart().
+      .trigger_panic = false};
   esp_task_wdt_reconfigure(&wdtConfig);
   esp_task_wdt_add(NULL);
 
@@ -608,6 +622,20 @@ void loop() {
     }
   } else {
     fbNotReadySince = 0;
+  }
+
+  // ---- Firebase delivery watchdog ----
+  // WiFi асан, Firebase.ready()==true мөртөө бичилт сервер хүрэхгүй (token хүчинтэй ч
+  // доорх TCP/TLS session үхсэн "дүлий" төлөв) бол дээрх !Firebase.ready() болзол
+  // ХЭЗЭЭ Ч барихгүй. Иймд сүүлийн амжилттай Firebase контактаас MAX_OFFLINE_MS
+  // хэтэрвэл цэвэр reset хийж шинээр холбогдоно.
+  if (firebaseReady && WiFi.status() == WL_CONNECTED &&
+      ota::lastContactMs() != 0 &&
+      now - ota::lastContactMs() >= cfg::MAX_OFFLINE_MS) {
+    Serial.println("[Watchdog] Firebase delivery stalled — clean restart");
+    Serial.flush();
+    delay(200);
+    ESP.restart();
   }
 
   if (WiFi.status() != WL_CONNECTED &&
@@ -794,6 +822,7 @@ void loop() {
   if (emOk && pfOk) {
     Serial.println("[Firebase] Updated");
     fbOnSuccess();
+    ota::noteFbSuccess(); // delivery watchdog-ийн \"амьд\" тэмдэг
     if (ulsMountKnown) ulsMountSent = true;   // mount height нийтлэгдсэн
     if (uls2MountKnown) uls2MountSent = true;
     led::setMode(led::OFF);

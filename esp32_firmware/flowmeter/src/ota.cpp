@@ -58,6 +58,18 @@ struct OtaJob {
 QueueHandle_t otaQueue = nullptr;
 TaskHandle_t  otaTaskHandle = nullptr;
 
+// Команд стримийг main loop руу дамжуулах queue. Stream task нь Firebase/NVS-д ОГТ
+// хүрэхгүй — зөвхөн ирсэн payload-ыг энд хийнэ. handleCommand-ийг main loop (fbData-ийн
+// цорын ганц эзэн) ажиллуулна. Ингэснээр нэг FirebaseData объектыг 2 task зэрэг барих
+// race (TLS/heap corruption → panic)-аас бүрэн сэргийлнэ.
+struct PendingCmd { char payload[768]; };
+QueueHandle_t cmdQueue = nullptr;
+
+// Сүүлд Firebase-д амжилттай бичсэн агшин (ms). 0 = хараахан холбогдоогүй.
+// main loop-ийн "Firebase delivery watchdog"-д ашиглана (token хүчинтэй ч TCP үхсэн
+// "дүлий" төлвийг барина).
+volatile unsigned long lastFbContactMs = 0;
+
 uint32_t unixNow() {
   time_t t = time(nullptr);
   return (t > 1700000000) ? (uint32_t)t : 0;
@@ -166,7 +178,8 @@ void writeHeartbeat(FirebaseData* fb) {
   j.set("uptime_s", (int)(millis() / 1000));
   j.set("free_heap", (int)ESP.getFreeHeap());
   j.set("rssi", WiFi.RSSI());
-  Firebase.RTDB.updateNodeSilent(fb, basePath().c_str(), &j);
+  if (Firebase.RTDB.updateNodeSilent(fb, basePath().c_str(), &j))
+    lastFbContactMs = millis();  // delivery watchdog-ийн "Firebase амьд" тэмдэг
 }
 
 // OTA task callback — HTTPUpdate-аас бүх 1-2KB block-ын дараа дуудагдана.
@@ -346,16 +359,23 @@ void handleCommand(FirebaseData* fb, const String& payload) {
 void streamCallback(FirebaseStream data) {
   String payload = data.payload();
   if (payload.length() == 0 || payload == "null") return;
-  Serial.printf("[CMD] stream event @ %s : %s\n", data.dataPath().c_str(),
-                payload.c_str());
-  handleCommand(&streamFb, payload);
+  Serial.printf("[CMD] stream event @ %s\n", data.dataPath().c_str());
+  // ВАЖНО: энэ нь Firebase санги доторх стрим task-аас дуудагдана. Энд Firebase эсвэл
+  // NVS-д ХҮРВЭЛ streamFb-г main loop-той зэрэг барьж race → corruption → panic үүснэ.
+  // Тиймээс зөвхөн payload-ыг queue-д тавиад гарна; боловсруулалтыг main loop хийнэ.
+  if (!cmdQueue) return;
+  PendingCmd pc;
+  strncpy(pc.payload, payload.c_str(), sizeof(pc.payload) - 1);
+  pc.payload[sizeof(pc.payload) - 1] = '\0';
+  if (xQueueSend(cmdQueue, &pc, 0) != pdTRUE)
+    Serial.println("[CMD] queue full — command dropped");
 }
 
 void streamTimeoutCallback(bool timeout) {
   if (timeout) Serial.println("[CMD] stream timeout — reconnecting...");
 }
 
-void selfTestIfReady() {
+void selfTestIfReady(FirebaseData* fb) {
   if (selfTestDone) return;
   if (millis() - bootMs < SELF_TEST_MIN_UPTIME_MS) return;
   if (publishCounter < SELF_TEST_PUBLISH_GOAL) return;
@@ -371,7 +391,8 @@ void selfTestIfReady() {
     FirebaseJson j;
     j.set("status", "running");
     j.set("validated_at/.sv", "timestamp");  // Firebase server timestamp (NTP-аас хамаардаггүй)
-    Firebase.RTDB.updateNodeSilent(&streamFb, basePath().c_str(), &j);
+    if (Firebase.RTDB.updateNodeSilent(fb, basePath().c_str(), &j))
+      lastFbContactMs = millis();
 
     // OTA state-machine: validating → completed
     FirebaseJson ota;
@@ -380,7 +401,7 @@ void selfTestIfReady() {
     ota.set("message", String("Updated to ") + firmwareVersion);
     ota.set("ts/.sv", "timestamp");
     ota.set("cmd_id", "");
-    Firebase.RTDB.updateNodeSilent(&streamFb, (basePath() + "/ota_status").c_str(), &ota);
+    Firebase.RTDB.updateNodeSilent(fb, (basePath() + "/ota_status").c_str(), &ota);
   }
 
   // App-level boot counter цэвэрлэх — энэ boot self-test амжилттай давсан
@@ -455,10 +476,12 @@ void begin(FirebaseData* fbData) {
   checkAppLevelRollback();
 
   publishBootState(fbData);
+  lastFbContactMs = millis();  // boot publish = эхний амжилттай контакт
 
   // OTA task + queue үүсгэх (нэг л удаа)
   if (!otaQueue) {
     otaQueue = xQueueCreate(2, sizeof(OtaJob));
+    cmdQueue = xQueueCreate(4, sizeof(PendingCmd)); // стрим task → main loop команд
     xTaskCreatePinnedToCore(otaTask, "ota", OTA_TASK_STACK, nullptr,
                             1 /* priority */, &otaTaskHandle, 0 /* Core 0 */);
     Serial.println("[OTA] Background task spawned on Core 0");
@@ -479,6 +502,15 @@ void begin(FirebaseData* fbData) {
 void loop(FirebaseData* fbData, bool firebaseUploadOk) {
   if (firebaseUploadOk && publishCounter < 255) publishCounter++;
 
+  // Стрим task-аас ирсэн командуудыг ЭНД (main loop, fbData-ийн цорын ганц эзэн)
+  // боловсруулна. handleCommand нь NVS dedup + үр дүнгийн бичилт + reboot/update-ийг
+  // бүгдийг main loop контекстэд гүйцэтгэнэ → cross-task FirebaseData хандалт байхгүй.
+  if (cmdQueue) {
+    PendingCmd pc;
+    while (xQueueReceive(cmdQueue, &pc, 0) == pdTRUE)
+      handleCommand(fbData, String(pc.payload));
+  }
+
   // OTA progress publish — main loop-аас бичих учир Firebase нь нэг л task-аас хандана
   publishProgressIfChanged(fbData);
 
@@ -488,11 +520,15 @@ void loop(FirebaseData* fbData, bool firebaseUploadOk) {
     writeHeartbeat(fbData);
   }
 
-  selfTestIfReady();
+  selfTestIfReady(fbData);
 }
 
 bool isUpdating() {
   return progress.active;
 }
+
+unsigned long lastContactMs() { return lastFbContactMs; }
+
+void noteFbSuccess() { lastFbContactMs = millis(); }
 
 } // namespace ota
